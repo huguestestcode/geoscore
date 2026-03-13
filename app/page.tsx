@@ -55,43 +55,52 @@ export default function LandingPage() {
     e.preventDefault()
     setLoading(true)
     setError(null)
+    setProgress('Connexion au serveur...')
 
     try {
-      setProgress("Analyse de votre site...")
-      const res = await fetch('/api/audit/run', {
+      const res = await fetch('/api/audit/stream', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ url, ...form }),
       })
+
       if (!res.ok) {
-        const data = await res.json()
+        const data = await res.json().catch(() => ({}))
         throw new Error(data.error || 'Erreur lors du lancement')
       }
-      const { auditId } = await res.json()
 
-      const steps = [
-        'Analyse de votre site web...',
-        'Test ChatGPT (3 requêtes)...',
-        'Test Perplexity (3 requêtes)...',
-        'Test Gemini (3 requêtes)...',
-        'Calcul du score GEO...',
-        'Génération des recommandations...',
-        'Rapport prêt !',
-      ]
-      let i = 0
-      const iv = setInterval(() => { if (i < steps.length - 1) setProgress(steps[++i]) }, 5000)
+      if (!res.body) throw new Error('Pas de flux de données')
 
-      let attempts = 0
-      while (attempts < 40) {
-        await new Promise(r => setTimeout(r, 3000))
-        attempts++
-        const s = await fetch(`/api/audit/status/${auditId}`)
-        const { status } = await s.json()
-        if (status === 'completed') { clearInterval(iv); router.push(`/results/${auditId}`); return }
-        if (status === 'error') { clearInterval(iv); throw new Error("L'audit a échoué.") }
+      const reader = res.body.getReader()
+      const decoder = new TextDecoder()
+      let buffer = ''
+
+      while (true) {
+        const { done, value } = await reader.read()
+        if (done) break
+        buffer += decoder.decode(value, { stream: true })
+
+        const lines = buffer.split('\n')
+        buffer = lines.pop() || ''
+
+        for (const line of lines) {
+          if (!line.startsWith('data: ')) continue
+          try {
+            const data = JSON.parse(line.slice(6))
+            if (data.type === 'progress') {
+              setProgress(data.message)
+            } else if (data.type === 'complete') {
+              localStorage.setItem(`audit_${data.auditId}`, JSON.stringify(data))
+              router.push(`/results/${data.auditId}`)
+              return
+            } else if (data.type === 'error') {
+              throw new Error(data.message || "L'audit a échoué.")
+            }
+          } catch (parseErr) {
+            // ignore malformed lines
+          }
+        }
       }
-      clearInterval(iv)
-      throw new Error('Timeout. Veuillez réessayer.')
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Erreur')
       setLoading(false)
@@ -428,10 +437,10 @@ export default function LandingPage() {
         </h2>
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit,minmax(220px,1fr))', gap: '2rem' }}>
           {[
-            { n: '01', icon: Globe, title: 'Entrez votre URL', desc: 'Collez l'URL de votre site et vos 2 mots-clés principaux.', color: '#3B82F6' },
+            { n: '01', icon: Globe, title: 'Entrez votre URL', desc: "Collez l'URL de votre site et vos 2 mots-clés principaux.", color: '#3B82F6' },
             { n: '02', icon: MessageSquare, title: 'On teste 3 LLMs', desc: 'GPT-4o, Perplexity et Gemini sont interrogés sur 9 requêtes liées à vos mots-clés.', color: '#6366f1' },
             { n: '03', icon: BarChart3, title: 'Analyse on-page', desc: 'FAQ schema, structure de contenu, autorité, liens — 10 facteurs GEO analysés.', color: '#8b5cf6' },
-            { n: '04', icon: Sparkles, title: 'Plan d'action IA', desc: 'GPT-4o génère 15 recommandations priorisées et personnalisées pour votre site.', color: '#c084fc' },
+            { n: '04', icon: Sparkles, title: "Plan d'action IA", desc: 'GPT-4o génère 15 recommandations priorisées et personnalisées pour votre site.', color: '#c084fc' },
           ].map(step => {
             const Icon = step.icon
             return (
