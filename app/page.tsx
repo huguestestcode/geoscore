@@ -808,7 +808,7 @@ export default function SimulateurCFE() {
                     color: '#fff', padding: '4px 14px', borderRadius: '99px',
                     fontSize: '12px', fontWeight: 700, marginBottom: '16px',
                   }}>
-                    <Star size={12} /> Adresse Paris 8ème — Champs-Élysées
+                    <Star size={12} /> Adresse Paris 2ème — Rue Vivienne
                   </span>
                   <h3 style={{ fontSize: '22px', fontWeight: 800, color: '#1A1A2E', marginBottom: '8px' }}>
                     Domiciliez votre entreprise à Paris
@@ -823,7 +823,7 @@ export default function SimulateurCFE() {
                     gap: '8px', marginBottom: '24px', textAlign: 'left',
                   }}>
                     {[
-                      'Adresse prestigieuse Paris 8ème',
+                      'Adresse prestigieuse Paris 2ème',
                       'Anonymisation de votre adresse personnelle',
                       'Scan & réception du courrier inclus',
                       'CFE parmi les moins chères de France',
@@ -901,7 +901,7 @@ export default function SimulateurCFE() {
               },
               {
                 q: "Combien coûte la domiciliation LegalPlace à Paris ?",
-                a: "À partir de 19 €/mois, vous bénéficiez d'une adresse dans le 8ème arrondissement de Paris (Champs-Élysées), de la gestion de votre courrier et de tous les avantages d'une domiciliation professionnelle. Résiliable à tout moment.",
+                a: "À partir de 19 €/mois, vous bénéficiez d'une adresse dans le 2ème arrondissement de Paris (Rue Vivienne), de la gestion de votre courrier et de tous les avantages d'une domiciliation professionnelle. Résiliable à tout moment.",
               },
             ].map(({ q, a }) => (
               <FAQItem key={q} question={q} answer={a} />
