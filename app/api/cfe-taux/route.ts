@@ -56,21 +56,24 @@ async function fetchREIComplet(codeInsee: string): Promise<{ taux: number; nom: 
   const DATASET = 'impots-locaux-fichier-de-recensement-des-elements-dimposition-a-la-fiscalite-dir'
   const base = `https://data.economie.gouv.fr/api/explore/v2.1/catalog/datasets/${DATASET}/records`
 
+  // Try field name variants × value type variants (string vs numeric in ODS)
   for (const field of ['codgeo', 'code_commune', 'code_insee']) {
-    try {
-      const url = `${base}?where=${encodeURIComponent(`${field}="${codeInsee}"`)}&limit=3`
-      const res = await fetch(url, { signal: AbortSignal.timeout(10000) })
-      if (!res.ok) continue
-      const data = await res.json()
-      const results: unknown[] = data.results || data.records || []
-      if (!results.length) continue
+    for (const valueExpr of [`"${codeInsee}"`, codeInsee]) {
+      try {
+        const url = `${base}?where=${encodeURIComponent(`${field}=${valueExpr}`)}&limit=3`
+        const res = await fetch(url, { signal: AbortSignal.timeout(10000) })
+        if (!res.ok) continue
+        const data = await res.json()
+        const results: unknown[] = data.results || data.records || []
+        if (!results.length) continue
 
-      const rec = unwrap(results[0])
-      console.log(`[cfe-taux] REI complet code=${codeInsee} field=${field} keys:`, Object.keys(rec).slice(0, 30).join(', '))
+        const rec = unwrap(results[0])
+        console.log(`[cfe-taux] REI complet code=${codeInsee} field=${field} val=${valueExpr} keys:`, Object.keys(rec).slice(0, 30).join(', '))
 
-      const taux = extractCFETaux(rec)
-      if (taux !== null && taux > 0) return { taux, nom: extractNom(rec) }
-    } catch { continue }
+        const taux = extractCFETaux(rec)
+        if (taux !== null && taux > 0) return { taux, nom: extractNom(rec) }
+      } catch { continue }
+    }
   }
   return null
 }
