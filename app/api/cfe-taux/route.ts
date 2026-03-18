@@ -33,7 +33,7 @@ export async function GET(req: NextRequest) {
   try {
     const taux = await fetchFromOFGL(code)
     if (taux) {
-      const result = { taux: taux.taux, nom: taux.nom, annee: 2024, source: 'OFGL — data.ofgl.fr', fetchedAt: Date.now() }
+      const result = { taux: taux.taux, nom: taux.nom, annee: taux.annee, source: 'OFGL — data.ofgl.fr', fetchedAt: Date.now() }
       cache.set(code, result)
       return NextResponse.json(result)
     }
@@ -49,27 +49,32 @@ export async function GET(req: NextRequest) {
 
 // ── data.economie.gouv.fr ─────────────────────────────────────────────────────
 async function fetchFromEconomie(codeInsee: string): Promise<{ taux: number; nom: string } | null> {
-  // The dataset "fiscalite-locale-des-entreprises" has global CFE taux
-  // Try multiple possible field names for commune code
   const baseUrl = 'https://data.economie.gouv.fr/api/explore/v2.1/catalog/datasets/fiscalite-locale-des-entreprises/records'
 
   for (const field of ['codgeo', 'code_commune', 'code_insee', 'com_code']) {
-    const url = `${baseUrl}?where=${field}="${codeInsee}"&limit=5`
-    const res = await fetch(url, { signal: AbortSignal.timeout(8000) })
-    if (!res.ok) continue
+    let url: string
+    try {
+      url = `${baseUrl}?where=${encodeURIComponent(`${field}="${codeInsee}"`)}&limit=5`
+      const res = await fetch(url, { signal: AbortSignal.timeout(8000) })
+      if (!res.ok) continue
 
-    const data = await res.json()
-    const results = data.results || data.records || []
-    if (results.length === 0) continue
+      const data = await res.json()
+      const results = data.results || data.records || []
+      if (results.length === 0) continue
 
-    // Find the CFE taux — look for field containing "cfe" and "hz" (hors zone)
-    const record = results[0]
-    const fields = record.fields || record
-    const taux = extractCFETaux(fields)
-    const nom = extractNom(fields)
+      const record = results[0]
+      // In ODS v2.1 the payload is flat (no nested .fields)
+      const fields = record.fields ?? record
+      console.log(`[cfe-taux] economie field=${field} keys:`, Object.keys(fields).join(', '))
 
-    if (taux !== null && taux > 0) {
-      return { taux, nom }
+      const taux = extractCFETaux(fields)
+      const nom = extractNom(fields)
+
+      if (taux !== null && taux > 0) {
+        return { taux, nom }
+      }
+    } catch {
+      continue
     }
   }
 
@@ -77,37 +82,57 @@ async function fetchFromEconomie(codeInsee: string): Promise<{ taux: number; nom
 }
 
 // ── data.ofgl.fr ──────────────────────────────────────────────────────────────
-async function fetchFromOFGL(codeInsee: string): Promise<{ taux: number; nom: string } | null> {
-  // REI dataset — long format: dispositif_fiscal="CFE", categorie="taux"
-  // Need to sum taux across destinataires (commune + EPCI + syndicats) for global taux
+async function fetchFromOFGL(codeInsee: string): Promise<{ taux: number; nom: string; annee: number } | null> {
   const baseUrl = 'https://data.ofgl.fr/api/explore/v2.1/catalog/datasets/rei/records'
 
+  // Try both field name variants for the commune code
   for (const field of ['code_commune', 'codgeo', 'code_insee']) {
-    const where = `${field}="${codeInsee}" AND dispositif_fiscal="CFE" AND categorie="taux" AND annee="2024"`
-    const url = `${baseUrl}?where=${encodeURIComponent(where)}&select=montant,destinataire,nom_commune,lib_commune&limit=20`
-    const res = await fetch(url, { signal: AbortSignal.timeout(8000) })
-    if (!res.ok) continue
+    let url: string
+    try {
+      // No year filter — get all available years then pick the most recent
+      // (avoids issues with annee type: int vs string in the API)
+      const where = `${field}="${codeInsee}" AND dispositif_fiscal="CFE" AND categorie="taux"`
+      url = `${baseUrl}?where=${encodeURIComponent(where)}&select=montant,valeur,taux,destinataire,nom_commune,lib_commune,libelle_commune,annee&order_by=annee%20desc&limit=30`
 
-    const data = await res.json()
-    const results = data.results || data.records || []
-    if (results.length === 0) continue
+      const res = await fetch(url, { signal: AbortSignal.timeout(8000) })
+      if (!res.ok) continue
 
-    // Sum all destinataires to get the global taux
-    let totalTaux = 0
-    let nom = ''
-    for (const r of results) {
-      const fields = r.fields || r
-      const montant = fields.montant ?? fields.valeur ?? 0
-      if (typeof montant === 'number' && montant > 0) {
-        totalTaux += montant
+      const data = await res.json()
+      const results = data.results || data.records || []
+      if (results.length === 0) continue
+
+      console.log(`[cfe-taux] OFGL field=${field} got ${results.length} rows, sample:`, JSON.stringify(results[0]))
+
+      // Group by year (most recent first — already ordered by annee desc)
+      // Sum taux across all destinataires for the same year
+      const byYear = new Map<number, { total: number; nom: string }>()
+      for (const r of results) {
+        const rec = r.fields ?? r
+        const annee = toNumber(rec.annee)
+        if (!annee) continue
+
+        // The taux value can be in different fields depending on dataset version
+        const montant = toNumber(rec.montant ?? rec.valeur ?? rec.taux)
+        if (montant === null || montant <= 0) continue
+
+        const nom = rec.nom_commune || rec.lib_commune || rec.libelle_commune || rec.nom || ''
+        const existing = byYear.get(annee)
+        if (existing) {
+          existing.total += montant
+        } else {
+          byYear.set(annee, { total: montant, nom })
+        }
       }
-      if (!nom) {
-        nom = fields.nom_commune || fields.lib_commune || fields.nom || ''
-      }
-    }
 
-    if (totalTaux > 0) {
-      return { taux: Math.round(totalTaux * 100) / 100, nom }
+      if (byYear.size === 0) continue
+
+      // Pick the most recent year
+      const latestYear = Math.max(...byYear.keys())
+      const latest = byYear.get(latestYear)!
+      return { taux: Math.round(latest.total * 100) / 100, nom: latest.nom, annee: latestYear }
+
+    } catch {
+      continue
     }
   }
 
@@ -115,23 +140,36 @@ async function fetchFromOFGL(codeInsee: string): Promise<{ taux: number; nom: st
 }
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
+
+/** Parse a value to number, handling both number and string types */
+function toNumber(val: unknown): number | null {
+  if (typeof val === 'number') return val
+  if (typeof val === 'string') {
+    const n = parseFloat(val.replace(',', '.'))
+    return isNaN(n) ? null : n
+  }
+  return null
+}
+
 function extractCFETaux(fields: Record<string, unknown>): number | null {
   // Try common field name patterns for CFE taux HZ (hors zone)
   const patterns = [
     'taux_cfe_hz', 'taux_cfe', 'cfe_hz', 'cfe_taux_hz', 'cfe_taux',
     'taux_global_cfe_hz', 'taux_global_cfe', 'txg_cfe_hz', 'txg_cfe',
-    'tx_cfe_hz', 'tx_cfe',
+    'tx_cfe_hz', 'tx_cfe', 'txcfe_hz', 'txcfe',
   ]
   for (const key of patterns) {
-    if (key in fields && typeof fields[key] === 'number' && (fields[key] as number) > 0) {
-      return fields[key] as number
+    if (key in fields) {
+      const n = toNumber(fields[key])
+      if (n !== null && n > 0) return n
     }
   }
 
-  // Fallback: look for any field containing 'cfe' and a numeric value
+  // Fallback: look for any field containing 'cfe' and a numeric value in [0, 100]
   for (const [key, val] of Object.entries(fields)) {
-    if (key.toLowerCase().includes('cfe') && typeof val === 'number' && val > 0 && val < 100) {
-      return val
+    if (key.toLowerCase().includes('cfe')) {
+      const n = toNumber(val)
+      if (n !== null && n > 0 && n < 100) return n
     }
   }
 
@@ -139,7 +177,7 @@ function extractCFETaux(fields: Record<string, unknown>): number | null {
 }
 
 function extractNom(fields: Record<string, unknown>): string {
-  for (const key of ['libgeo', 'nom_commune', 'lib_commune', 'nom', 'commune']) {
+  for (const key of ['libgeo', 'nom_commune', 'lib_commune', 'libelle_commune', 'nom', 'commune']) {
     if (key in fields && typeof fields[key] === 'string') {
       return fields[key] as string
     }
