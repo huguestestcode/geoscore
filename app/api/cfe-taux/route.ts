@@ -1,8 +1,9 @@
 import { NextRequest, NextResponse } from 'next/server'
 
-// ── Taux CFE hardcodés — données DGFiP REI 2024 ──────────────────────────────
-// Source : Cabinet FSL Fiscalité 2024, data.economie.gouv.fr
+// ── Taux CFE hardcodés — données DGFiP REI 2025 ──────────────────────────────
+// Sources : Cabinet FSL Fiscalité 2025 (Banque des Territoires), sedomicilier.fr, DGCL août 2025
 // Le taux indiqué est le taux global CFE HZ (hors zone) = commune + EPCI + syndicats
+const ANNEE_TAUX = 2025
 const TAUX_CONNUS: Record<string, { taux: number; nom: string }> = {
   // ── Île-de-France ──────────────────────────────────────────────────────────
   '75056': { taux: 16.52, nom: 'Paris' },
@@ -96,7 +97,7 @@ const TAUX_CONNUS: Record<string, { taux: number; nom: string }> = {
   '13215': { taux: 32.87, nom: 'Marseille 15ème' },
   '13216': { taux: 32.87, nom: 'Marseille 16ème' },
 
-  // ── Grandes métropoles ─────────────────────────────────────────────────────
+  // ── Grandes métropoles — taux 2025 vérifiés ───────────────────────────────
   '33063': { taux: 35.06, nom: 'Bordeaux' },
   '31555': { taux: 36.58, nom: 'Toulouse' },
   '06088': { taux: 28.88, nom: 'Nice' },
@@ -113,24 +114,24 @@ const TAUX_CONNUS: Record<string, { taux: number; nom: string }> = {
   '76540': { taux: 26.50, nom: 'Rouen' },
   '21231': { taux: 27.04, nom: 'Dijon' },
   '63113': { taux: 27.14, nom: 'Clermont-Ferrand' },
-  '13001': { taux: 29.20, nom: 'Aix-en-Provence' },
-  '42218': { taux: 27.45, nom: 'Saint-Étienne' },
-  '83137': { taux: 30.80, nom: 'Toulon' },
-  '76351': { taux: 25.40, nom: 'Le Havre' },
-  '80021': { taux: 28.90, nom: 'Amiens' },
-  '87085': { taux: 28.60, nom: 'Limoges' },
-  '66136': { taux: 35.20, nom: 'Perpignan' },
-  '57463': { taux: 27.80, nom: 'Metz' },
-  '54395': { taux: 27.50, nom: 'Nancy' },
-  '14118': { taux: 26.80, nom: 'Caen' },
-  '80041': { taux: 28.90, nom: 'Amiens' },
-  '45234': { taux: 25.60, nom: 'Orléans' },
-  '68224': { taux: 29.40, nom: 'Mulhouse' },
-  '25056': { taux: 27.90, nom: 'Besançon' },
-  '30189': { taux: 31.50, nom: 'Nîmes' },
+  '13001': { taux: 32.87, nom: 'Aix-en-Provence' },   // +3.67 vs 2024
+  '42218': { taux: 29.67, nom: 'Saint-Étienne' },      // +2.22 vs 2024
+  '83137': { taux: 35.89, nom: 'Toulon' },             // +5.09 vs 2024
+  '76351': { taux: 25.32, nom: 'Le Havre' },
+  '80021': { taux: 25.83, nom: 'Amiens' },
+  '87085': { taux: 26.40, nom: 'Limoges' },
+  '66136': { taux: 34.59, nom: 'Perpignan' },
+  '57463': { taux: 25.94, nom: 'Metz' },
+  '54395': { taux: 29.65, nom: 'Nancy' },
+  '14118': { taux: 25.71, nom: 'Caen' },
+  '45234': { taux: 24.88, nom: 'Orléans' },
+  '68224': { taux: 26.36, nom: 'Mulhouse' },
+  '25056': { taux: 26.75, nom: 'Besançon' },
+  '30189': { taux: 34.30, nom: 'Nîmes' },             // +2.80 vs 2024
   '64445': { taux: 26.40, nom: 'Pau' },
-  '84007': { taux: 29.80, nom: 'Avignon' },
-  '86194': { taux: 27.20, nom: 'Poitiers' },
+  '84007': { taux: 37.42, nom: 'Avignon' },             // +7.62 vs 2024
+  '86194': { taux: 26.01, nom: 'Poitiers' },
+  '72181': { taux: 27.41, nom: 'Le Mans' },
   '17300': { taux: 26.10, nom: 'La Rochelle' },
   '34032': { taux: 34.80, nom: 'Béziers' },
   '06029': { taux: 29.60, nom: 'Cannes' },
@@ -176,7 +177,7 @@ export async function GET(req: NextRequest) {
   // 2. Données hardcodées (instantané, fiable)
   const known = TAUX_CONNUS[code]
   if (known) {
-    const result = { taux: known.taux, nom: known.nom, annee: 2024, source: 'DGFiP REI 2024', fetchedAt: Date.now() }
+    const result = { taux: known.taux, nom: known.nom, annee: ANNEE_TAUX, source: `DGFiP REI ${ANNEE_TAUX}`, fetchedAt: Date.now() }
     cache.set(code, result)
     return NextResponse.json(result)
   }
@@ -185,7 +186,7 @@ export async function GET(req: NextRequest) {
   try {
     const r = await fetchREIComplet(code)
     if (r) {
-      const result = { taux: r.taux, nom: r.nom, annee: 2024, source: 'DGFiP REI — data.economie.gouv.fr', fetchedAt: Date.now() }
+      const result = { taux: r.taux, nom: r.nom, annee: ANNEE_TAUX, source: 'DGFiP REI — data.economie.gouv.fr', fetchedAt: Date.now() }
       cache.set(code, result)
       return NextResponse.json(result)
     }
@@ -196,7 +197,7 @@ export async function GET(req: NextRequest) {
     try {
       const r = await fetchEconomieDataset(code, ds)
       if (r) {
-        const result = { taux: r.taux, nom: r.nom, annee: 2024, source: `DGFiP — ${ds}`, fetchedAt: Date.now() }
+        const result = { taux: r.taux, nom: r.nom, annee: ANNEE_TAUX, source: `DGFiP — ${ds}`, fetchedAt: Date.now() }
         cache.set(code, result)
         return NextResponse.json(result)
       }
