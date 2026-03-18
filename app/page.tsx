@@ -67,7 +67,7 @@ const STATUTS = [
   { id: 'sarl', name: 'SARL' },
   { id: 'sas',  name: 'SAS' },
   { id: 'sasu', name: 'SASU' },
-  { id: 'sa',   name: 'SA' },
+  { id: 'sci',  name: 'SCI' },
   { id: 'ei',   name: 'Entreprise Individuelle (EI)' },
 ]
 
