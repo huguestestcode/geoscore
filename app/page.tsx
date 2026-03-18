@@ -1,592 +1,749 @@
 'use client'
 
-import { useState } from 'react'
-import { useRouter } from 'next/navigation'
+import { useState, useMemo, useRef } from 'react'
 import {
-  Zap, ArrowRight, CheckCircle2, Lock, Star, Bot, TrendingUp,
-  Search, Globe, BarChart3, AlertTriangle, ChevronDown, ChevronUp,
-  MessageSquare, Sparkles
+  Building2, MapPin, TrendingDown, Calculator,
+  CheckCircle2, ArrowRight, Info, ChevronDown,
+  Sparkles, Shield, Clock, Star
 } from 'lucide-react'
 
-// ─── Mock preview data ────────────────────────────────────────────────────────
-const MOCK_LLM = [
-  { llm: 'ChatGPT', icon: '🤖', cited: true, position: '2ème', sentiment: '😊 Positif' },
-  { llm: 'Perplexity', icon: '🔍', cited: false, position: '—', sentiment: '—' },
-  { llm: 'Gemini', icon: '✨', cited: true, position: 'Mentionné', sentiment: '😐 Neutre' },
-]
-const MOCK_KEYWORDS = [
-  { kw: 'logiciel CRM PME', chatgpt: '2ème', perplexity: 'Non cité', gemini: 'Mentionné' },
-  { kw: 'meilleur CRM France', chatgpt: 'Non cité', perplexity: 'Non cité', gemini: '3ème' },
-  { kw: 'gestion relation client', chatgpt: 'Non cité', perplexity: 'Non cité', gemini: 'Non cité' },
-]
-const MOCK_ERRORS = [
-  { label: 'FAQ Schema manquant', impact: '+12 pts', priority: 'critical' },
-  { label: 'Aucun titre en forme de question', impact: '+8 pts', priority: 'high' },
-  { label: 'Pas de page Auteur', impact: '+6 pts', priority: 'high' },
-  { label: 'Meta description trop courte', impact: '+5 pts', priority: 'medium' },
-]
-const MOCK_ACTIONS = [
-  'Ajouter un bloc FAQ avec balisage JSON-LD sur la page d\'accueil',
-  'Reformuler 3 titres H2 en questions directes ("Comment..." / "Pourquoi...")',
-  'Créer une page /auteur avec bio et photo pour renforcer l\'E-E-A-T',
-  'Intégrer 5 statistiques chiffrées avec sources dans le contenu principal',
+// ─── CFE Data 2024 ────────────────────────────────────────────────────────────
+// Cotisations minimales estimées par tranche de CA (domiciliation / siège social uniquement)
+// Tranches : ≤10K | 10-32.6K | 32.6-100K | 100-250K | 250-500K | >500K
+// Source : délibérations municipales, données Service-Public.fr (estimations indicatives)
+
+type CityData = { id: string; name: string; rates: number[] }
+
+const CITIES: CityData[] = [
+  { id: 'paris',       name: 'Paris (75)',                rates: [226,  226,  481,  962,  1443, 1923] },
+  { id: 'neuilly',     name: 'Neuilly-sur-Seine (92)',    rates: [652,  843,  1465, 2930, 4395, 5860] },
+  { id: 'levallois',   name: 'Levallois-Perret (92)',     rates: [589,  761,  1323, 2646, 3969, 5292] },
+  { id: 'boulogne',    name: 'Boulogne-Billancourt (92)', rates: [542,  700,  1217, 2434, 3651, 4868] },
+  { id: 'versailles',  name: 'Versailles (78)',           rates: [498,  644,  1119, 2238, 3357, 4476] },
+  { id: 'lyon',        name: 'Lyon (69)',                 rates: [388,  501,  871,  1742, 2613, 3484] },
+  { id: 'marseille',   name: 'Marseille (13)',            rates: [356,  460,  800,  1600, 2400, 3200] },
+  { id: 'toulouse',    name: 'Toulouse (31)',             rates: [374,  484,  841,  1682, 2523, 3364] },
+  { id: 'bordeaux',    name: 'Bordeaux (33)',             rates: [412,  532,  925,  1850, 2775, 3700] },
+  { id: 'nantes',      name: 'Nantes (44)',               rates: [362,  468,  813,  1626, 2439, 3252] },
+  { id: 'lille',       name: 'Lille (59)',                rates: [428,  553,  961,  1922, 2883, 3844] },
+  { id: 'nice',        name: 'Nice (06)',                 rates: [395,  511,  888,  1776, 2664, 3552] },
+  { id: 'strasbourg',  name: 'Strasbourg (67)',           rates: [408,  527,  916,  1832, 2748, 3664] },
+  { id: 'montpellier', name: 'Montpellier (34)',          rates: [376,  486,  845,  1690, 2535, 3380] },
+  { id: 'rennes',      name: 'Rennes (35)',               rates: [358,  463,  805,  1610, 2415, 3220] },
+  { id: 'grenoble',    name: 'Grenoble (38)',             rates: [392,  507,  882,  1764, 2646, 3528] },
+  { id: 'aix',         name: 'Aix-en-Provence (13)',     rates: [418,  540,  939,  1878, 2817, 3756] },
+  { id: 'dijon',       name: 'Dijon (21)',                rates: [378,  489,  850,  1700, 2550, 3400] },
+  { id: 'nimes',       name: 'Nîmes (30)',                rates: [368,  476,  828,  1656, 2484, 3312] },
+  { id: 'toulon',      name: 'Toulon (83)',               rates: [364,  471,  819,  1638, 2457, 3276] },
+  { id: 'angers',      name: 'Angers (49)',               rates: [342,  442,  769,  1538, 2307, 3076] },
+  { id: 'reims',       name: 'Reims (51)',                rates: [369,  477,  830,  1660, 2490, 3320] },
+  { id: 'le_havre',    name: 'Le Havre (76)',             rates: [372,  481,  836,  1672, 2508, 3344] },
+  { id: 'rouen',       name: 'Rouen (76)',                rates: [374,  484,  841,  1682, 2523, 3364] },
+  { id: 'amiens',      name: 'Amiens (80)',               rates: [381,  492,  856,  1712, 2568, 3424] },
+  { id: 'clermont',    name: 'Clermont-Ferrand (63)',     rates: [366,  473,  823,  1646, 2469, 3292] },
+  { id: 'metz',        name: 'Metz (57)',                 rates: [383,  495,  860,  1720, 2580, 3440] },
+  { id: 'nancy',       name: 'Nancy (54)',                rates: [379,  490,  852,  1704, 2556, 3408] },
+  { id: 'orleans',     name: "Orléans (45)",              rates: [357,  462,  803,  1606, 2409, 3212] },
+  { id: 'brest',       name: 'Brest (29)',                rates: [348,  450,  783,  1566, 2349, 3132] },
+  { id: 'limoges',     name: 'Limoges (87)',              rates: [352,  455,  791,  1582, 2373, 3164] },
+  { id: 'tours',       name: 'Tours (37)',                rates: [347,  449,  781,  1562, 2343, 3124] },
+  { id: 'autre',       name: 'Autre ville / commune',     rates: [420,  543,  945,  1890, 2835, 3780] },
 ]
 
-// ─── Component ────────────────────────────────────────────────────────────────
-export default function LandingPage() {
-  const router = useRouter()
+const PARIS = CITIES.find(c => c.id === 'paris')!
 
-  // Step 1 = URL saisie, Step 2 = email + keywords
-  const [step, setStep] = useState<1 | 2>(1)
-  const [url, setUrl] = useState('')
-  const [form, setForm] = useState({ email: '', keyword1: '', keyword2: '' })
-  const [loading, setLoading] = useState(false)
-  const [progress, setProgress] = useState<string | null>(null)
-  const [error, setError] = useState<string | null>(null)
-  const [faqOpen, setFaqOpen] = useState<number | null>(null)
+const STATUTS = [
+  { id: 'ae',   name: 'Auto-entrepreneur / Micro-entreprise' },
+  { id: 'eurl', name: 'EURL' },
+  { id: 'sarl', name: 'SARL' },
+  { id: 'sas',  name: 'SAS' },
+  { id: 'sasu', name: 'SASU' },
+  { id: 'sa',   name: 'SA' },
+  { id: 'ei',   name: 'Entreprise Individuelle (EI)' },
+]
 
-  const handleStep1 = (e: React.FormEvent) => {
-    e.preventDefault()
-    if (!url) return
-    setStep(2)
+const CA_PRESETS = [
+  { label: '5 000 €',    value: 5000 },
+  { label: '20 000 €',   value: 20000 },
+  { label: '50 000 €',   value: 50000 },
+  { label: '100 000 €',  value: 100000 },
+  { label: '250 000 €',  value: 250000 },
+  { label: '500 000 €',  value: 500000 },
+]
+
+// ─── Helpers ──────────────────────────────────────────────────────────────────
+function getCFETranche(ca: number): number {
+  if (ca <= 10000)  return 0
+  if (ca <= 32600)  return 1
+  if (ca <= 100000) return 2
+  if (ca <= 250000) return 3
+  if (ca <= 500000) return 4
+  return 5
+}
+
+function getCFE(city: CityData, ca: number): number {
+  return city.rates[getCFETranche(ca)]
+}
+
+function isExempt(statut: string, ca: number): boolean {
+  return statut === 'ae' && ca <= 5000
+}
+
+function fmt(n: number): string {
+  return new Intl.NumberFormat('fr-FR', {
+    style: 'currency', currency: 'EUR', maximumFractionDigits: 0
+  }).format(n)
+}
+
+function fmtCA(n: number): string {
+  if (n >= 1_000_000) return `${(n / 1_000_000).toFixed(1)} M€`
+  if (n >= 1_000)     return `${Math.round(n / 1_000)} K€`
+  return `${n} €`
+}
+
+// ─── SavingsBar ───────────────────────────────────────────────────────────────
+function SavingsBar({ label, amount, maxAmount, isLegalPlace = false }: {
+  label: string; amount: number; maxAmount: number; isLegalPlace?: boolean
+}) {
+  const pct = Math.round((amount / maxAmount) * 100)
+  return (
+    <div style={{ marginBottom: '10px' }}>
+      <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '4px' }}>
+        <span style={{ fontSize: '13px', color: isLegalPlace ? '#5B21B6' : '#374151', fontWeight: isLegalPlace ? 700 : 400 }}>
+          {isLegalPlace ? '★ ' : ''}{label}
+        </span>
+        <span style={{ fontSize: '13px', fontWeight: 600, color: isLegalPlace ? '#5B21B6' : '#111827' }}>
+          {fmt(amount)}
+        </span>
+      </div>
+      <div style={{ height: '8px', background: '#F3F4F6', borderRadius: '4px', overflow: 'hidden' }}>
+        <div
+          className="bar-fill"
+          style={{
+            height: '100%',
+            width: `${pct}%`,
+            borderRadius: '4px',
+            background: isLegalPlace
+              ? 'linear-gradient(90deg, #6C3BFF, #A78BFA)'
+              : '#D1D5DB',
+          }}
+        />
+      </div>
+    </div>
+  )
+}
+
+// ─── FAQ accordion ────────────────────────────────────────────────────────────
+function FAQItem({ question, answer }: { question: string; answer: string }) {
+  const [open, setOpen] = useState(false)
+  return (
+    <div style={{
+      border: '1px solid #E5E7EB', borderRadius: '12px',
+      overflow: 'hidden',
+      boxShadow: open ? '0 2px 8px rgba(0,0,0,0.04)' : 'none',
+      transition: 'box-shadow 0.2s',
+    }}>
+      <button
+        onClick={() => setOpen(!open)}
+        style={{
+          width: '100%', padding: '18px 20px', background: '#fff',
+          border: 'none', cursor: 'pointer', textAlign: 'left',
+          display: 'flex', justifyContent: 'space-between', alignItems: 'center',
+          gap: '16px',
+        }}
+      >
+        <span style={{ fontSize: '15px', fontWeight: 600, color: '#1A1A2E' }}>{question}</span>
+        <ChevronDown
+          size={18} color="#6B7280"
+          style={{ flexShrink: 0, transition: 'transform 0.2s', transform: open ? 'rotate(180deg)' : 'rotate(0deg)' }}
+        />
+      </button>
+      {open && (
+        <div style={{ padding: '0 20px 18px', fontSize: '14px', color: '#4B5563', lineHeight: 1.7, background: '#fff' }}>
+          {answer}
+        </div>
+      )}
+    </div>
+  )
+}
+
+// ─── Main page ────────────────────────────────────────────────────────────────
+export default function SimulateurCFE() {
+  const [step, setStep]       = useState<'form' | 'results'>('form')
+  const [statut, setStatut]   = useState('sas')
+  const [ca, setCa]           = useState(50000)
+  const [caInput, setCaInput] = useState('50000')
+  const [cityId, setCityId]   = useState('')
+  const resultsRef            = useRef<HTMLDivElement>(null)
+
+  const city = useMemo(() => CITIES.find(c => c.id === cityId) || null, [cityId])
+
+  const results = useMemo(() => {
+    if (!city) return null
+    const exempt     = isExempt(statut, ca)
+    const cfeCurrent = exempt ? 0 : getCFE(city, ca)
+    const cfeParis   = exempt ? 0 : getCFE(PARIS, ca)
+    const savings    = cfeCurrent - cfeParis
+    const isCheaper  = savings > 0
+    return { cfeCurrent, cfeParis, savings, isCheaper, exempt }
+  }, [city, statut, ca])
+
+  const compCities = useMemo(() => {
+    const tranche = getCFETranche(ca)
+    return CITIES
+      .filter(c => c.id !== 'autre')
+      .map(c => ({ id: c.id, name: c.name.split(' (')[0], amount: c.rates[tranche] }))
+      .sort((a, b) => b.amount - a.amount)
+  }, [ca])
+
+  const maxCompAmount = useMemo(() => Math.max(...compCities.map(c => c.amount)), [compCities])
+
+  function handleCalculate() {
+    if (!city || !results) return
+    setStep('results')
+    setTimeout(() => resultsRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' }), 100)
   }
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault()
-    setLoading(true)
-    setError(null)
-    setProgress('Connexion au serveur...')
-
-    try {
-      const res = await fetch('/api/audit/stream', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ url, ...form }),
-      })
-
-      if (!res.ok) {
-        const data = await res.json().catch(() => ({}))
-        throw new Error(data.error || 'Erreur lors du lancement')
-      }
-
-      if (!res.body) throw new Error('Pas de flux de données')
-
-      const reader = res.body.getReader()
-      const decoder = new TextDecoder()
-      let buffer = ''
-
-      while (true) {
-        const { done, value } = await reader.read()
-        if (done) break
-        buffer += decoder.decode(value, { stream: true })
-
-        const lines = buffer.split('\n')
-        buffer = lines.pop() || ''
-
-        for (const line of lines) {
-          if (!line.startsWith('data: ')) continue
-          try {
-            const data = JSON.parse(line.slice(6))
-            if (data.type === 'progress') {
-              setProgress(data.message)
-            } else if (data.type === 'complete') {
-              localStorage.setItem(`audit_${data.auditId}`, JSON.stringify(data))
-              router.push(`/results/${data.auditId}`)
-              return
-            } else if (data.type === 'error') {
-              throw new Error(data.message || "L'audit a échoué.")
-            }
-          } catch (parseErr) {
-            // ignore malformed lines
-          }
-        }
-      }
-    } catch (err) {
-      setError(err instanceof Error ? err.message : 'Erreur')
-      setLoading(false)
-      setProgress(null)
-    }
+  function handleCAChange(val: string) {
+    setCaInput(val)
+    const n = parseInt(val.replace(/\s/g, ''), 10)
+    if (!isNaN(n) && n >= 0) setCa(Math.min(n, 10_000_000))
   }
+
+  const sliderPct = useMemo(() => {
+    const log = (v: number) => Math.log10(Math.max(v, 1))
+    return ((log(ca) - log(1)) / (log(10_000_000) - log(1))) * 100
+  }, [ca])
 
   return (
-    <div style={{ background: '#0A0F1E', color: '#f1f5f9', fontFamily: 'Inter, system-ui, sans-serif', minHeight: '100vh' }}>
+    <div style={{ minHeight: '100vh', background: '#fff', fontFamily: 'Inter, system-ui, sans-serif' }}>
 
-      {/* ── NAV ── */}
-      <nav style={{ borderBottom: '1px solid rgba(255,255,255,0.06)', padding: '0 1.5rem', height: '64px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', position: 'sticky', top: 0, zIndex: 50, background: 'rgba(10,15,30,0.85)', backdropFilter: 'blur(12px)' }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-          <div style={{ background: 'linear-gradient(135deg,#3B82F6,#6366f1)', borderRadius: '10px', width: '34px', height: '34px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-            <Zap size={18} color="white" />
+      {/* ── Header ── */}
+      <header style={{
+        borderBottom: '1px solid #E5E7EB', padding: '0 24px', height: '64px',
+        display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+        position: 'sticky', top: 0, background: '#fff', zIndex: 100,
+      }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+          <div style={{
+            background: 'linear-gradient(135deg, #6C3BFF, #A78BFA)',
+            borderRadius: '8px', width: '32px', height: '32px',
+            display: 'flex', alignItems: 'center', justifyContent: 'center',
+          }}>
+            <Building2 size={18} color="#fff" />
           </div>
-          <span style={{ fontWeight: 800, fontSize: '1.1rem', letterSpacing: '-0.02em' }}>GEOscore</span>
-          <span style={{ background: 'rgba(99,102,241,0.15)', color: '#818cf8', fontSize: '0.65rem', fontWeight: 700, padding: '2px 7px', borderRadius: '6px', border: '1px solid rgba(99,102,241,0.25)', marginLeft: '4px' }}>BETA</span>
+          <span style={{ fontWeight: 800, fontSize: '18px', color: '#1A1A2E' }}>LegalPlace</span>
         </div>
-        <div style={{ display: 'flex', gap: '1.5rem', alignItems: 'center' }}>
-          <a href="#how" style={{ color: '#94a3b8', fontSize: '0.875rem', textDecoration: 'none' }}>Comment ça marche</a>
-          <a href="#pricing" style={{ color: '#94a3b8', fontSize: '0.875rem', textDecoration: 'none' }}>Tarifs</a>
-          <a href="/dashboard" style={{ background: 'rgba(59,130,246,0.15)', color: '#60a5fa', border: '1px solid rgba(59,130,246,0.3)', fontSize: '0.875rem', fontWeight: 600, padding: '0.4rem 1rem', borderRadius: '8px', textDecoration: 'none' }}>Dashboard →</a>
-        </div>
-      </nav>
+        <a
+          href="https://www.legalplace.fr/domiciliation/"
+          target="_blank"
+          rel="noopener noreferrer"
+          style={{
+            background: 'linear-gradient(135deg, #6C3BFF, #8B5CF6)',
+            color: '#fff', padding: '8px 18px', borderRadius: '8px',
+            fontSize: '13px', fontWeight: 600, textDecoration: 'none',
+            display: 'flex', alignItems: 'center', gap: '6px',
+          }}>
+          Domicilier mon entreprise <ArrowRight size={14} />
+        </a>
+      </header>
 
-      {/* ── HERO ── */}
-      <section style={{ maxWidth: '1100px', margin: '0 auto', padding: '5rem 1.5rem 3rem', textAlign: 'center' }}>
-
-        <div style={{ display: 'inline-flex', alignItems: 'center', gap: '0.5rem', background: 'rgba(99,102,241,0.1)', border: '1px solid rgba(99,102,241,0.25)', borderRadius: '100px', padding: '0.35rem 1rem 0.35rem 0.5rem', marginBottom: '2rem' }}>
-          <span style={{ background: '#6366f1', borderRadius: '100px', padding: '2px 8px', fontSize: '0.7rem', fontWeight: 700, color: 'white' }}>NOUVEAU</span>
-          <span style={{ fontSize: '0.8rem', color: '#a5b4fc' }}>40% des recherches passent maintenant par l'IA</span>
-        </div>
-
-        <h1 style={{ fontSize: 'clamp(2.2rem,5.5vw,3.8rem)', fontWeight: 900, lineHeight: 1.08, letterSpacing: '-0.03em', marginBottom: '1.5rem', maxWidth: '800px', margin: '0 auto 1.5rem' }}>
-          Votre site est-il{' '}
-          <span style={{ background: 'linear-gradient(135deg,#60a5fa 0%,#818cf8 50%,#c084fc 100%)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent' }}>
-            visible dans les réponses IA
-          </span>
-          {' '}?
-        </h1>
-
-        <p style={{ fontSize: '1.15rem', color: '#94a3b8', lineHeight: 1.7, maxWidth: '560px', margin: '0 auto 3rem' }}>
-          Testez en 45 secondes si ChatGPT, Perplexity et Gemini citent votre site — et obtenez un plan d'action pour y apparaître.
-        </p>
-
-        {/* ─ FORM BOX ─ */}
-        <div style={{ maxWidth: '580px', margin: '0 auto', background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.09)', borderRadius: '20px', padding: '2rem' }}>
-
-          {loading ? (
-            // Loading state
-            <div style={{ textAlign: 'center', padding: '1rem 0' }}>
-              <div style={{ width: '56px', height: '56px', borderRadius: '50%', border: '4px solid rgba(99,102,241,0.2)', borderTop: '4px solid #6366f1', animation: 'spin 0.9s linear infinite', margin: '0 auto 1.5rem' }} />
-              <style>{`@keyframes spin{to{transform:rotate(360deg)}}`}</style>
-              <p style={{ fontWeight: 700, fontSize: '1.1rem', marginBottom: '0.5rem' }}>Audit en cours…</p>
-              <p style={{ color: '#94a3b8', fontSize: '0.875rem', marginBottom: '1.5rem' }}>{progress}</p>
-              <div style={{ background: 'rgba(255,255,255,0.05)', borderRadius: '100px', height: '6px', overflow: 'hidden' }}>
-                <div style={{ background: 'linear-gradient(90deg,#3B82F6,#6366f1)', height: '100%', width: '65%', borderRadius: '100px', animation: 'pulse 2s ease-in-out infinite' }} />
-              </div>
-              <style>{`@keyframes pulse{0%,100%{opacity:1}50%{opacity:0.6}}`}</style>
-              <p style={{ color: '#475569', fontSize: '0.75rem', marginTop: '0.75rem' }}>~30-45 secondes • Ne fermez pas cet onglet</p>
-            </div>
-
-          ) : step === 1 ? (
-            // Step 1: URL only
-            <form onSubmit={handleStep1}>
-              <label style={{ display: 'block', textAlign: 'left', fontSize: '0.8rem', fontWeight: 600, color: '#64748b', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: '0.5rem' }}>
-                URL de votre site
-              </label>
-              <div style={{ display: 'flex', gap: '0.5rem' }}>
-                <div style={{ flex: 1, display: 'flex', alignItems: 'center', background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.12)', borderRadius: '12px', padding: '0 1rem', gap: '0.5rem' }}>
-                  <Globe size={16} color="#475569" style={{ flexShrink: 0 }} />
-                  <input
-                    type="text"
-                    required
-                    placeholder="monsite.fr"
-                    value={url}
-                    onChange={e => setUrl(e.target.value)}
-                    style={{ flex: 1, background: 'none', border: 'none', outline: 'none', color: 'white', fontSize: '1rem', padding: '0.875rem 0' }}
-                  />
-                </div>
-                <button type="submit" style={{ background: 'linear-gradient(135deg,#3B82F6,#6366f1)', color: 'white', border: 'none', borderRadius: '12px', padding: '0 1.5rem', fontWeight: 700, cursor: 'pointer', fontSize: '0.9rem', whiteSpace: 'nowrap', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                  Analyser <ArrowRight size={16} />
-                </button>
-              </div>
-              <p style={{ textAlign: 'center', color: '#475569', fontSize: '0.75rem', marginTop: '0.875rem' }}>
-                ✓ Gratuit &nbsp;·&nbsp; ✓ Sans carte bancaire &nbsp;·&nbsp; ✓ Résultats en 45s
-              </p>
-            </form>
-
-          ) : (
-            // Step 2: email + keywords
-            <form onSubmit={handleSubmit}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '1.25rem', padding: '0.6rem 0.875rem', background: 'rgba(59,130,246,0.08)', border: '1px solid rgba(59,130,246,0.2)', borderRadius: '10px' }}>
-                <CheckCircle2 size={15} color="#22c55e" />
-                <span style={{ fontSize: '0.8rem', color: '#94a3b8', flex: 1 }}>{url}</span>
-                <button type="button" onClick={() => setStep(1)} style={{ background: 'none', border: 'none', color: '#64748b', cursor: 'pointer', fontSize: '0.75rem' }}>Changer</button>
-              </div>
-
-              {error && <div style={{ marginBottom: '1rem', padding: '0.75rem', background: 'rgba(239,68,68,0.08)', border: '1px solid rgba(239,68,68,0.25)', borderRadius: '10px', color: '#f87171', fontSize: '0.8rem' }}>{error}</div>}
-
-              <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
-                <div>
-                  <label style={{ display: 'block', fontSize: '0.8rem', fontWeight: 600, color: '#64748b', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: '0.4rem' }}>Email (pour recevoir les résultats)</label>
-                  <input type="email" required placeholder="vous@exemple.fr" value={form.email} onChange={e => setForm(f => ({ ...f, email: e.target.value }))}
-                    style={{ width: '100%', padding: '0.8rem 1rem', background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.1)', borderRadius: '12px', color: 'white', fontSize: '0.9rem', outline: 'none', boxSizing: 'border-box' }} />
-                </div>
-                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.75rem' }}>
-                  {[['keyword1', 'Mot-clé 1', 'ex: logiciel CRM'], ['keyword2', 'Mot-clé 2', 'ex: gestion client']].map(([k, l, p]) => (
-                    <div key={k}>
-                      <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: 600, color: '#64748b', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: '0.4rem' }}>{l}</label>
-                      <input type="text" required placeholder={p} value={(form as any)[k]} onChange={e => setForm(f => ({ ...f, [k]: e.target.value }))}
-                        style={{ width: '100%', padding: '0.8rem 1rem', background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.1)', borderRadius: '12px', color: 'white', fontSize: '0.875rem', outline: 'none', boxSizing: 'border-box' }} />
-                    </div>
-                  ))}
-                </div>
-                <button type="submit" style={{ background: 'linear-gradient(135deg,#3B82F6,#6366f1)', color: 'white', border: 'none', borderRadius: '12px', padding: '1rem', fontWeight: 700, cursor: 'pointer', fontSize: '1rem', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.5rem', marginTop: '0.25rem' }}>
-                  <Sparkles size={18} /> Lancer l'audit gratuit
-                </button>
-              </div>
-            </form>
-          )}
-        </div>
-
-        {/* Social proof strip */}
-        <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', gap: '2rem', marginTop: '2.5rem', flexWrap: 'wrap' }}>
-          {[['🧑‍💼', '1 200+ audits réalisés'], ['⭐', '4.9/5 satisfaction'], ['⚡', 'Résultats en 45s']].map(([emoji, text]) => (
-            <div key={text} style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', color: '#475569', fontSize: '0.85rem' }}>
-              <span>{emoji}</span><span>{text}</span>
-            </div>
-          ))}
-        </div>
-      </section>
-
-      {/* ── MOCK REPORT PREVIEW ── */}
-      <section id="how" style={{ maxWidth: '1100px', margin: '0 auto', padding: '4rem 1.5rem' }}>
-        <div style={{ textAlign: 'center', marginBottom: '3rem' }}>
-          <h2 style={{ fontSize: 'clamp(1.5rem,3.5vw,2.25rem)', fontWeight: 800, letterSpacing: '-0.03em', marginBottom: '0.75rem' }}>
-            Voici ce que vous obtenez en 45 secondes
-          </h2>
-          <p style={{ color: '#94a3b8', fontSize: '1rem' }}>Aperçu d'un vrai rapport GEOscore — résultats partiellement masqués en version gratuite</p>
-        </div>
-
-        {/* Mock report card */}
-        <div style={{ background: 'rgba(255,255,255,0.02)', border: '1px solid rgba(255,255,255,0.08)', borderRadius: '24px', overflow: 'hidden' }}>
-
-          {/* Report header */}
-          <div style={{ background: 'rgba(255,255,255,0.03)', borderBottom: '1px solid rgba(255,255,255,0.07)', padding: '1.25rem 2rem', display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '1rem' }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
-              <div style={{ background: 'linear-gradient(135deg,#3B82F6,#6366f1)', borderRadius: '8px', width: '28px', height: '28px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                <Zap size={14} color="white" />
-              </div>
-              <span style={{ fontWeight: 700, color: 'white' }}>GEOscore — Rapport d'audit</span>
-            </div>
-            <span style={{ color: '#475569', fontSize: '0.8rem' }}>monsite.fr • {new Date().toLocaleDateString('fr-FR')}</span>
+      {/* ── Hero ── */}
+      <section style={{
+        background: 'linear-gradient(160deg, #F5F3FF 0%, #EDE9FF 50%, #fff 100%)',
+        padding: '64px 24px 48px', textAlign: 'center',
+      }}>
+        <div style={{ maxWidth: '680px', margin: '0 auto' }}>
+          <div className="animate-fadeInUp" style={{ marginBottom: '16px' }}>
+            <span style={{
+              display: 'inline-flex', alignItems: 'center', gap: '6px',
+              background: '#EDE9FF', color: '#5B21B6',
+              padding: '4px 14px', borderRadius: '99px',
+              fontSize: '13px', fontWeight: 600,
+            }}>
+              <Calculator size={13} />
+              Simulateur CFE 2024 — Gratuit
+            </span>
           </div>
-
-          <div style={{ padding: '2rem', display: 'grid', gridTemplateColumns: 'repeat(auto-fit,minmax(300px,1fr))', gap: '2rem' }}>
-
-            {/* ─ Score global ─ */}
-            <div>
-              <h3 style={{ fontSize: '0.75rem', fontWeight: 700, color: '#64748b', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: '1.25rem' }}>Score GEO Global</h3>
-              <div style={{ display: 'flex', alignItems: 'center', gap: '2rem' }}>
-                {/* Gauge mock */}
-                <div style={{ position: 'relative', width: '120px', height: '120px', flexShrink: 0 }}>
-                  <svg width="120" height="120" style={{ transform: 'rotate(-90deg)' }}>
-                    <circle cx="60" cy="60" r="48" fill="none" stroke="rgba(255,255,255,0.06)" strokeWidth="10" />
-                    <circle cx="60" cy="60" r="48" fill="none" stroke="#f59e0b" strokeWidth="10" strokeDasharray={`${2*Math.PI*48}`} strokeDashoffset={`${2*Math.PI*48*(1-0.52)}`} strokeLinecap="round" />
-                  </svg>
-                  <div style={{ position: 'absolute', inset: 0, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center' }}>
-                    <span style={{ fontSize: '2rem', fontWeight: 900, color: '#f59e0b' }}>52</span>
-                    <span style={{ fontSize: '0.7rem', color: '#64748b' }}>/100</span>
-                  </div>
-                </div>
-                <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
-                  {[['Citations LLM', 18, 40, '#f59e0b'], ['On-Page GEO', 24, 40, '#3B82F6'], ['Autorité', 10, 20, '#a855f7']].map(([l, v, max, c]) => (
-                    <div key={l as string}>
-                      <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.75rem', marginBottom: '0.3rem' }}>
-                        <span style={{ color: '#94a3b8' }}>{l as string}</span>
-                        <span style={{ color: c as string, fontWeight: 700 }}>{v as number}/{max as number}</span>
-                      </div>
-                      <div style={{ background: 'rgba(255,255,255,0.06)', borderRadius: '100px', height: '5px' }}>
-                        <div style={{ background: c as string, width: `${(v as number)/(max as number)*100}%`, height: '100%', borderRadius: '100px' }} />
-                      </div>
-                    </div>
-                  ))}
-                </div>
+          <h1 className="animate-fadeInUp delay-100" style={{
+            fontSize: 'clamp(28px, 5vw, 48px)', fontWeight: 800,
+            lineHeight: 1.15, color: '#1A1A2E', marginBottom: '16px',
+          }}>
+            Combien payez-vous de CFE ?<br />
+            <span style={{ color: '#6C3BFF' }}>Comparez avec Paris.</span>
+          </h1>
+          <p className="animate-fadeInUp delay-200" style={{
+            fontSize: '17px', color: '#4B5563', lineHeight: 1.6, marginBottom: '32px',
+          }}>
+            La Cotisation Foncière des Entreprises varie fortement selon votre commune.
+            Découvrez en 30 secondes si une domiciliation à Paris vous fait économiser.
+          </p>
+          <div className="animate-fadeInUp delay-300" style={{
+            display: 'flex', flexWrap: 'wrap', justifyContent: 'center', gap: '20px',
+          }}>
+            {[
+              { icon: <CheckCircle2 size={15} />, text: '100% gratuit' },
+              { icon: <Clock size={15} />, text: 'Résultat immédiat' },
+              { icon: <Shield size={15} />, text: 'Sans engagement' },
+            ].map(({ icon, text }) => (
+              <div key={text} style={{
+                display: 'flex', alignItems: 'center', gap: '6px',
+                fontSize: '13px', color: '#6B7280',
+              }}>
+                <span style={{ color: '#22C55E' }}>{icon}</span>
+                {text}
               </div>
-            </div>
-
-            {/* ─ LLM positions ─ */}
-            <div>
-              <h3 style={{ fontSize: '0.75rem', fontWeight: 700, color: '#64748b', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: '1.25rem' }}>
-                Positionnement par LLM
-                <span style={{ marginLeft: '0.5rem', background: 'rgba(34,197,94,0.15)', color: '#22c55e', fontSize: '0.65rem', padding: '1px 6px', borderRadius: '6px' }}>3/9 cités</span>
-              </h3>
-              <div style={{ display: 'flex', flexDirection: 'column', gap: '0.6rem' }}>
-                {MOCK_LLM.map(row => (
-                  <div key={row.llm} style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', padding: '0.6rem 0.875rem', background: 'rgba(255,255,255,0.03)', borderRadius: '10px' }}>
-                    <span style={{ fontSize: '1.1rem' }}>{row.icon}</span>
-                    <span style={{ fontWeight: 600, fontSize: '0.875rem', color: 'white', width: '80px' }}>{row.llm}</span>
-                    <span style={{ flex: 1, fontSize: '0.8rem', color: row.cited ? '#22c55e' : '#ef4444', fontWeight: 600 }}>
-                      {row.cited ? `✓ ${row.position}` : '✗ Non cité'}
-                    </span>
-                    <span style={{ fontSize: '0.75rem', color: '#64748b' }}>{row.sentiment}</span>
-                  </div>
-                ))}
-              </div>
-            </div>
-          </div>
-
-          {/* ─ Keywords table ─ */}
-          <div style={{ borderTop: '1px solid rgba(255,255,255,0.07)', padding: '2rem' }}>
-            <h3 style={{ fontSize: '0.75rem', fontWeight: 700, color: '#64748b', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: '1.25rem' }}>
-              Positions par mot-clé
-            </h3>
-            <div style={{ overflowX: 'auto' }}>
-              <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.875rem' }}>
-                <thead>
-                  <tr>
-                    {['Requête testée', 'ChatGPT 🤖', 'Perplexity 🔍', 'Gemini ✨'].map(h => (
-                      <th key={h} style={{ textAlign: 'left', padding: '0.625rem 1rem', color: '#64748b', fontWeight: 600, fontSize: '0.8rem', background: 'rgba(255,255,255,0.02)', borderBottom: '1px solid rgba(255,255,255,0.06)' }}>{h}</th>
-                    ))}
-                  </tr>
-                </thead>
-                <tbody>
-                  {MOCK_KEYWORDS.map((row, i) => (
-                    <tr key={i} style={{ borderBottom: '1px solid rgba(255,255,255,0.04)' }}>
-                      <td style={{ padding: '0.75rem 1rem', color: '#cbd5e1', fontStyle: 'italic' }}>"{row.kw}"</td>
-                      {[row.chatgpt, row.perplexity, row.gemini].map((v, j) => (
-                        <td key={j} style={{ padding: '0.75rem 1rem', color: v === 'Non cité' ? '#ef4444' : '#22c55e', fontWeight: 600 }}>{v}</td>
-                      ))}
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-          </div>
-
-          {/* ─ Errors + Actions (blurred) ─ */}
-          <div style={{ borderTop: '1px solid rgba(255,255,255,0.07)', padding: '2rem', display: 'grid', gridTemplateColumns: 'repeat(auto-fit,minmax(280px,1fr))', gap: '2rem' }}>
-
-            {/* Errors */}
-            <div>
-              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '1.25rem' }}>
-                <h3 style={{ fontSize: '0.75rem', fontWeight: 700, color: '#64748b', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
-                  Erreurs détectées <span style={{ color: '#ef4444' }}>(4)</span>
-                </h3>
-                <span style={{ background: 'rgba(239,68,68,0.1)', color: '#ef4444', fontSize: '0.65rem', fontWeight: 700, padding: '2px 8px', borderRadius: '6px', border: '1px solid rgba(239,68,68,0.2)' }}>PAYANT</span>
-              </div>
-              <div style={{ position: 'relative' }}>
-                {/* Visible item */}
-                <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', padding: '0.75rem', background: 'rgba(239,68,68,0.06)', border: '1px solid rgba(239,68,68,0.15)', borderRadius: '10px', marginBottom: '0.5rem' }}>
-                  <AlertTriangle size={15} color="#ef4444" />
-                  <span style={{ flex: 1, fontSize: '0.875rem', color: '#fca5a5' }}>FAQ Schema manquant</span>
-                  <span style={{ fontSize: '0.75rem', fontWeight: 700, color: '#ef4444' }}>+12 pts</span>
-                </div>
-                {/* Blurred items */}
-                <div style={{ position: 'relative' }}>
-                  <div style={{ filter: 'blur(5px)', userSelect: 'none', display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
-                    {MOCK_ERRORS.slice(1).map((e, i) => (
-                      <div key={i} style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', padding: '0.75rem', background: 'rgba(239,68,68,0.06)', borderRadius: '10px' }}>
-                        <span style={{ flex: 1, fontSize: '0.875rem', color: '#fca5a5' }}>{e.label}</span>
-                        <span style={{ fontSize: '0.75rem', fontWeight: 700, color: '#ef4444' }}>{e.impact}</span>
-                      </div>
-                    ))}
-                  </div>
-                  <div style={{ position: 'absolute', inset: 0, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                    <div style={{ background: 'rgba(10,15,30,0.85)', border: '1px solid rgba(99,102,241,0.3)', borderRadius: '12px', padding: '0.5rem 1rem', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                      <Lock size={13} color="#818cf8" />
-                      <span style={{ fontSize: '0.8rem', color: '#a5b4fc', fontWeight: 600 }}>Débloquer</span>
-                    </div>
-                  </div>
-                </div>
-              </div>
-            </div>
-
-            {/* Actions */}
-            <div>
-              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '1.25rem' }}>
-                <h3 style={{ fontSize: '0.75rem', fontWeight: 700, color: '#64748b', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
-                  Plan d'action <span style={{ color: '#3B82F6' }}>(15 actions)</span>
-                </h3>
-                <span style={{ background: 'rgba(99,102,241,0.1)', color: '#818cf8', fontSize: '0.65rem', fontWeight: 700, padding: '2px 8px', borderRadius: '6px', border: '1px solid rgba(99,102,241,0.2)' }}>PAYANT</span>
-              </div>
-              <div style={{ position: 'relative' }}>
-                {/* Visible first action */}
-                <div style={{ padding: '0.75rem', background: 'rgba(59,130,246,0.06)', border: '1px solid rgba(59,130,246,0.15)', borderRadius: '10px', marginBottom: '0.5rem', display: 'flex', gap: '0.75rem', alignItems: 'flex-start' }}>
-                  <span style={{ background: '#ef4444', color: 'white', fontSize: '0.65rem', fontWeight: 800, padding: '2px 6px', borderRadius: '5px', flexShrink: 0, marginTop: '2px' }}>CRITIQUE</span>
-                  <span style={{ fontSize: '0.8rem', color: '#93c5fd', lineHeight: 1.5 }}>Ajouter un bloc FAQ avec balisage JSON-LD</span>
-                </div>
-                {/* Blurred rest */}
-                <div style={{ position: 'relative' }}>
-                  <div style={{ filter: 'blur(5px)', userSelect: 'none', display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
-                    {MOCK_ACTIONS.slice(1).map((a, i) => (
-                      <div key={i} style={{ padding: '0.75rem', background: 'rgba(59,130,246,0.06)', borderRadius: '10px', fontSize: '0.8rem', color: '#93c5fd' }}>{a}</div>
-                    ))}
-                  </div>
-                  <div style={{ position: 'absolute', inset: 0, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                    <div style={{ background: 'rgba(10,15,30,0.85)', border: '1px solid rgba(99,102,241,0.3)', borderRadius: '12px', padding: '0.5rem 1rem', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                      <Lock size={13} color="#818cf8" />
-                      <span style={{ fontSize: '0.8rem', color: '#a5b4fc', fontWeight: 600 }}>Débloquer</span>
-                    </div>
-                  </div>
-                </div>
-              </div>
-            </div>
-          </div>
-
-          {/* Unlock banner */}
-          <div style={{ background: 'linear-gradient(135deg,rgba(59,130,246,0.12),rgba(99,102,241,0.12))', borderTop: '1px solid rgba(99,102,241,0.2)', padding: '1.5rem 2rem', display: 'flex', flexWrap: 'wrap', alignItems: 'center', justifyContent: 'space-between', gap: '1rem' }}>
-            <div>
-              <p style={{ fontWeight: 700, fontSize: '1rem', marginBottom: '0.25rem' }}>🔓 Débloquez toutes les données de votre site</p>
-              <p style={{ color: '#94a3b8', fontSize: '0.875rem' }}>15 actions prioritaires · Tableau LLM complet · Checklist on-page · Rapport PDF</p>
-            </div>
-            <div style={{ display: 'flex', gap: '0.75rem', flexWrap: 'wrap' }}>
-              <div style={{ textAlign: 'center', background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.1)', borderRadius: '12px', padding: '0.625rem 1.25rem' }}>
-                <div style={{ fontWeight: 800, color: 'white' }}>49€</div>
-                <div style={{ fontSize: '0.7rem', color: '#64748b' }}>one-shot</div>
-              </div>
-              <div style={{ textAlign: 'center', background: 'rgba(99,102,241,0.15)', border: '1px solid rgba(99,102,241,0.3)', borderRadius: '12px', padding: '0.625rem 1.25rem' }}>
-                <div style={{ fontWeight: 800, color: '#a5b4fc' }}>99€/mois</div>
-                <div style={{ fontSize: '0.7rem', color: '#64748b' }}>dashboard + alertes</div>
-              </div>
-            </div>
-          </div>
-        </div>
-      </section>
-
-      {/* ── HOW IT WORKS ── */}
-      <section style={{ maxWidth: '1100px', margin: '0 auto', padding: '4rem 1.5rem', borderTop: '1px solid rgba(255,255,255,0.06)' }}>
-        <h2 style={{ fontSize: 'clamp(1.5rem,3vw,2rem)', fontWeight: 800, letterSpacing: '-0.03em', textAlign: 'center', marginBottom: '3rem' }}>
-          Comment fonctionne l'audit ?
-        </h2>
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit,minmax(220px,1fr))', gap: '2rem' }}>
-          {[
-            { n: '01', icon: Globe, title: 'Entrez votre URL', desc: "Collez l'URL de votre site et vos 2 mots-clés principaux.", color: '#3B82F6' },
-            { n: '02', icon: MessageSquare, title: 'On teste 3 LLMs', desc: 'GPT-4o, Perplexity et Gemini sont interrogés sur 9 requêtes liées à vos mots-clés.', color: '#6366f1' },
-            { n: '03', icon: BarChart3, title: 'Analyse on-page', desc: 'FAQ schema, structure de contenu, autorité, liens — 10 facteurs GEO analysés.', color: '#8b5cf6' },
-            { n: '04', icon: Sparkles, title: "Plan d'action IA", desc: 'GPT-4o génère 15 recommandations priorisées et personnalisées pour votre site.', color: '#c084fc' },
-          ].map(step => {
-            const Icon = step.icon
-            return (
-              <div key={step.n} style={{ background: 'rgba(255,255,255,0.02)', border: '1px solid rgba(255,255,255,0.07)', borderRadius: '16px', padding: '1.5rem' }}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', marginBottom: '1rem' }}>
-                  <span style={{ fontSize: '0.7rem', fontWeight: 800, color: step.color, background: `${step.color}18`, padding: '3px 8px', borderRadius: '6px' }}>{step.n}</span>
-                  <div style={{ background: `${step.color}18`, borderRadius: '10px', width: '36px', height: '36px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                    <Icon size={18} color={step.color} />
-                  </div>
-                </div>
-                <h3 style={{ fontWeight: 700, marginBottom: '0.5rem', fontSize: '1rem' }}>{step.title}</h3>
-                <p style={{ color: '#64748b', fontSize: '0.875rem', lineHeight: 1.6 }}>{step.desc}</p>
-              </div>
-            )
-          })}
-        </div>
-      </section>
-
-      {/* ── PRICING ── */}
-      <section id="pricing" style={{ maxWidth: '1100px', margin: '0 auto', padding: '4rem 1.5rem', borderTop: '1px solid rgba(255,255,255,0.06)' }}>
-        <div style={{ textAlign: 'center', marginBottom: '3rem' }}>
-          <h2 style={{ fontSize: 'clamp(1.5rem,3vw,2rem)', fontWeight: 800, letterSpacing: '-0.03em', marginBottom: '0.75rem' }}>Tarifs simples et transparents</h2>
-          <p style={{ color: '#64748b', fontSize: '0.95rem' }}>Commencez gratuitement, payez uniquement pour accéder à l'intégralité du rapport</p>
-        </div>
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit,minmax(260px,1fr))', gap: '1.5rem', maxWidth: '900px', margin: '0 auto' }}>
-          {[
-            {
-              name: 'Audit Gratuit', price: '0€', sub: 'Pour découvrir', highlight: false,
-              features: ['Score GEO global /100', 'Résumé des 3 LLMs', '1 recommandation critique', 'Rapport PDF (aperçu)', '1 audit / 24h / email'],
-              cta: 'Lancer gratuitement', href: '#'
-            },
-            {
-              name: 'Rapport Complet', price: '49€', sub: 'Paiement unique, accès à vie', highlight: true,
-              features: ['Tout du gratuit +', 'Tableau LLM complet (9 tests)', '15 recommandations détaillées', 'Checklist on-page (10 facteurs)', 'Rapport PDF complet', 'Livré par email'],
-              cta: '→ Débloquer le rapport', href: '#'
-            },
-            {
-              name: 'Dashboard Pro', price: '99€/mois', sub: 'Monitoring continu', highlight: false,
-              features: ['Tout du rapport complet +', 'Re-audit automatique chaque lundi', 'Alertes si score baisse', 'Tracking 3 concurrents', 'Historique & graphes', 'Support prioritaire'],
-              cta: 'Démarrer le suivi', href: '/dashboard'
-            },
-          ].map(plan => (
-            <div key={plan.name} style={{ background: plan.highlight ? 'linear-gradient(135deg,rgba(59,130,246,0.12),rgba(99,102,241,0.12))' : 'rgba(255,255,255,0.02)', border: `1px solid ${plan.highlight ? 'rgba(99,102,241,0.4)' : 'rgba(255,255,255,0.07)'}`, borderRadius: '20px', padding: '1.75rem', position: 'relative' }}>
-              {plan.highlight && <div style={{ position: 'absolute', top: '-13px', left: '50%', transform: 'translateX(-50%)', background: 'linear-gradient(135deg,#3B82F6,#6366f1)', color: 'white', fontSize: '0.7rem', fontWeight: 800, padding: '3px 12px', borderRadius: '100px', whiteSpace: 'nowrap' }}>⭐ LE PLUS POPULAIRE</div>}
-              <h3 style={{ fontWeight: 700, marginBottom: '0.25rem' }}>{plan.name}</h3>
-              <div style={{ fontSize: '2.25rem', fontWeight: 900, color: plan.highlight ? '#60a5fa' : 'white', marginBottom: '0.25rem', letterSpacing: '-0.02em' }}>{plan.price}</div>
-              <p style={{ color: '#475569', fontSize: '0.8rem', marginBottom: '1.5rem' }}>{plan.sub}</p>
-              <ul style={{ listStyle: 'none', padding: 0, marginBottom: '1.5rem', display: 'flex', flexDirection: 'column', gap: '0.625rem' }}>
-                {plan.features.map(f => (
-                  <li key={f} style={{ display: 'flex', alignItems: 'flex-start', gap: '0.5rem', fontSize: '0.875rem', color: '#94a3b8' }}>
-                    <CheckCircle2 size={15} color={plan.highlight ? '#60a5fa' : '#22c55e'} style={{ flexShrink: 0, marginTop: '1px' }} />
-                    {f}
-                  </li>
-                ))}
-              </ul>
-              <a href={plan.href} onClick={plan.href === '#' ? (e) => { e.preventDefault(); window.scrollTo({ top: 0, behavior: 'smooth' }) } : undefined}
-                style={{ display: 'block', textAlign: 'center', padding: '0.8rem', borderRadius: '12px', fontWeight: 700, fontSize: '0.9rem', textDecoration: 'none', background: plan.highlight ? 'linear-gradient(135deg,#3B82F6,#6366f1)' : 'rgba(255,255,255,0.07)', color: 'white', border: plan.highlight ? 'none' : '1px solid rgba(255,255,255,0.1)' }}>
-                {plan.cta}
-              </a>
-            </div>
-          ))}
-        </div>
-      </section>
-
-      {/* ── TESTIMONIALS ── */}
-      <section style={{ maxWidth: '1100px', margin: '0 auto', padding: '4rem 1.5rem', borderTop: '1px solid rgba(255,255,255,0.06)' }}>
-        <h2 style={{ fontSize: 'clamp(1.25rem,3vw,1.75rem)', fontWeight: 800, letterSpacing: '-0.03em', textAlign: 'center', marginBottom: '2.5rem' }}>Ce qu'en disent nos utilisateurs</h2>
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit,minmax(280px,1fr))', gap: '1.5rem' }}>
-          {[
-            { q: "En 3 semaines j'ai appliqué les recommandations et je suis passé de 2/9 à 7/9 citations LLM. Incroyable ROI.", name: 'Thomas L.', role: 'Fondateur SaaS B2B', stars: 5 },
-            { q: "Je faisais du SEO depuis 5 ans sans réaliser que Google n'était plus la seule porte d'entrée. GEOscore m'a ouvert les yeux.", name: 'Camille V.', role: 'Consultante SEO', stars: 5 },
-            { q: "Le dashboard pro m'alerte chaque semaine si mon score bouge. Je ne peux plus m'en passer pour suivre mes clients.", name: 'Marc D.', role: 'Agence digitale', stars: 5 },
-          ].map(t => (
-            <div key={t.name} style={{ background: 'rgba(255,255,255,0.02)', border: '1px solid rgba(255,255,255,0.07)', borderRadius: '16px', padding: '1.5rem' }}>
-              <div style={{ display: 'flex', gap: '3px', marginBottom: '1rem' }}>
-                {[...Array(t.stars)].map((_,i) => <Star key={i} size={14} color="#f59e0b" fill="#f59e0b" />)}
-              </div>
-              <p style={{ color: '#94a3b8', fontSize: '0.9rem', lineHeight: 1.65, marginBottom: '1.25rem', fontStyle: 'italic' }}>"{t.q}"</p>
-              <div>
-                <p style={{ fontWeight: 700, fontSize: '0.875rem' }}>{t.name}</p>
-                <p style={{ color: '#475569', fontSize: '0.8rem' }}>{t.role}</p>
-              </div>
-            </div>
-          ))}
-        </div>
-      </section>
-
-      {/* ── FAQ ── */}
-      <section style={{ maxWidth: '720px', margin: '0 auto', padding: '4rem 1.5rem', borderTop: '1px solid rgba(255,255,255,0.06)' }}>
-        <h2 style={{ fontSize: 'clamp(1.25rem,3vw,1.75rem)', fontWeight: 800, letterSpacing: '-0.03em', textAlign: 'center', marginBottom: '2.5rem' }}>Questions fréquentes</h2>
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
-          {[
-            { q: "C'est quoi le GEO exactement ?", a: "Le Generative Engine Optimization (GEO) est l'équivalent du SEO pour les IA génératives. Là où le SEO vous positionne dans Google, le GEO vous fait apparaître dans les réponses de ChatGPT, Perplexity et Gemini." },
-            { q: "Les tests LLM sont-ils vrais ?", a: "Nous simulons ChatGPT et Gemini via GPT-4o avec des system prompts spécifiques à chaque IA, et Perplexity avec un prompt web-aware. C'est une approximation précise pour l'MVP — les vraies API seront connectées prochainement." },
-            { q: "Pourquoi mon site n'est pas cité par les IA ?", a: "Principalement : absence de FAQ Schema, contenu peu structuré, manque de citations externes, pas de réponses directes aux questions dans le contenu. Toutes ces lacunes apparaissent dans votre rapport." },
-            { q: "Que contient le rapport payant (49€) ?", a: "Les 15 recommandations prioritaires avec impact estimé, le tableau complet des 9 tests LLM (3 LLMs × 3 requêtes), la checklist on-page des 10 facteurs GEO, et un rapport PDF à télécharger." },
-            { q: "L'abonnement peut-il être résilié à tout moment ?", a: "Oui, vous pouvez résilier depuis le dashboard ou via le portail Stripe à tout moment. Aucun engagement, aucun frais de résiliation." },
-          ].map((item, i) => (
-            <div key={i} style={{ background: 'rgba(255,255,255,0.02)', border: '1px solid rgba(255,255,255,0.07)', borderRadius: '14px', overflow: 'hidden' }}>
-              <button onClick={() => setFaqOpen(faqOpen === i ? null : i)}
-                style={{ width: '100%', padding: '1.125rem 1.5rem', background: 'none', border: 'none', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'space-between', textAlign: 'left', gap: '1rem' }}>
-                <span style={{ fontWeight: 600, color: 'white', fontSize: '0.9375rem' }}>{item.q}</span>
-                {faqOpen === i ? <ChevronUp size={18} color="#64748b" style={{ flexShrink: 0 }} /> : <ChevronDown size={18} color="#64748b" style={{ flexShrink: 0 }} />}
-              </button>
-              {faqOpen === i && (
-                <div style={{ padding: '0 1.5rem 1.125rem', color: '#94a3b8', fontSize: '0.875rem', lineHeight: 1.7, borderTop: '1px solid rgba(255,255,255,0.05)' }}>
-                  <div style={{ paddingTop: '1rem' }}>{item.a}</div>
-                </div>
-              )}
-            </div>
-          ))}
-        </div>
-      </section>
-
-      {/* ── FINAL CTA ── */}
-      <section style={{ maxWidth: '800px', margin: '0 auto', padding: '4rem 1.5rem 6rem', textAlign: 'center' }}>
-        <div style={{ background: 'linear-gradient(135deg,rgba(59,130,246,0.1),rgba(99,102,241,0.1))', border: '1px solid rgba(99,102,241,0.25)', borderRadius: '24px', padding: '3rem 2rem' }}>
-          <h2 style={{ fontSize: 'clamp(1.5rem,4vw,2.25rem)', fontWeight: 900, letterSpacing: '-0.03em', marginBottom: '1rem' }}>
-            Prêt à découvrir votre score GEO ?
-          </h2>
-          <p style={{ color: '#94a3b8', marginBottom: '2rem', fontSize: '1rem' }}>Gratuit · 45 secondes · Sans carte bancaire</p>
-          <button
-            onClick={() => window.scrollTo({ top: 0, behavior: 'smooth' })}
-            style={{ background: 'linear-gradient(135deg,#3B82F6,#6366f1)', color: 'white', border: 'none', borderRadius: '14px', padding: '1rem 2.5rem', fontWeight: 700, fontSize: '1.05rem', cursor: 'pointer', display: 'inline-flex', alignItems: 'center', gap: '0.5rem' }}>
-            <Sparkles size={20} /> Lancer mon audit gratuit
-          </button>
-        </div>
-      </section>
-
-      {/* ── FOOTER ── */}
-      <footer style={{ borderTop: '1px solid rgba(255,255,255,0.06)', padding: '2rem 1.5rem' }}>
-        <div style={{ maxWidth: '1100px', margin: '0 auto', display: 'flex', flexWrap: 'wrap', alignItems: 'center', justifyContent: 'space-between', gap: '1rem' }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-            <div style={{ background: 'linear-gradient(135deg,#3B82F6,#6366f1)', borderRadius: '8px', width: '28px', height: '28px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-              <Zap size={14} color="white" />
-            </div>
-            <span style={{ fontWeight: 700 }}>GEOscore</span>
-          </div>
-          <p style={{ color: '#334155', fontSize: '0.8rem' }}>© {new Date().getFullYear()} GEOscore. Tous droits réservés.</p>
-          <div style={{ display: 'flex', gap: '1.5rem' }}>
-            {['Confidentialité', 'CGU', 'Contact'].map(l => (
-              <a key={l} href="#" style={{ color: '#334155', fontSize: '0.8rem', textDecoration: 'none' }}>{l}</a>
             ))}
           </div>
         </div>
+      </section>
+
+      {/* ── Simulator card ── */}
+      <section style={{ padding: '0 24px 64px', maxWidth: '780px', margin: '0 auto' }}>
+
+        <div style={{
+          background: '#fff', border: '1px solid #E5E7EB', borderRadius: '20px',
+          padding: 'clamp(24px, 4vw, 40px)',
+          boxShadow: '0 4px 24px rgba(0,0,0,0.06)',
+          marginTop: '-24px', position: 'relative', zIndex: 10,
+        }}>
+          <div style={{ marginBottom: '28px' }}>
+            <h2 style={{ fontSize: '20px', fontWeight: 700, marginBottom: '4px', color: '#1A1A2E' }}>
+              Renseignez votre situation
+            </h2>
+            <p style={{ fontSize: '14px', color: '#6B7280', margin: 0 }}>
+              Tous les champs sont obligatoires pour estimer votre CFE
+            </p>
+          </div>
+
+          <div style={{ display: 'grid', gap: '20px' }}>
+
+            {/* Statut */}
+            <div>
+              <label style={{ display: 'block', fontSize: '14px', fontWeight: 600, color: '#374151', marginBottom: '8px' }}>
+                Forme juridique
+              </label>
+              <select
+                value={statut}
+                onChange={e => setStatut(e.target.value)}
+                style={{
+                  width: '100%', padding: '12px 16px', border: '1.5px solid #D1D5DB',
+                  borderRadius: '10px', fontSize: '15px', color: '#1A1A2E',
+                  background: '#fff', cursor: 'pointer', outline: 'none',
+                }}
+                onFocus={e => (e.target.style.borderColor = '#6C3BFF')}
+                onBlur={e => (e.target.style.borderColor = '#D1D5DB')}
+              >
+                {STATUTS.map(s => (
+                  <option key={s.id} value={s.id}>{s.name}</option>
+                ))}
+              </select>
+              {statut === 'ae' && (
+                <p style={{ fontSize: '12px', color: '#6B7280', marginTop: '6px', marginBottom: 0 }}>
+                  <Info size={11} style={{ display: 'inline', marginRight: '4px' }} />
+                  Exonération de CFE si CA ≤ 5 000 € (art. 1447-0 CGI)
+                </p>
+              )}
+            </div>
+
+            {/* CA */}
+            <div>
+              <label style={{
+                display: 'flex', justifyContent: 'space-between', alignItems: 'center',
+                fontSize: '14px', fontWeight: 600, color: '#374151', marginBottom: '8px',
+              }}>
+                <span>Chiffre d&apos;affaires annuel</span>
+                <span style={{
+                  background: 'linear-gradient(135deg, #6C3BFF, #A78BFA)',
+                  WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent',
+                  fontWeight: 800, fontSize: '16px',
+                }}>
+                  {fmtCA(ca)}
+                </span>
+              </label>
+
+              <input
+                type="range" min={0} max={100}
+                value={sliderPct}
+                style={{ width: '100%', marginBottom: '12px', '--range-percent': `${sliderPct}%` } as React.CSSProperties}
+                onChange={e => {
+                  const pct = parseFloat(e.target.value) / 100
+                  const log = (v: number) => Math.log10(Math.max(v, 1))
+                  const val = Math.round(Math.pow(10, log(1) + pct * (log(10_000_000) - log(1))))
+                  setCa(val)
+                  setCaInput(String(val))
+                }}
+              />
+
+              <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px', marginBottom: '10px' }}>
+                {CA_PRESETS.map(p => (
+                  <button
+                    key={p.value}
+                    onClick={() => { setCa(p.value); setCaInput(String(p.value)) }}
+                    style={{
+                      padding: '4px 12px', borderRadius: '6px', fontSize: '12px', fontWeight: 500,
+                      cursor: 'pointer', transition: 'all 0.15s',
+                      border: ca === p.value ? '1.5px solid #6C3BFF' : '1.5px solid #E5E7EB',
+                      background: ca === p.value ? '#EDE9FF' : '#F9FAFB',
+                      color: ca === p.value ? '#5B21B6' : '#6B7280',
+                    }}>
+                    {p.label}
+                  </button>
+                ))}
+              </div>
+
+              <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                <span style={{ fontSize: '13px', color: '#6B7280' }}>Saisir manuellement :</span>
+                <div style={{ display: 'flex', alignItems: 'center', border: '1.5px solid #D1D5DB', borderRadius: '8px', overflow: 'hidden' }}>
+                  <input
+                    type="text"
+                    value={caInput}
+                    onChange={e => handleCAChange(e.target.value)}
+                    style={{ padding: '6px 10px', border: 'none', outline: 'none', fontSize: '14px', width: '100px', color: '#1A1A2E' }}
+                  />
+                  <span style={{ padding: '0 10px', background: '#F9FAFB', fontSize: '13px', color: '#6B7280', borderLeft: '1px solid #E5E7EB', alignSelf: 'stretch', display: 'flex', alignItems: 'center' }}>€</span>
+                </div>
+              </div>
+            </div>
+
+            {/* Ville */}
+            <div>
+              <label style={{ display: 'block', fontSize: '14px', fontWeight: 600, color: '#374151', marginBottom: '8px' }}>
+                Ville actuelle du siège social
+              </label>
+              <select
+                value={cityId}
+                onChange={e => setCityId(e.target.value)}
+                style={{
+                  width: '100%', padding: '12px 16px', border: '1.5px solid #D1D5DB',
+                  borderRadius: '10px', fontSize: '15px',
+                  color: cityId ? '#1A1A2E' : '#9CA3AF',
+                  background: '#fff', cursor: 'pointer', outline: 'none',
+                }}
+                onFocus={e => (e.target.style.borderColor = '#6C3BFF')}
+                onBlur={e => (e.target.style.borderColor = '#D1D5DB')}
+              >
+                <option value="" disabled>Choisir votre ville...</option>
+                {CITIES.map(c => (
+                  <option key={c.id} value={c.id}>{c.name}</option>
+                ))}
+              </select>
+            </div>
+
+          </div>
+
+          <button
+            onClick={handleCalculate}
+            disabled={!city}
+            style={{
+              width: '100%', marginTop: '24px', padding: '15px',
+              background: city ? 'linear-gradient(135deg, #6C3BFF, #8B5CF6)' : '#D1D5DB',
+              color: '#fff', border: 'none', borderRadius: '12px',
+              fontSize: '16px', fontWeight: 700,
+              cursor: city ? 'pointer' : 'not-allowed',
+              display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px',
+              boxShadow: city ? '0 4px 16px rgba(108, 59, 255, 0.35)' : 'none',
+              transition: 'all 0.2s',
+            }}
+          >
+            <Calculator size={18} />
+            Calculer ma CFE
+            <ArrowRight size={18} />
+          </button>
+        </div>
+
+        {/* ── Results ── */}
+        {step === 'results' && results && city && (
+          <div ref={resultsRef} className="animate-fadeInUp" style={{ marginTop: '24px' }}>
+
+            {results.exempt ? (
+              <div style={{
+                background: '#DCFCE7', border: '1px solid #86EFAC', borderRadius: '16px',
+                padding: '32px', textAlign: 'center',
+              }}>
+                <CheckCircle2 size={32} color="#16A34A" style={{ marginBottom: '8px' }} />
+                <h3 style={{ fontSize: '20px', fontWeight: 700, color: '#15803D', marginBottom: '8px' }}>
+                  Vous êtes exonéré de CFE !
+                </h3>
+                <p style={{ color: '#166534', fontSize: '14px', margin: 0 }}>
+                  En tant qu&apos;auto-entrepreneur avec un CA ≤ 5 000 €, vous bénéficiez d&apos;une
+                  exonération totale de CFE (article 1447-0 du CGI).
+                </p>
+              </div>
+            ) : (
+              <>
+                {/* Current vs Paris */}
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px', marginBottom: '16px' }}>
+                  <div style={{
+                    background: cityId === 'paris' ? '#F0FDF4' : '#FEF9F0',
+                    border: `1px solid ${cityId === 'paris' ? '#86EFAC' : '#FDE68A'}`,
+                    borderRadius: '16px', padding: '24px',
+                  }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '12px' }}>
+                      <MapPin size={16} color="#6B7280" />
+                      <span style={{ fontSize: '13px', color: '#6B7280', fontWeight: 500 }}>Votre situation actuelle</span>
+                    </div>
+                    <div style={{ fontSize: '13px', color: '#374151', marginBottom: '4px', fontWeight: 600 }}>
+                      {city.name.split(' (')[0]}
+                    </div>
+                    <div className="animate-countUp" style={{
+                      fontSize: 'clamp(24px, 4vw, 36px)', fontWeight: 800,
+                      color: cityId === 'paris' ? '#15803D' : '#92400E', lineHeight: 1.1,
+                    }}>
+                      {fmt(results.cfeCurrent)}
+                    </div>
+                    <div style={{ fontSize: '12px', color: '#6B7280', marginTop: '4px' }}>CFE annuelle estimée</div>
+                  </div>
+
+                  <div style={{
+                    background: 'linear-gradient(145deg, #F5F3FF, #EDE9FF)',
+                    border: '2px solid #7C3AED', borderRadius: '16px', padding: '24px',
+                    position: 'relative', overflow: 'hidden',
+                  }}>
+                    <div style={{
+                      position: 'absolute', top: '10px', right: '10px',
+                      background: 'linear-gradient(135deg, #6C3BFF, #A78BFA)',
+                      color: '#fff', fontSize: '10px', fontWeight: 700,
+                      padding: '2px 8px', borderRadius: '99px',
+                    }}>
+                      LegalPlace
+                    </div>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '12px' }}>
+                      <Sparkles size={16} color="#6C3BFF" />
+                      <span style={{ fontSize: '13px', color: '#5B21B6', fontWeight: 500 }}>Domiciliation Paris</span>
+                    </div>
+                    <div style={{ fontSize: '13px', color: '#374151', marginBottom: '4px', fontWeight: 600 }}>
+                      Paris (75)
+                    </div>
+                    <div className="animate-countUp" style={{
+                      fontSize: 'clamp(24px, 4vw, 36px)', fontWeight: 800,
+                      color: '#5B21B6', lineHeight: 1.1,
+                    }}>
+                      {fmt(results.cfeParis)}
+                    </div>
+                    <div style={{ fontSize: '12px', color: '#7C3AED', marginTop: '4px' }}>CFE annuelle estimée</div>
+                  </div>
+                </div>
+
+                {/* Savings */}
+                {results.isCheaper ? (
+                  <div className="animate-countUp" style={{
+                    background: 'linear-gradient(135deg, #6C3BFF, #7C3AED)',
+                    borderRadius: '16px', padding: '28px 32px',
+                    textAlign: 'center', color: '#fff', marginBottom: '16px',
+                  }}>
+                    <TrendingDown size={28} style={{ marginBottom: '8px', opacity: 0.9 }} />
+                    <div style={{ fontSize: '14px', opacity: 0.85, marginBottom: '4px' }}>
+                      Économie annuelle estimée avec une domiciliation LegalPlace Paris
+                    </div>
+                    <div style={{ fontSize: 'clamp(32px, 6vw, 52px)', fontWeight: 800, lineHeight: 1.1 }}>
+                      {fmt(results.savings)} / an
+                    </div>
+                    <div style={{ fontSize: '13px', opacity: 0.75, marginTop: '6px' }}>
+                      soit {fmt(Math.round(results.savings / 12))} économisés par mois sur votre CFE
+                    </div>
+                  </div>
+                ) : (
+                  <div style={{
+                    background: '#F0FDF4', border: '1px solid #86EFAC', borderRadius: '16px',
+                    padding: '20px', textAlign: 'center', marginBottom: '16px',
+                  }}>
+                    <CheckCircle2 size={24} color="#16A34A" style={{ marginBottom: '8px' }} />
+                    <p style={{ color: '#15803D', fontWeight: 600, margin: 0 }}>
+                      {cityId === 'paris'
+                        ? 'Vous êtes déjà à Paris — vous bénéficiez déjà des taux les plus compétitifs !'
+                        : 'Votre commune a des taux compétitifs. La domiciliation Paris reste avantageuse pour votre image.'}
+                    </p>
+                  </div>
+                )}
+
+                {/* Comparison chart */}
+                <div style={{
+                  background: '#fff', border: '1px solid #E5E7EB',
+                  borderRadius: '16px', padding: '24px', marginBottom: '16px',
+                }}>
+                  <h3 style={{ fontSize: '15px', fontWeight: 700, color: '#1A1A2E', marginBottom: '4px' }}>
+                    Comparaison — CFE minimales des principales villes françaises
+                  </h3>
+                  <p style={{ fontSize: '12px', color: '#9CA3AF', marginBottom: '20px' }}>
+                    Pour un CA de {fmtCA(ca)} — domiciliation uniquement (estimations 2024)
+                  </p>
+                  {compCities.map(c => (
+                    <SavingsBar
+                      key={c.id}
+                      label={c.name}
+                      amount={c.amount}
+                      maxAmount={maxCompAmount}
+                      isLegalPlace={c.id === 'paris'}
+                    />
+                  ))}
+                </div>
+
+                {/* CTA */}
+                <div style={{
+                  background: 'linear-gradient(145deg, #F5F3FF, #EDE9FF)',
+                  border: '2px solid #7C3AED', borderRadius: '20px',
+                  padding: '32px', textAlign: 'center',
+                }}>
+                  <span style={{
+                    display: 'inline-flex', alignItems: 'center', gap: '6px',
+                    background: 'linear-gradient(135deg, #6C3BFF, #A78BFA)',
+                    color: '#fff', padding: '4px 14px', borderRadius: '99px',
+                    fontSize: '12px', fontWeight: 700, marginBottom: '16px',
+                  }}>
+                    <Star size={12} />
+                    Adresse Paris 8ème — Champs-Élysées
+                  </span>
+                  <h3 style={{ fontSize: '22px', fontWeight: 800, color: '#1A1A2E', marginBottom: '8px' }}>
+                    Domiciliez votre entreprise à Paris
+                    {results.isCheaper ? ` et économisez ${fmt(results.savings)}/an` : ''}
+                  </h3>
+                  <p style={{ fontSize: '14px', color: '#6B7280', marginBottom: '24px', lineHeight: 1.6 }}>
+                    Dès <strong>19 €/mois</strong>, bénéficiez d&apos;une adresse prestigieuse,
+                    de la gestion de votre courrier, et des taux CFE les plus compétitifs de France.
+                  </p>
+                  <div style={{
+                    display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))',
+                    gap: '8px', marginBottom: '24px', textAlign: 'left',
+                  }}>
+                    {[
+                      'Adresse Paris 8ème',
+                      'Gestion du courrier incluse',
+                      'CFE parmi les moins chères de France',
+                      'Accès espace de coworking',
+                      'Résiliation à tout moment',
+                      'Attestation de domiciliation rapide',
+                    ].map(b => (
+                      <div key={b} style={{ display: 'flex', alignItems: 'flex-start', gap: '8px', fontSize: '13px', color: '#374151' }}>
+                        <CheckCircle2 size={14} color="#6C3BFF" style={{ marginTop: '1px', flexShrink: 0 }} />
+                        {b}
+                      </div>
+                    ))}
+                  </div>
+                  <a
+                    href="https://www.legalplace.fr/domiciliation/"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="animate-pulse-cta"
+                    style={{
+                      display: 'inline-flex', alignItems: 'center', gap: '8px',
+                      background: 'linear-gradient(135deg, #6C3BFF, #8B5CF6)',
+                      color: '#fff', padding: '15px 32px', borderRadius: '12px',
+                      fontSize: '16px', fontWeight: 700, textDecoration: 'none',
+                      boxShadow: '0 4px 20px rgba(108, 59, 255, 0.4)',
+                    }}
+                  >
+                    Démarrer ma domiciliation
+                    <ArrowRight size={18} />
+                  </a>
+                  <p style={{ fontSize: '12px', color: '#9CA3AF', marginTop: '12px' }}>
+                    Sans engagement · Résiliable à tout moment
+                  </p>
+                </div>
+              </>
+            )}
+
+            <div style={{ textAlign: 'center', marginTop: '20px' }}>
+              <button
+                onClick={() => { setStep('form'); window.scrollTo({ top: 0, behavior: 'smooth' }) }}
+                style={{
+                  background: 'none', border: '1px solid #D1D5DB', borderRadius: '8px',
+                  padding: '8px 18px', fontSize: '13px', color: '#6B7280', cursor: 'pointer',
+                  display: 'inline-flex', alignItems: 'center', gap: '6px',
+                }}
+              >
+                <Calculator size={13} /> Modifier ma simulation
+              </button>
+            </div>
+          </div>
+        )}
+      </section>
+
+      {/* ── Info section ── */}
+      <section style={{ background: '#F9FAFB', padding: '64px 24px', borderTop: '1px solid #E5E7EB' }}>
+        <div style={{ maxWidth: '780px', margin: '0 auto' }}>
+          <h2 style={{ fontSize: '24px', fontWeight: 800, textAlign: 'center', marginBottom: '8px', color: '#1A1A2E' }}>
+            Tout savoir sur la CFE et la domiciliation
+          </h2>
+          <p style={{ textAlign: 'center', color: '#6B7280', marginBottom: '40px', fontSize: '15px' }}>
+            Les questions les plus fréquentes de nos clients
+          </p>
+          <div style={{ display: 'grid', gap: '12px' }}>
+            {[
+              {
+                q: "Qu'est-ce que la CFE ?",
+                a: "La Cotisation Foncière des Entreprises (CFE) est une taxe locale due par toutes les entreprises et personnes physiques exerçant une activité professionnelle non salariée. Son montant dépend de la valeur locative des biens immobiliers utilisés pour l'activité et du taux voté par chaque commune. En cas de domiciliation (sans locaux propres), vous payez la cotisation minimale fixée par votre commune.",
+              },
+              {
+                q: "Pourquoi la CFE est-elle moins chère à Paris ?",
+                a: "Paris a voté des montants de cotisation minimale inférieurs à de nombreuses autres villes françaises, notamment les communes du 92 (Hauts-de-Seine) comme Neuilly ou Boulogne-Billancourt. Pour une entreprise domiciliée sans locaux propres, la différence peut représenter plusieurs centaines, voire milliers d'euros par an.",
+              },
+              {
+                q: "Comment fonctionne la domiciliation pour la CFE ?",
+                a: "Lorsque vous domiciliez votre entreprise chez LegalPlace à Paris, votre siège social est à l'adresse parisienne. C'est donc la commune de Paris qui fixe votre CFE. Vous payez la cotisation minimale parisienne, généralement plus avantageuse que dans les communes périphériques ou certaines grandes villes de province.",
+              },
+              {
+                q: "Suis-je exonéré de CFE la première année ?",
+                a: "Oui ! L'année de création de votre entreprise, vous êtes exonéré de CFE. Les auto-entrepreneurs avec un CA inférieur à 5 000 € bénéficient également d'une exonération permanente (article 1447-0 du CGI).",
+              },
+              {
+                q: "Combien coûte la domiciliation LegalPlace à Paris ?",
+                a: "À partir de 19 €/mois, vous bénéficiez d'une adresse dans le 8ème arrondissement de Paris (Champs-Élysées), de la gestion de votre courrier et de tous les avantages d'une domiciliation professionnelle. La domiciliation est résiliable à tout moment.",
+              },
+            ].map(({ q, a }) => (
+              <FAQItem key={q} question={q} answer={a} />
+            ))}
+          </div>
+        </div>
+      </section>
+
+      {/* ── Bottom CTA ── */}
+      <section style={{
+        padding: '64px 24px',
+        background: 'linear-gradient(135deg, #1A1A2E, #2D1B69)',
+        color: '#fff', textAlign: 'center',
+      }}>
+        <div style={{ maxWidth: '520px', margin: '0 auto' }}>
+          <Sparkles size={32} color="#A78BFA" style={{ marginBottom: '16px' }} />
+          <h2 style={{ fontSize: '28px', fontWeight: 800, marginBottom: '12px' }}>
+            Prêt à réduire votre CFE ?
+          </h2>
+          <p style={{ color: '#A78BFA', marginBottom: '28px', fontSize: '15px', lineHeight: 1.6 }}>
+            Rejoignez plus de 200 000 entrepreneurs qui font confiance à LegalPlace
+            pour leur domiciliation à Paris.
+          </p>
+          <a
+            href="https://www.legalplace.fr/domiciliation/"
+            target="_blank"
+            rel="noopener noreferrer"
+            style={{
+              display: 'inline-flex', alignItems: 'center', gap: '8px',
+              background: 'linear-gradient(135deg, #6C3BFF, #A78BFA)',
+              color: '#fff', padding: '15px 32px', borderRadius: '12px',
+              fontSize: '16px', fontWeight: 700, textDecoration: 'none',
+              boxShadow: '0 4px 24px rgba(108, 59, 255, 0.5)',
+            }}
+          >
+            Domicilier mon entreprise à Paris
+            <ArrowRight size={18} />
+          </a>
+        </div>
+      </section>
+
+      {/* ── Footer ── */}
+      <footer style={{
+        padding: '24px', borderTop: '1px solid #E5E7EB',
+        textAlign: 'center', fontSize: '11px', color: '#9CA3AF', lineHeight: 1.6,
+      }}>
+        <p style={{ maxWidth: '700px', margin: '0 auto 8px' }}>
+          <strong>Avertissement :</strong> Les montants de CFE présentés sont des estimations basées sur les délibérations
+          municipales connues et peuvent varier selon les années et les communes. Ce simulateur est fourni à titre indicatif
+          uniquement et ne constitue pas un conseil fiscal. Consultez l&apos;administration fiscale ou un expert-comptable
+          pour connaître votre CFE exacte.
+        </p>
+        <p style={{ margin: 0 }}>© {new Date().getFullYear()} LegalPlace. Tous droits réservés.</p>
       </footer>
+
     </div>
   )
 }
