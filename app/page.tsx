@@ -442,7 +442,7 @@ export default function SimulateurCFE() {
             fontSize: 'clamp(28px, 5vw, 48px)', fontWeight: 800,
             lineHeight: 1.15, color: '#1A1A2E', marginBottom: '16px',
           }}>
-            Calculez votre CFE réelle<br />
+            Simulez votre CFE en 30 secondes<br />
             <span style={{ color: '#6C3BFF' }}>et comparez avec Paris.</span>
           </h1>
           <p className="animate-fadeInUp delay-200" style={{
@@ -823,12 +823,12 @@ export default function SimulateurCFE() {
                     gap: '8px', marginBottom: '24px', textAlign: 'left',
                   }}>
                     {[
-                      'Adresse Paris 8ème',
-                      'Gestion du courrier incluse',
+                      'Adresse prestigieuse Paris 8ème',
+                      'Anonymisation de votre adresse personnelle',
+                      'Scan & réception du courrier inclus',
                       'CFE parmi les moins chères de France',
-                      'Accès espace de coworking',
-                      'Résiliation à tout moment',
                       'Attestation de domiciliation rapide',
+                      'Résiliable à tout moment',
                     ].map(b => (
                       <div key={b} style={{ display: 'flex', alignItems: 'flex-start', gap: '8px', fontSize: '13px', color: '#374151' }}>
                         <CheckCircle2 size={14} color="#6C3BFF" style={{ marginTop: '1px', flexShrink: 0 }} />
@@ -921,7 +921,7 @@ export default function SimulateurCFE() {
             Prêt à réduire votre CFE ?
           </h2>
           <p style={{ color: '#A78BFA', marginBottom: '28px', fontSize: '15px', lineHeight: 1.6 }}>
-            Rejoignez plus de 200 000 entrepreneurs qui font confiance à LegalPlace
+            Rejoignez plus de 40 000 entrepreneurs qui font confiance à LegalPlace
             pour leur domiciliation à Paris.
           </p>
           <a
