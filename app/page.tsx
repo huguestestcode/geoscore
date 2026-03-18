@@ -1,56 +1,65 @@
 'use client'
 
-import { useState, useMemo, useRef } from 'react'
+import { useState, useMemo, useRef, useEffect, useCallback } from 'react'
 import {
   Building2, MapPin, TrendingDown, Calculator,
   CheckCircle2, ArrowRight, Info, ChevronDown,
-  Sparkles, Shield, Clock, Star
+  Sparkles, Shield, Clock, Star, Search, Loader2, X, AlertTriangle
 } from 'lucide-react'
 
-// ─── CFE Data 2024 ────────────────────────────────────────────────────────────
-// Cotisations minimales estimées par tranche de CA (domiciliation / siège social uniquement)
-// Tranches : ≤10K | 10-32.6K | 32.6-100K | 100-250K | 250-500K | >500K
-// Source : délibérations municipales, données Service-Public.fr (estimations indicatives)
+// ─── Types ────────────────────────────────────────────────────────────────────
+type Commune = {
+  nom: string
+  code: string           // code INSEE
+  codesPostaux: string[]
+  codeDepartement: string
+  population?: number
+}
 
-type CityData = { id: string; name: string; rates: number[] }
+type CFETaux = {
+  taux: number       // taux global CFE (%)
+  nom: string
+  annee: number
+  source: string
+}
 
-const CITIES: CityData[] = [
-  { id: 'paris',       name: 'Paris (75)',                rates: [226,  226,  481,  962,  1443, 1923] },
-  { id: 'neuilly',     name: 'Neuilly-sur-Seine (92)',    rates: [652,  843,  1465, 2930, 4395, 5860] },
-  { id: 'levallois',   name: 'Levallois-Perret (92)',     rates: [589,  761,  1323, 2646, 3969, 5292] },
-  { id: 'boulogne',    name: 'Boulogne-Billancourt (92)', rates: [542,  700,  1217, 2434, 3651, 4868] },
-  { id: 'versailles',  name: 'Versailles (78)',           rates: [498,  644,  1119, 2238, 3357, 4476] },
-  { id: 'lyon',        name: 'Lyon (69)',                 rates: [388,  501,  871,  1742, 2613, 3484] },
-  { id: 'marseille',   name: 'Marseille (13)',            rates: [356,  460,  800,  1600, 2400, 3200] },
-  { id: 'toulouse',    name: 'Toulouse (31)',             rates: [374,  484,  841,  1682, 2523, 3364] },
-  { id: 'bordeaux',    name: 'Bordeaux (33)',             rates: [412,  532,  925,  1850, 2775, 3700] },
-  { id: 'nantes',      name: 'Nantes (44)',               rates: [362,  468,  813,  1626, 2439, 3252] },
-  { id: 'lille',       name: 'Lille (59)',                rates: [428,  553,  961,  1922, 2883, 3844] },
-  { id: 'nice',        name: 'Nice (06)',                 rates: [395,  511,  888,  1776, 2664, 3552] },
-  { id: 'strasbourg',  name: 'Strasbourg (67)',           rates: [408,  527,  916,  1832, 2748, 3664] },
-  { id: 'montpellier', name: 'Montpellier (34)',          rates: [376,  486,  845,  1690, 2535, 3380] },
-  { id: 'rennes',      name: 'Rennes (35)',               rates: [358,  463,  805,  1610, 2415, 3220] },
-  { id: 'grenoble',    name: 'Grenoble (38)',             rates: [392,  507,  882,  1764, 2646, 3528] },
-  { id: 'aix',         name: 'Aix-en-Provence (13)',     rates: [418,  540,  939,  1878, 2817, 3756] },
-  { id: 'dijon',       name: 'Dijon (21)',                rates: [378,  489,  850,  1700, 2550, 3400] },
-  { id: 'nimes',       name: 'Nîmes (30)',                rates: [368,  476,  828,  1656, 2484, 3312] },
-  { id: 'toulon',      name: 'Toulon (83)',               rates: [364,  471,  819,  1638, 2457, 3276] },
-  { id: 'angers',      name: 'Angers (49)',               rates: [342,  442,  769,  1538, 2307, 3076] },
-  { id: 'reims',       name: 'Reims (51)',                rates: [369,  477,  830,  1660, 2490, 3320] },
-  { id: 'le_havre',    name: 'Le Havre (76)',             rates: [372,  481,  836,  1672, 2508, 3344] },
-  { id: 'rouen',       name: 'Rouen (76)',                rates: [374,  484,  841,  1682, 2523, 3364] },
-  { id: 'amiens',      name: 'Amiens (80)',               rates: [381,  492,  856,  1712, 2568, 3424] },
-  { id: 'clermont',    name: 'Clermont-Ferrand (63)',     rates: [366,  473,  823,  1646, 2469, 3292] },
-  { id: 'metz',        name: 'Metz (57)',                 rates: [383,  495,  860,  1720, 2580, 3440] },
-  { id: 'nancy',       name: 'Nancy (54)',                rates: [379,  490,  852,  1704, 2556, 3408] },
-  { id: 'orleans',     name: "Orléans (45)",              rates: [357,  462,  803,  1606, 2409, 3212] },
-  { id: 'brest',       name: 'Brest (29)',                rates: [348,  450,  783,  1566, 2349, 3132] },
-  { id: 'limoges',     name: 'Limoges (87)',              rates: [352,  455,  791,  1582, 2373, 3164] },
-  { id: 'tours',       name: 'Tours (37)',                rates: [347,  449,  781,  1562, 2343, 3124] },
-  { id: 'autre',       name: 'Autre ville / commune',     rates: [420,  543,  945,  1890, 2835, 3780] },
-]
+// ─── Legal constants — Article 1647 D CGI (barème 2024) ──────────────────────
+// Plafonds de la base minimum de CFE par tranche de CA (N-2)
+const LEGAL_CEILING = [565, 1179, 2477, 4152, 6070, 7349]
+const LEGAL_FLOOR   = [237,  237,  237,  237,  237,  237]
+const CA_THRESHOLDS = [10000, 32600, 100000, 250000, 500000]
 
-const PARIS = CITIES.find(c => c.id === 'paris')!
+function getTranche(ca: number): number {
+  for (let i = 0; i < CA_THRESHOLDS.length; i++) {
+    if (ca <= CA_THRESHOLDS[i]) return i
+  }
+  return 5
+}
+
+function estimateCFE(taux: number, ca: number): { min: number; max: number } {
+  const t = getTranche(ca)
+  return {
+    min: Math.round(LEGAL_FLOOR[t] * taux / 100),
+    max: Math.round(LEGAL_CEILING[t] * taux / 100),
+  }
+}
+
+function isExempt(statut: string, ca: number): boolean {
+  return statut === 'ae' && ca <= 5000
+}
+
+function fmt(n: number): string {
+  return new Intl.NumberFormat('fr-FR', { style: 'currency', currency: 'EUR', maximumFractionDigits: 0 }).format(n)
+}
+
+function fmtCA(n: number): string {
+  if (n >= 1_000_000) return `${(n / 1_000_000).toFixed(1)} M€`
+  if (n >= 1_000) return `${Math.round(n / 1_000)} K€`
+  return `${n} €`
+}
+
+// ─── Constants ────────────────────────────────────────────────────────────────
+const PARIS_CODE = '75056'
 
 const STATUTS = [
   { id: 'ae',   name: 'Auto-entrepreneur / Micro-entreprise' },
@@ -71,41 +80,170 @@ const CA_PRESETS = [
   { label: '500 000 €',  value: 500000 },
 ]
 
-// ─── Helpers ──────────────────────────────────────────────────────────────────
-function getCFETranche(ca: number): number {
-  if (ca <= 10000)  return 0
-  if (ca <= 32600)  return 1
-  if (ca <= 100000) return 2
-  if (ca <= 250000) return 3
-  if (ca <= 500000) return 4
-  return 5
+// ─── API functions ────────────────────────────────────────────────────────────
+async function searchCommunes(query: string): Promise<Commune[]> {
+  const q = query.trim()
+  if (q.length < 2) return []
+
+  const isPostal = /^\d{2,5}$/.test(q)
+  const url = isPostal
+    ? `https://geo.api.gouv.fr/communes?codePostal=${q}&fields=nom,code,codesPostaux,codeDepartement,population&boost=population`
+    : `https://geo.api.gouv.fr/communes?nom=${encodeURIComponent(q)}&fields=nom,code,codesPostaux,codeDepartement,population&boost=population&limit=8`
+
+  const res = await fetch(url)
+  if (!res.ok) return []
+  const data: Commune[] = await res.json()
+  return data.slice(0, 8)
 }
 
-function getCFE(city: CityData, ca: number): number {
-  return city.rates[getCFETranche(ca)]
+async function fetchCFETaux(codeInsee: string): Promise<CFETaux | null> {
+  const res = await fetch(`/api/cfe-taux?code=${codeInsee}`)
+  if (!res.ok) return null
+  const data = await res.json()
+  if (data.error) return null
+  return data as CFETaux
 }
 
-function isExempt(statut: string, ca: number): boolean {
-  return statut === 'ae' && ca <= 5000
+// ─── Sub-components ───────────────────────────────────────────────────────────
+
+function CommuneSearch({ onSelect, selected }: {
+  onSelect: (c: Commune | null) => void
+  selected: Commune | null
+}) {
+  const [query, setQuery] = useState('')
+  const [results, setResults] = useState<Commune[]>([])
+  const [loading, setLoading] = useState(false)
+  const [open, setOpen] = useState(false)
+  const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null)
+  const containerRef = useRef<HTMLDivElement>(null)
+
+  // Close dropdown on outside click
+  useEffect(() => {
+    function handleClick(e: MouseEvent) {
+      if (containerRef.current && !containerRef.current.contains(e.target as Node)) {
+        setOpen(false)
+      }
+    }
+    document.addEventListener('mousedown', handleClick)
+    return () => document.removeEventListener('mousedown', handleClick)
+  }, [])
+
+  function handleChange(val: string) {
+    setQuery(val)
+    if (selected) onSelect(null)
+    if (debounceRef.current) clearTimeout(debounceRef.current)
+    if (val.trim().length < 2) { setResults([]); setOpen(false); return }
+    setLoading(true)
+    debounceRef.current = setTimeout(async () => {
+      try {
+        const data = await searchCommunes(val)
+        setResults(data)
+        setOpen(data.length > 0)
+      } catch {
+        setResults([])
+      } finally {
+        setLoading(false)
+      }
+    }, 300)
+  }
+
+  function handleSelect(c: Commune) {
+    const cp = c.codesPostaux?.[0] || ''
+    setQuery(`${c.nom} (${cp})`)
+    setOpen(false)
+    setResults([])
+    onSelect(c)
+  }
+
+  function handleClear() {
+    setQuery('')
+    setResults([])
+    setOpen(false)
+    onSelect(null)
+  }
+
+  return (
+    <div ref={containerRef} style={{ position: 'relative' }}>
+      <label style={{ display: 'block', fontSize: '14px', fontWeight: 600, color: '#374151', marginBottom: '8px' }}>
+        <MapPin size={14} style={{ display: 'inline', marginRight: '4px', verticalAlign: '-2px' }} />
+        Ville actuelle du siège social
+      </label>
+      <div style={{
+        display: 'flex', alignItems: 'center',
+        border: selected ? '1.5px solid #6C3BFF' : '1.5px solid #D1D5DB',
+        borderRadius: '10px', overflow: 'hidden',
+        background: selected ? '#F5F3FF' : '#fff',
+        transition: 'all 0.2s',
+      }}>
+        <Search size={16} color="#9CA3AF" style={{ marginLeft: '14px', flexShrink: 0 }} />
+        <input
+          type="text"
+          value={query}
+          onChange={e => handleChange(e.target.value)}
+          onFocus={() => results.length > 0 && setOpen(true)}
+          placeholder="Tapez une ville ou un code postal..."
+          style={{
+            flex: 1, padding: '12px', border: 'none', outline: 'none',
+            fontSize: '15px', color: '#1A1A2E', background: 'transparent',
+          }}
+        />
+        {loading && <Loader2 size={16} color="#6C3BFF" style={{ marginRight: '8px', animation: 'spin 1s linear infinite' }} />}
+        {selected && (
+          <button onClick={handleClear} style={{
+            background: 'none', border: 'none', cursor: 'pointer', padding: '8px 12px',
+            color: '#6B7280', display: 'flex', alignItems: 'center',
+          }}>
+            <X size={16} />
+          </button>
+        )}
+      </div>
+
+      {/* Dropdown */}
+      {open && (
+        <div style={{
+          position: 'absolute', top: '100%', left: 0, right: 0, zIndex: 50,
+          background: '#fff', border: '1px solid #E5E7EB', borderRadius: '10px',
+          boxShadow: '0 8px 24px rgba(0,0,0,0.12)', marginTop: '4px',
+          maxHeight: '280px', overflowY: 'auto',
+        }}>
+          {results.map(c => (
+            <button
+              key={c.code}
+              onClick={() => handleSelect(c)}
+              style={{
+                width: '100%', padding: '12px 16px', border: 'none',
+                background: 'transparent', cursor: 'pointer', textAlign: 'left',
+                display: 'flex', justifyContent: 'space-between', alignItems: 'center',
+                borderBottom: '1px solid #F3F4F6', transition: 'background 0.1s',
+              }}
+              onMouseEnter={e => (e.currentTarget.style.background = '#F5F3FF')}
+              onMouseLeave={e => (e.currentTarget.style.background = 'transparent')}
+            >
+              <div>
+                <div style={{ fontSize: '14px', fontWeight: 600, color: '#1A1A2E' }}>
+                  {c.nom}
+                </div>
+                <div style={{ fontSize: '12px', color: '#6B7280' }}>
+                  {c.codesPostaux?.slice(0, 3).join(', ')}{c.codesPostaux?.length > 3 ? '...' : ''} — Dép. {c.codeDepartement}
+                </div>
+              </div>
+              {c.population && (
+                <span style={{ fontSize: '11px', color: '#9CA3AF' }}>
+                  {(c.population / 1000).toFixed(0)}k hab.
+                </span>
+              )}
+            </button>
+          ))}
+        </div>
+      )}
+    </div>
+  )
 }
 
-function fmt(n: number): string {
-  return new Intl.NumberFormat('fr-FR', {
-    style: 'currency', currency: 'EUR', maximumFractionDigits: 0
-  }).format(n)
-}
-
-function fmtCA(n: number): string {
-  if (n >= 1_000_000) return `${(n / 1_000_000).toFixed(1)} M€`
-  if (n >= 1_000)     return `${Math.round(n / 1_000)} K€`
-  return `${n} €`
-}
-
-// ─── SavingsBar ───────────────────────────────────────────────────────────────
 function SavingsBar({ label, amount, maxAmount, isLegalPlace = false }: {
   label: string; amount: number; maxAmount: number; isLegalPlace?: boolean
 }) {
-  const pct = Math.round((amount / maxAmount) * 100)
+  const pct = Math.max(5, Math.round((amount / maxAmount) * 100))
   return (
     <div style={{ marginBottom: '10px' }}>
       <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '4px' }}>
@@ -117,46 +255,35 @@ function SavingsBar({ label, amount, maxAmount, isLegalPlace = false }: {
         </span>
       </div>
       <div style={{ height: '8px', background: '#F3F4F6', borderRadius: '4px', overflow: 'hidden' }}>
-        <div
-          className="bar-fill"
-          style={{
-            height: '100%',
-            width: `${pct}%`,
-            borderRadius: '4px',
-            background: isLegalPlace
-              ? 'linear-gradient(90deg, #6C3BFF, #A78BFA)'
-              : '#D1D5DB',
-          }}
-        />
+        <div className="bar-fill" style={{
+          height: '100%', width: `${pct}%`, borderRadius: '4px',
+          background: isLegalPlace ? 'linear-gradient(90deg, #6C3BFF, #A78BFA)' : '#D1D5DB',
+        }} />
       </div>
     </div>
   )
 }
 
-// ─── FAQ accordion ────────────────────────────────────────────────────────────
 function FAQItem({ question, answer }: { question: string; answer: string }) {
   const [open, setOpen] = useState(false)
   return (
     <div style={{
-      border: '1px solid #E5E7EB', borderRadius: '12px',
-      overflow: 'hidden',
-      boxShadow: open ? '0 2px 8px rgba(0,0,0,0.04)' : 'none',
-      transition: 'box-shadow 0.2s',
+      border: '1px solid #E5E7EB', borderRadius: '12px', overflow: 'hidden',
+      boxShadow: open ? '0 2px 8px rgba(0,0,0,0.04)' : 'none', transition: 'box-shadow 0.2s',
     }}>
       <button
         onClick={() => setOpen(!open)}
         style={{
           width: '100%', padding: '18px 20px', background: '#fff',
           border: 'none', cursor: 'pointer', textAlign: 'left',
-          display: 'flex', justifyContent: 'space-between', alignItems: 'center',
-          gap: '16px',
+          display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '16px',
         }}
       >
         <span style={{ fontSize: '15px', fontWeight: 600, color: '#1A1A2E' }}>{question}</span>
-        <ChevronDown
-          size={18} color="#6B7280"
-          style={{ flexShrink: 0, transition: 'transform 0.2s', transform: open ? 'rotate(180deg)' : 'rotate(0deg)' }}
-        />
+        <ChevronDown size={18} color="#6B7280" style={{
+          flexShrink: 0, transition: 'transform 0.2s',
+          transform: open ? 'rotate(180deg)' : 'rotate(0deg)',
+        }} />
       </button>
       {open && (
         <div style={{ padding: '0 20px 18px', fontSize: '14px', color: '#4B5563', lineHeight: 1.7, background: '#fff' }}>
@@ -169,37 +296,79 @@ function FAQItem({ question, answer }: { question: string; answer: string }) {
 
 // ─── Main page ────────────────────────────────────────────────────────────────
 export default function SimulateurCFE() {
-  const [step, setStep]       = useState<'form' | 'results'>('form')
-  const [statut, setStatut]   = useState('sas')
-  const [ca, setCa]           = useState(50000)
-  const [caInput, setCaInput] = useState('50000')
-  const [cityId, setCityId]   = useState('')
-  const resultsRef            = useRef<HTMLDivElement>(null)
+  // Form state
+  const [statut, setStatut]       = useState('sas')
+  const [ca, setCa]               = useState(50000)
+  const [caInput, setCaInput]     = useState('50000')
+  const [commune, setCommune]     = useState<Commune | null>(null)
 
-  const city = useMemo(() => CITIES.find(c => c.id === cityId) || null, [cityId])
+  // CFE data state
+  const [communeTaux, setCommuneTaux] = useState<CFETaux | null>(null)
+  const [parisTaux, setParisTaux]     = useState<CFETaux | null>(null)
+  const [loadingTaux, setLoadingTaux] = useState(false)
+  const [tauxError, setTauxError]     = useState<string | null>(null)
 
+  // UI state
+  const [step, setStep] = useState<'form' | 'results'>('form')
+  const resultsRef      = useRef<HTMLDivElement>(null)
+
+  // Pre-fetch Paris taux on mount
+  useEffect(() => {
+    fetchCFETaux(PARIS_CODE).then(t => {
+      if (t) setParisTaux(t)
+    })
+  }, [])
+
+  // Fetch commune taux when commune is selected
+  const handleCommuneSelect = useCallback(async (c: Commune | null) => {
+    setCommune(c)
+    setCommuneTaux(null)
+    setTauxError(null)
+    setStep('form')
+
+    if (!c) return
+
+    setLoadingTaux(true)
+    try {
+      const taux = await fetchCFETaux(c.code)
+      if (taux) {
+        setCommuneTaux(taux)
+      } else {
+        setTauxError(`Taux CFE non trouvé pour ${c.nom}. La commune n'est peut-être pas encore dans la base open data.`)
+      }
+    } catch {
+      setTauxError('Erreur lors de la récupération du taux CFE. Veuillez réessayer.')
+    } finally {
+      setLoadingTaux(false)
+    }
+  }, [])
+
+  // Compute results
   const results = useMemo(() => {
-    if (!city) return null
-    const exempt     = isExempt(statut, ca)
-    const cfeCurrent = exempt ? 0 : getCFE(city, ca)
-    const cfeParis   = exempt ? 0 : getCFE(PARIS, ca)
-    const savings    = cfeCurrent - cfeParis
-    const isCheaper  = savings > 0
-    return { cfeCurrent, cfeParis, savings, isCheaper, exempt }
-  }, [city, statut, ca])
+    if (!commune || !communeTaux || !parisTaux) return null
 
-  const compCities = useMemo(() => {
-    const tranche = getCFETranche(ca)
-    return CITIES
-      .filter(c => c.id !== 'autre')
-      .map(c => ({ id: c.id, name: c.name.split(' (')[0], amount: c.rates[tranche] }))
-      .sort((a, b) => b.amount - a.amount)
-  }, [ca])
+    const exempt = isExempt(statut, ca)
+    if (exempt) return { exempt: true as const }
 
-  const maxCompAmount = useMemo(() => Math.max(...compCities.map(c => c.amount)), [compCities])
+    const userCFE  = estimateCFE(communeTaux.taux, ca)
+    const parisCFE = estimateCFE(parisTaux.taux, ca)
+
+    return {
+      exempt: false as const,
+      userMax: userCFE.max,
+      userMin: userCFE.min,
+      parisMax: parisCFE.max,
+      parisMin: parisCFE.min,
+      savingsMax: userCFE.max - parisCFE.max,
+      savingsMin: userCFE.min - parisCFE.min,
+      isCheaper: userCFE.max > parisCFE.max,
+      userTaux: communeTaux.taux,
+      parisTaux: parisTaux.taux,
+    }
+  }, [commune, communeTaux, parisTaux, statut, ca])
 
   function handleCalculate() {
-    if (!city || !results) return
+    if (!results) return
     setStep('results')
     setTimeout(() => resultsRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' }), 100)
   }
@@ -215,8 +384,13 @@ export default function SimulateurCFE() {
     return ((log(ca) - log(1)) / (log(10_000_000) - log(1))) * 100
   }, [ca])
 
+  const canCalculate = commune && communeTaux && parisTaux && !loadingTaux
+
+  // ─── Render ─────────────────────────────────────────────────────────────
   return (
-    <div style={{ minHeight: '100vh', background: '#fff', fontFamily: 'Inter, system-ui, sans-serif' }}>
+    <div style={{ minHeight: '100vh', background: '#fff' }}>
+      {/* Spinner keyframe (inline for Loader2) */}
+      <style>{`@keyframes spin { to { transform: rotate(360deg) } }`}</style>
 
       {/* ── Header ── */}
       <header style={{
@@ -236,8 +410,7 @@ export default function SimulateurCFE() {
         </div>
         <a
           href="https://www.legalplace.fr/domiciliation/"
-          target="_blank"
-          rel="noopener noreferrer"
+          target="_blank" rel="noopener noreferrer"
           style={{
             background: 'linear-gradient(135deg, #6C3BFF, #8B5CF6)',
             color: '#fff', padding: '8px 18px', borderRadius: '8px',
@@ -262,36 +435,34 @@ export default function SimulateurCFE() {
               fontSize: '13px', fontWeight: 600,
             }}>
               <Calculator size={13} />
-              Simulateur CFE 2024 — Gratuit
+              Simulateur CFE — Données officielles DGFiP
             </span>
           </div>
           <h1 className="animate-fadeInUp delay-100" style={{
             fontSize: 'clamp(28px, 5vw, 48px)', fontWeight: 800,
             lineHeight: 1.15, color: '#1A1A2E', marginBottom: '16px',
           }}>
-            Combien payez-vous de CFE ?<br />
-            <span style={{ color: '#6C3BFF' }}>Comparez avec Paris.</span>
+            Calculez votre CFE réelle<br />
+            <span style={{ color: '#6C3BFF' }}>et comparez avec Paris.</span>
           </h1>
           <p className="animate-fadeInUp delay-200" style={{
             fontSize: '17px', color: '#4B5563', lineHeight: 1.6, marginBottom: '32px',
           }}>
-            La Cotisation Foncière des Entreprises varie fortement selon votre commune.
-            Découvrez en 30 secondes si une domiciliation à Paris vous fait économiser.
+            Taux CFE officiels récupérés en temps réel depuis les données ouvertes de la DGFiP.
+            Recherchez n&apos;importe quelle commune de France par nom ou code postal.
           </p>
           <div className="animate-fadeInUp delay-300" style={{
             display: 'flex', flexWrap: 'wrap', justifyContent: 'center', gap: '20px',
           }}>
             {[
-              { icon: <CheckCircle2 size={15} />, text: '100% gratuit' },
-              { icon: <Clock size={15} />, text: 'Résultat immédiat' },
-              { icon: <Shield size={15} />, text: 'Sans engagement' },
+              { icon: <CheckCircle2 size={15} />, text: 'Toutes les communes de France' },
+              { icon: <Clock size={15} />, text: 'Taux officiels DGFiP' },
+              { icon: <Shield size={15} />, text: '100% gratuit' },
             ].map(({ icon, text }) => (
               <div key={text} style={{
-                display: 'flex', alignItems: 'center', gap: '6px',
-                fontSize: '13px', color: '#6B7280',
+                display: 'flex', alignItems: 'center', gap: '6px', fontSize: '13px', color: '#6B7280',
               }}>
-                <span style={{ color: '#22C55E' }}>{icon}</span>
-                {text}
+                <span style={{ color: '#22C55E' }}>{icon}</span>{text}
               </div>
             ))}
           </div>
@@ -300,7 +471,6 @@ export default function SimulateurCFE() {
 
       {/* ── Simulator card ── */}
       <section style={{ padding: '0 24px 64px', maxWidth: '780px', margin: '0 auto' }}>
-
         <div style={{
           background: '#fff', border: '1px solid #E5E7EB', borderRadius: '20px',
           padding: 'clamp(24px, 4vw, 40px)',
@@ -312,11 +482,72 @@ export default function SimulateurCFE() {
               Renseignez votre situation
             </h2>
             <p style={{ fontSize: '14px', color: '#6B7280', margin: 0 }}>
-              Tous les champs sont obligatoires pour estimer votre CFE
+              Le taux CFE de votre commune est récupéré automatiquement
             </p>
           </div>
 
           <div style={{ display: 'grid', gap: '20px' }}>
+
+            {/* Commune search */}
+            <CommuneSearch onSelect={handleCommuneSelect} selected={commune} />
+
+            {/* Taux display */}
+            {loadingTaux && (
+              <div style={{
+                display: 'flex', alignItems: 'center', gap: '8px',
+                padding: '12px 16px', background: '#F5F3FF', borderRadius: '10px',
+                fontSize: '13px', color: '#5B21B6',
+              }}>
+                <Loader2 size={14} style={{ animation: 'spin 1s linear infinite' }} />
+                Récupération du taux CFE officiel...
+              </div>
+            )}
+
+            {communeTaux && (
+              <div style={{
+                display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+                padding: '12px 16px', background: '#F0FDF4', borderRadius: '10px',
+                border: '1px solid #86EFAC',
+              }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                  <CheckCircle2 size={14} color="#16A34A" />
+                  <span style={{ fontSize: '13px', color: '#166534' }}>
+                    Taux CFE {commune?.nom} : <strong>{communeTaux.taux.toFixed(2)}%</strong>
+                  </span>
+                </div>
+                <span style={{ fontSize: '11px', color: '#6B7280' }}>
+                  Source : {communeTaux.source}
+                </span>
+              </div>
+            )}
+
+            {tauxError && (
+              <div style={{
+                display: 'flex', alignItems: 'flex-start', gap: '8px',
+                padding: '12px 16px', background: '#FEF2F2', borderRadius: '10px',
+                border: '1px solid #FECACA',
+              }}>
+                <AlertTriangle size={14} color="#DC2626" style={{ marginTop: '2px', flexShrink: 0 }} />
+                <span style={{ fontSize: '13px', color: '#991B1B' }}>{tauxError}</span>
+              </div>
+            )}
+
+            {/* Paris taux info */}
+            {parisTaux && communeTaux && commune?.code !== PARIS_CODE && (
+              <div style={{
+                display: 'flex', alignItems: 'center', gap: '8px',
+                padding: '12px 16px', background: '#F5F3FF', borderRadius: '10px',
+                border: '1px solid #DDD6FE',
+              }}>
+                <Sparkles size={14} color="#6C3BFF" />
+                <span style={{ fontSize: '13px', color: '#5B21B6' }}>
+                  Taux CFE Paris : <strong>{parisTaux.taux.toFixed(2)}%</strong>
+                  {communeTaux.taux > parisTaux.taux && (
+                    <> — <strong>{(communeTaux.taux - parisTaux.taux).toFixed(2)} points de moins</strong> que {commune?.nom}</>
+                  )}
+                </span>
+              </div>
+            )}
 
             {/* Statut */}
             <div>
@@ -334,9 +565,7 @@ export default function SimulateurCFE() {
                 onFocus={e => (e.target.style.borderColor = '#6C3BFF')}
                 onBlur={e => (e.target.style.borderColor = '#D1D5DB')}
               >
-                {STATUTS.map(s => (
-                  <option key={s.id} value={s.id}>{s.name}</option>
-                ))}
+                {STATUTS.map(s => <option key={s.id} value={s.id}>{s.name}</option>)}
               </select>
               {statut === 'ae' && (
                 <p style={{ fontSize: '12px', color: '#6B7280', marginTop: '6px', marginBottom: 0 }}>
@@ -361,7 +590,6 @@ export default function SimulateurCFE() {
                   {fmtCA(ca)}
                 </span>
               </label>
-
               <input
                 type="range" min={0} max={100}
                 value={sliderPct}
@@ -370,11 +598,9 @@ export default function SimulateurCFE() {
                   const pct = parseFloat(e.target.value) / 100
                   const log = (v: number) => Math.log10(Math.max(v, 1))
                   const val = Math.round(Math.pow(10, log(1) + pct * (log(10_000_000) - log(1))))
-                  setCa(val)
-                  setCaInput(String(val))
+                  setCa(val); setCaInput(String(val))
                 }}
               />
-
               <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px', marginBottom: '10px' }}>
                 {CA_PRESETS.map(p => (
                   <button
@@ -391,13 +617,11 @@ export default function SimulateurCFE() {
                   </button>
                 ))}
               </div>
-
               <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                <span style={{ fontSize: '13px', color: '#6B7280' }}>Saisir manuellement :</span>
+                <span style={{ fontSize: '13px', color: '#6B7280' }}>Saisir :</span>
                 <div style={{ display: 'flex', alignItems: 'center', border: '1.5px solid #D1D5DB', borderRadius: '8px', overflow: 'hidden' }}>
                   <input
-                    type="text"
-                    value={caInput}
+                    type="text" value={caInput}
                     onChange={e => handleCAChange(e.target.value)}
                     style={{ padding: '6px 10px', border: 'none', outline: 'none', fontSize: '14px', width: '100px', color: '#1A1A2E' }}
                   />
@@ -406,54 +630,31 @@ export default function SimulateurCFE() {
               </div>
             </div>
 
-            {/* Ville */}
-            <div>
-              <label style={{ display: 'block', fontSize: '14px', fontWeight: 600, color: '#374151', marginBottom: '8px' }}>
-                Ville actuelle du siège social
-              </label>
-              <select
-                value={cityId}
-                onChange={e => setCityId(e.target.value)}
-                style={{
-                  width: '100%', padding: '12px 16px', border: '1.5px solid #D1D5DB',
-                  borderRadius: '10px', fontSize: '15px',
-                  color: cityId ? '#1A1A2E' : '#9CA3AF',
-                  background: '#fff', cursor: 'pointer', outline: 'none',
-                }}
-                onFocus={e => (e.target.style.borderColor = '#6C3BFF')}
-                onBlur={e => (e.target.style.borderColor = '#D1D5DB')}
-              >
-                <option value="" disabled>Choisir votre ville...</option>
-                {CITIES.map(c => (
-                  <option key={c.id} value={c.id}>{c.name}</option>
-                ))}
-              </select>
-            </div>
-
           </div>
 
+          {/* CTA */}
           <button
             onClick={handleCalculate}
-            disabled={!city}
+            disabled={!canCalculate}
             style={{
               width: '100%', marginTop: '24px', padding: '15px',
-              background: city ? 'linear-gradient(135deg, #6C3BFF, #8B5CF6)' : '#D1D5DB',
+              background: canCalculate ? 'linear-gradient(135deg, #6C3BFF, #8B5CF6)' : '#D1D5DB',
               color: '#fff', border: 'none', borderRadius: '12px',
               fontSize: '16px', fontWeight: 700,
-              cursor: city ? 'pointer' : 'not-allowed',
+              cursor: canCalculate ? 'pointer' : 'not-allowed',
               display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px',
-              boxShadow: city ? '0 4px 16px rgba(108, 59, 255, 0.35)' : 'none',
+              boxShadow: canCalculate ? '0 4px 16px rgba(108, 59, 255, 0.35)' : 'none',
               transition: 'all 0.2s',
             }}
           >
             <Calculator size={18} />
-            Calculer ma CFE
+            {loadingTaux ? 'Chargement du taux...' : 'Calculer ma CFE'}
             <ArrowRight size={18} />
           </button>
         </div>
 
         {/* ── Results ── */}
-        {step === 'results' && results && city && (
+        {step === 'results' && results && commune && (
           <div ref={resultsRef} className="animate-fadeInUp" style={{ marginTop: '24px' }}>
 
             {results.exempt ? (
@@ -470,13 +671,36 @@ export default function SimulateurCFE() {
                   exonération totale de CFE (article 1447-0 du CGI).
                 </p>
               </div>
-            ) : (
+            ) : !results.exempt && (
               <>
+                {/* Taux comparison banner */}
+                <div style={{
+                  display: 'flex', gap: '12px', marginBottom: '16px', fontSize: '13px',
+                  flexWrap: 'wrap',
+                }}>
+                  <div style={{
+                    flex: 1, padding: '10px 16px', borderRadius: '10px',
+                    background: '#F9FAFB', border: '1px solid #E5E7EB',
+                    display: 'flex', alignItems: 'center', gap: '8px', minWidth: '200px',
+                  }}>
+                    <MapPin size={14} color="#6B7280" />
+                    <span style={{ color: '#374151' }}>Taux {commune.nom} : <strong>{communeTaux!.taux.toFixed(2)}%</strong></span>
+                  </div>
+                  <div style={{
+                    flex: 1, padding: '10px 16px', borderRadius: '10px',
+                    background: '#F5F3FF', border: '1px solid #DDD6FE',
+                    display: 'flex', alignItems: 'center', gap: '8px', minWidth: '200px',
+                  }}>
+                    <Sparkles size={14} color="#6C3BFF" />
+                    <span style={{ color: '#5B21B6' }}>Taux Paris : <strong>{parisTaux!.taux.toFixed(2)}%</strong></span>
+                  </div>
+                </div>
+
                 {/* Current vs Paris */}
                 <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px', marginBottom: '16px' }}>
                   <div style={{
-                    background: cityId === 'paris' ? '#F0FDF4' : '#FEF9F0',
-                    border: `1px solid ${cityId === 'paris' ? '#86EFAC' : '#FDE68A'}`,
+                    background: commune.code === PARIS_CODE ? '#F0FDF4' : '#FEF9F0',
+                    border: `1px solid ${commune.code === PARIS_CODE ? '#86EFAC' : '#FDE68A'}`,
                     borderRadius: '16px', padding: '24px',
                   }}>
                     <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '12px' }}>
@@ -484,15 +708,17 @@ export default function SimulateurCFE() {
                       <span style={{ fontSize: '13px', color: '#6B7280', fontWeight: 500 }}>Votre situation actuelle</span>
                     </div>
                     <div style={{ fontSize: '13px', color: '#374151', marginBottom: '4px', fontWeight: 600 }}>
-                      {city.name.split(' (')[0]}
+                      {commune.nom} ({commune.codeDepartement})
                     </div>
                     <div className="animate-countUp" style={{
                       fontSize: 'clamp(24px, 4vw, 36px)', fontWeight: 800,
-                      color: cityId === 'paris' ? '#15803D' : '#92400E', lineHeight: 1.1,
+                      color: commune.code === PARIS_CODE ? '#15803D' : '#92400E', lineHeight: 1.1,
                     }}>
-                      {fmt(results.cfeCurrent)}
+                      {fmt(results.userMax)}
                     </div>
-                    <div style={{ fontSize: '12px', color: '#6B7280', marginTop: '4px' }}>CFE annuelle estimée</div>
+                    <div style={{ fontSize: '12px', color: '#6B7280', marginTop: '4px' }}>
+                      CFE estimée (plafond légal × {communeTaux!.taux.toFixed(2)}%)
+                    </div>
                   </div>
 
                   <div style={{
@@ -505,9 +731,7 @@ export default function SimulateurCFE() {
                       background: 'linear-gradient(135deg, #6C3BFF, #A78BFA)',
                       color: '#fff', fontSize: '10px', fontWeight: 700,
                       padding: '2px 8px', borderRadius: '99px',
-                    }}>
-                      LegalPlace
-                    </div>
+                    }}>LegalPlace</div>
                     <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '12px' }}>
                       <Sparkles size={16} color="#6C3BFF" />
                       <span style={{ fontSize: '13px', color: '#5B21B6', fontWeight: 500 }}>Domiciliation Paris</span>
@@ -519,9 +743,11 @@ export default function SimulateurCFE() {
                       fontSize: 'clamp(24px, 4vw, 36px)', fontWeight: 800,
                       color: '#5B21B6', lineHeight: 1.1,
                     }}>
-                      {fmt(results.cfeParis)}
+                      {fmt(results.parisMax)}
                     </div>
-                    <div style={{ fontSize: '12px', color: '#7C3AED', marginTop: '4px' }}>CFE annuelle estimée</div>
+                    <div style={{ fontSize: '12px', color: '#7C3AED', marginTop: '4px' }}>
+                      CFE estimée (plafond légal × {parisTaux!.taux.toFixed(2)}%)
+                    </div>
                   </div>
                 </div>
 
@@ -537,10 +763,10 @@ export default function SimulateurCFE() {
                       Économie annuelle estimée avec une domiciliation LegalPlace Paris
                     </div>
                     <div style={{ fontSize: 'clamp(32px, 6vw, 52px)', fontWeight: 800, lineHeight: 1.1 }}>
-                      {fmt(results.savings)} / an
+                      {fmt(results.savingsMax)} / an
                     </div>
                     <div style={{ fontSize: '13px', opacity: 0.75, marginTop: '6px' }}>
-                      soit {fmt(Math.round(results.savings / 12))} économisés par mois sur votre CFE
+                      soit {fmt(Math.round(results.savingsMax / 12))} économisés par mois sur votre CFE
                     </div>
                   </div>
                 ) : (
@@ -550,33 +776,24 @@ export default function SimulateurCFE() {
                   }}>
                     <CheckCircle2 size={24} color="#16A34A" style={{ marginBottom: '8px' }} />
                     <p style={{ color: '#15803D', fontWeight: 600, margin: 0 }}>
-                      {cityId === 'paris'
+                      {commune.code === PARIS_CODE
                         ? 'Vous êtes déjà à Paris — vous bénéficiez déjà des taux les plus compétitifs !'
-                        : 'Votre commune a des taux compétitifs. La domiciliation Paris reste avantageuse pour votre image.'}
+                        : 'Votre commune a un taux compétitif. La domiciliation Paris reste avantageuse pour votre image.'}
                     </p>
                   </div>
                 )}
 
-                {/* Comparison chart */}
+                {/* Data methodology */}
                 <div style={{
-                  background: '#fff', border: '1px solid #E5E7EB',
-                  borderRadius: '16px', padding: '24px', marginBottom: '16px',
+                  background: '#FFFBEB', border: '1px solid #FDE68A',
+                  borderRadius: '12px', padding: '16px', marginBottom: '16px',
+                  fontSize: '12px', color: '#92400E', lineHeight: 1.6,
                 }}>
-                  <h3 style={{ fontSize: '15px', fontWeight: 700, color: '#1A1A2E', marginBottom: '4px' }}>
-                    Comparaison — CFE minimales des principales villes françaises
-                  </h3>
-                  <p style={{ fontSize: '12px', color: '#9CA3AF', marginBottom: '20px' }}>
-                    Pour un CA de {fmtCA(ca)} — domiciliation uniquement (estimations 2024)
-                  </p>
-                  {compCities.map(c => (
-                    <SavingsBar
-                      key={c.id}
-                      label={c.name}
-                      amount={c.amount}
-                      maxAmount={maxCompAmount}
-                      isLegalPlace={c.id === 'paris'}
-                    />
-                  ))}
+                  <strong>Méthodologie :</strong> Le taux CFE est le taux officiel voté par la commune,
+                  récupéré depuis les données ouvertes DGFiP. L&apos;estimation de la CFE minimum est calculée
+                  en appliquant ce taux au <strong>plafond légal de la base minimum</strong> fixé par
+                  l&apos;article 1647 D du CGI (barème 2024). Le montant réel peut être inférieur si votre
+                  commune a voté une base en dessous du plafond légal.
                 </div>
 
                 {/* CTA */}
@@ -591,12 +808,11 @@ export default function SimulateurCFE() {
                     color: '#fff', padding: '4px 14px', borderRadius: '99px',
                     fontSize: '12px', fontWeight: 700, marginBottom: '16px',
                   }}>
-                    <Star size={12} />
-                    Adresse Paris 8ème — Champs-Élysées
+                    <Star size={12} /> Adresse Paris 8ème — Champs-Élysées
                   </span>
                   <h3 style={{ fontSize: '22px', fontWeight: 800, color: '#1A1A2E', marginBottom: '8px' }}>
                     Domiciliez votre entreprise à Paris
-                    {results.isCheaper ? ` et économisez ${fmt(results.savings)}/an` : ''}
+                    {results.isCheaper ? ` et économisez ${fmt(results.savingsMax)}/an` : ''}
                   </h3>
                   <p style={{ fontSize: '14px', color: '#6B7280', marginBottom: '24px', lineHeight: 1.6 }}>
                     Dès <strong>19 €/mois</strong>, bénéficiez d&apos;une adresse prestigieuse,
@@ -622,8 +838,7 @@ export default function SimulateurCFE() {
                   </div>
                   <a
                     href="https://www.legalplace.fr/domiciliation/"
-                    target="_blank"
-                    rel="noopener noreferrer"
+                    target="_blank" rel="noopener noreferrer"
                     className="animate-pulse-cta"
                     style={{
                       display: 'inline-flex', alignItems: 'center', gap: '8px',
@@ -633,8 +848,7 @@ export default function SimulateurCFE() {
                       boxShadow: '0 4px 20px rgba(108, 59, 255, 0.4)',
                     }}
                   >
-                    Démarrer ma domiciliation
-                    <ArrowRight size={18} />
+                    Démarrer ma domiciliation <ArrowRight size={18} />
                   </a>
                   <p style={{ fontSize: '12px', color: '#9CA3AF', marginTop: '12px' }}>
                     Sans engagement · Résiliable à tout moment
@@ -650,8 +864,7 @@ export default function SimulateurCFE() {
                   background: 'none', border: '1px solid #D1D5DB', borderRadius: '8px',
                   padding: '8px 18px', fontSize: '13px', color: '#6B7280', cursor: 'pointer',
                   display: 'inline-flex', alignItems: 'center', gap: '6px',
-                }}
-              >
+                }}>
                 <Calculator size={13} /> Modifier ma simulation
               </button>
             </div>
@@ -659,7 +872,7 @@ export default function SimulateurCFE() {
         )}
       </section>
 
-      {/* ── Info section ── */}
+      {/* ── FAQ ── */}
       <section style={{ background: '#F9FAFB', padding: '64px 24px', borderTop: '1px solid #E5E7EB' }}>
         <div style={{ maxWidth: '780px', margin: '0 auto' }}>
           <h2 style={{ fontSize: '24px', fontWeight: 800, textAlign: 'center', marginBottom: '8px', color: '#1A1A2E' }}>
@@ -672,15 +885,15 @@ export default function SimulateurCFE() {
             {[
               {
                 q: "Qu'est-ce que la CFE ?",
-                a: "La Cotisation Foncière des Entreprises (CFE) est une taxe locale due par toutes les entreprises et personnes physiques exerçant une activité professionnelle non salariée. Son montant dépend de la valeur locative des biens immobiliers utilisés pour l'activité et du taux voté par chaque commune. En cas de domiciliation (sans locaux propres), vous payez la cotisation minimale fixée par votre commune.",
+                a: "La Cotisation Foncière des Entreprises (CFE) est une taxe locale due par toutes les entreprises et personnes physiques exerçant une activité professionnelle non salariée. Son montant dépend de la valeur locative des biens immobiliers utilisés et du taux voté par la commune. En cas de domiciliation (sans locaux propres), vous payez la cotisation minimale : base minimum × taux communal.",
               },
               {
-                q: "Pourquoi la CFE est-elle moins chère à Paris ?",
-                a: "Paris a voté des montants de cotisation minimale inférieurs à de nombreuses autres villes françaises, notamment les communes du 92 (Hauts-de-Seine) comme Neuilly ou Boulogne-Billancourt. Pour une entreprise domiciliée sans locaux propres, la différence peut représenter plusieurs centaines, voire milliers d'euros par an.",
+                q: "Comment est calculée la CFE pour une domiciliation ?",
+                a: "Pour les entreprises domiciliées (sans locaux propres), la CFE est calculée sur la base minimum fixée par la commune, dans les limites prévues par l'article 1647 D du CGI. Le montant final = base minimum × taux global CFE de la commune. Les taux sont votés chaque année par les collectivités locales.",
               },
               {
-                q: "Comment fonctionne la domiciliation pour la CFE ?",
-                a: "Lorsque vous domiciliez votre entreprise chez LegalPlace à Paris, votre siège social est à l'adresse parisienne. C'est donc la commune de Paris qui fixe votre CFE. Vous payez la cotisation minimale parisienne, généralement plus avantageuse que dans les communes périphériques ou certaines grandes villes de province.",
+                q: "D'où viennent les taux utilisés dans ce simulateur ?",
+                a: "Les taux CFE sont récupérés en temps réel depuis les données ouvertes de la DGFiP (Direction Générale des Finances Publiques), publiées sur data.economie.gouv.fr et data.ofgl.fr. Ce sont les taux officiels votés par les communes.",
               },
               {
                 q: "Suis-je exonéré de CFE la première année ?",
@@ -688,7 +901,7 @@ export default function SimulateurCFE() {
               },
               {
                 q: "Combien coûte la domiciliation LegalPlace à Paris ?",
-                a: "À partir de 19 €/mois, vous bénéficiez d'une adresse dans le 8ème arrondissement de Paris (Champs-Élysées), de la gestion de votre courrier et de tous les avantages d'une domiciliation professionnelle. La domiciliation est résiliable à tout moment.",
+                a: "À partir de 19 €/mois, vous bénéficiez d'une adresse dans le 8ème arrondissement de Paris (Champs-Élysées), de la gestion de votre courrier et de tous les avantages d'une domiciliation professionnelle. Résiliable à tout moment.",
               },
             ].map(({ q, a }) => (
               <FAQItem key={q} question={q} answer={a} />
@@ -699,8 +912,7 @@ export default function SimulateurCFE() {
 
       {/* ── Bottom CTA ── */}
       <section style={{
-        padding: '64px 24px',
-        background: 'linear-gradient(135deg, #1A1A2E, #2D1B69)',
+        padding: '64px 24px', background: 'linear-gradient(135deg, #1A1A2E, #2D1B69)',
         color: '#fff', textAlign: 'center',
       }}>
         <div style={{ maxWidth: '520px', margin: '0 auto' }}>
@@ -714,18 +926,15 @@ export default function SimulateurCFE() {
           </p>
           <a
             href="https://www.legalplace.fr/domiciliation/"
-            target="_blank"
-            rel="noopener noreferrer"
+            target="_blank" rel="noopener noreferrer"
             style={{
               display: 'inline-flex', alignItems: 'center', gap: '8px',
               background: 'linear-gradient(135deg, #6C3BFF, #A78BFA)',
               color: '#fff', padding: '15px 32px', borderRadius: '12px',
               fontSize: '16px', fontWeight: 700, textDecoration: 'none',
               boxShadow: '0 4px 24px rgba(108, 59, 255, 0.5)',
-            }}
-          >
-            Domicilier mon entreprise à Paris
-            <ArrowRight size={18} />
+            }}>
+            Domicilier mon entreprise à Paris <ArrowRight size={18} />
           </a>
         </div>
       </section>
@@ -736,14 +945,14 @@ export default function SimulateurCFE() {
         textAlign: 'center', fontSize: '11px', color: '#9CA3AF', lineHeight: 1.6,
       }}>
         <p style={{ maxWidth: '700px', margin: '0 auto 8px' }}>
-          <strong>Avertissement :</strong> Les montants de CFE présentés sont des estimations basées sur les délibérations
-          municipales connues et peuvent varier selon les années et les communes. Ce simulateur est fourni à titre indicatif
-          uniquement et ne constitue pas un conseil fiscal. Consultez l&apos;administration fiscale ou un expert-comptable
-          pour connaître votre CFE exacte.
+          <strong>Sources des données :</strong> Taux CFE officiels — DGFiP via data.economie.gouv.fr et data.ofgl.fr.
+          Barème de la base minimum — Article 1647 D du CGI. Communes — API Découpage Administratif (geo.api.gouv.fr).
+          Les montants affichés sont des estimations calculées à partir du plafond légal de la base minimum et du taux
+          officiel voté. Le montant réel de votre CFE peut varier selon la base effectivement votée par votre commune.
+          Ce simulateur ne constitue pas un conseil fiscal.
         </p>
         <p style={{ margin: 0 }}>© {new Date().getFullYear()} LegalPlace. Tous droits réservés.</p>
       </footer>
-
     </div>
   )
 }
