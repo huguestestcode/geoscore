@@ -1,35 +1,25 @@
 import { NextRequest, NextResponse } from 'next/server'
 
 /**
- * Debug endpoint — returns raw API responses from both data sources.
+ * Debug endpoint — retourne les réponses brutes de toutes les sources.
  * Usage: GET /api/cfe-debug?code=69123
  */
 export async function GET(req: NextRequest) {
   const code = req.nextUrl.searchParams.get('code') || '69123'
-  const out: Record<string, unknown> = { code, ts: new Date().toISOString() }
+  const REI_COMPLET = 'impots-locaux-fichier-de-recensement-des-elements-dimposition-a-la-fiscalite-dir'
 
-  // 1. data.economie.gouv.fr — extrait
-  out.economie_extrait = await probe(
-    `https://data.economie.gouv.fr/api/explore/v2.1/catalog/datasets/fiscalite-locale-des-entreprises/records?where=${encodeURIComponent(`codgeo="${code}"`)}&limit=3`
-  )
+  const [reiComplet, extrait, copie, ofglRaw, ofglSample] = await Promise.all([
+    probe(`https://data.economie.gouv.fr/api/explore/v2.1/catalog/datasets/${REI_COMPLET}/records?where=${enc(`codgeo="${code}"`)}&limit=2`),
+    probe(`https://data.economie.gouv.fr/api/explore/v2.1/catalog/datasets/fiscalite-locale-des-entreprises/records?where=${enc(`codgeo="${code}"`)}&limit=2`),
+    probe(`https://data.economie.gouv.fr/api/explore/v2.1/catalog/datasets/fiscalite-locale-des-entreprises-copie/records?where=${enc(`codgeo="${code}"`)}&limit=2`),
+    probe(`https://data.ofgl.fr/api/explore/v2.1/catalog/datasets/rei/records?where=${enc(`code_commune="${code}"`)}&limit=10&order_by=annee%20desc`),
+    probe(`https://data.ofgl.fr/api/explore/v2.1/catalog/datasets/rei/records?limit=2`),
+  ])
 
-  // 2. data.economie.gouv.fr — copie géo
-  out.economie_copie = await probe(
-    `https://data.economie.gouv.fr/api/explore/v2.1/catalog/datasets/fiscalite-locale-des-entreprises-copie/records?where=${encodeURIComponent(`codgeo="${code}"`)}&limit=3`
-  )
-
-  // 3. OFGL REI — no filter, just commune (shows real field values)
-  out.ofgl_raw = await probe(
-    `https://data.ofgl.fr/api/explore/v2.1/catalog/datasets/rei/records?where=${encodeURIComponent(`code_commune="${code}"`)}&limit=10&order_by=annee%20desc`
-  )
-
-  // 4. OFGL REI — sample 2 records to see field names
-  out.ofgl_sample = await probe(
-    `https://data.ofgl.fr/api/explore/v2.1/catalog/datasets/rei/records?limit=2`
-  )
-
-  return NextResponse.json(out)
+  return NextResponse.json({ code, ts: new Date().toISOString(), reiComplet, extrait, copie, ofglRaw, ofglSample })
 }
+
+const enc = encodeURIComponent
 
 async function probe(url: string): Promise<unknown> {
   try {

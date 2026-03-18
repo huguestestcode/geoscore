@@ -1,8 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 
-// Cache taux in memory (same values for the entire year)
 const cache = new Map<string, { taux: number; nom: string; annee: number; source: string; fetchedAt: number }>()
-const CACHE_TTL = 24 * 60 * 60 * 1000 // 24h
+const CACHE_TTL = 24 * 60 * 60 * 1000
 
 export async function GET(req: NextRequest) {
   const code = req.nextUrl.searchParams.get('code')
@@ -15,46 +14,69 @@ export async function GET(req: NextRequest) {
     return NextResponse.json(cached)
   }
 
-  // ── Source 1: data.economie.gouv.fr ───────────────────────────────────────
-  for (const dataset of [
-    'fiscalite-locale-des-entreprises',
-    'fiscalite-locale-des-entreprises-copie',
-  ]) {
-    try {
-      const taux = await fetchFromEconomie(code, dataset)
-      if (taux) {
-        const result = { taux: taux.taux, nom: taux.nom, annee: 2024, source: 'DGFiP — data.economie.gouv.fr', fetchedAt: Date.now() }
-        cache.set(code, result)
-        return NextResponse.json(result)
-      }
-    } catch (e) {
-      console.error(`[cfe-taux] economie ${dataset} failed:`, e)
-    }
-  }
-
-  // ── Source 2: data.ofgl.fr — REI ──────────────────────────────────────────
+  // ── Source 1 : fichier REI complet DGFiP (toutes communes) ─────────────────
+  // Format large : une ligne par commune, colonnes taux_cfe_*, txg_cfe_*, etc.
   try {
-    const taux = await fetchFromOFGL(code)
-    if (taux) {
-      const result = { taux: taux.taux, nom: taux.nom, annee: taux.annee, source: 'OFGL — data.ofgl.fr', fetchedAt: Date.now() }
+    const r = await fetchREIComplet(code)
+    if (r) {
+      const result = { taux: r.taux, nom: r.nom, annee: 2024, source: 'DGFiP REI — data.economie.gouv.fr', fetchedAt: Date.now() }
       cache.set(code, result)
       return NextResponse.json(result)
     }
-  } catch (e) {
-    console.error('[cfe-taux] ofgl failed:', e)
+  } catch (e) { console.error('[cfe-taux] REI complet failed:', e) }
+
+  // ── Source 2 : extrait "fiscalité locale des professionnels" ────────────────
+  for (const ds of ['fiscalite-locale-des-entreprises', 'fiscalite-locale-des-entreprises-copie']) {
+    try {
+      const r = await fetchEconomieDataset(code, ds)
+      if (r) {
+        const result = { taux: r.taux, nom: r.nom, annee: 2024, source: `DGFiP — data.economie.gouv.fr (${ds})`, fetchedAt: Date.now() }
+        cache.set(code, result)
+        return NextResponse.json(result)
+      }
+    } catch (e) { console.error(`[cfe-taux] ${ds} failed:`, e) }
   }
 
-  return NextResponse.json(
-    { error: `Taux CFE non trouvé pour le code INSEE ${code}.` },
-    { status: 404 }
-  )
+  // ── Source 3 : OFGL REI (format long) ──────────────────────────────────────
+  try {
+    const r = await fetchOFGL(code)
+    if (r) {
+      const result = { taux: r.taux, nom: r.nom, annee: r.annee, source: 'OFGL — data.ofgl.fr', fetchedAt: Date.now() }
+      cache.set(code, result)
+      return NextResponse.json(result)
+    }
+  } catch (e) { console.error('[cfe-taux] OFGL failed:', e) }
+
+  return NextResponse.json({ error: `Taux CFE non trouvé pour le code INSEE ${code}.` }, { status: 404 })
 }
 
-// ── data.economie.gouv.fr ─────────────────────────────────────────────────────
-async function fetchFromEconomie(
-  codeInsee: string,
-  dataset: string,
-): Promise<{ taux: number; nom: string } | null> {
+// ── Source 1 : REI complet DGFiP ─────────────────────────────────────────────
+// Dataset large (format REI DGFiP natif) : une ligne par commune, colonnes CFE incluses
+async function fetchREIComplet(codeInsee: string): Promise<{ taux: number; nom: string } | null> {
+  const DATASET = 'impots-locaux-fichier-de-recensement-des-elements-dimposition-a-la-fiscalite-dir'
+  const base = `https://data.economie.gouv.fr/api/explore/v2.1/catalog/datasets/${DATASET}/records`
+
+  for (const field of ['codgeo', 'code_commune', 'code_insee']) {
+    try {
+      const url = `${base}?where=${encodeURIComponent(`${field}="${codeInsee}"`)}&limit=3`
+      const res = await fetch(url, { signal: AbortSignal.timeout(10000) })
+      if (!res.ok) continue
+      const data = await res.json()
+      const results: unknown[] = data.results || data.records || []
+      if (!results.length) continue
+
+      const rec = unwrap(results[0])
+      console.log(`[cfe-taux] REI complet code=${codeInsee} field=${field} keys:`, Object.keys(rec).slice(0, 30).join(', '))
+
+      const taux = extractCFETaux(rec)
+      if (taux !== null && taux > 0) return { taux, nom: extractNom(rec) }
+    } catch { continue }
+  }
+  return null
+}
+
+// ── Source 2 : datasets "extrait" data.economie.gouv.fr ───────────────────────
+async function fetchEconomieDataset(codeInsee: string, dataset: string): Promise<{ taux: number; nom: string } | null> {
   const base = `https://data.economie.gouv.fr/api/explore/v2.1/catalog/datasets/${dataset}/records`
 
   for (const field of ['codgeo', 'code_commune', 'code_insee', 'com_code']) {
@@ -62,49 +84,40 @@ async function fetchFromEconomie(
       const url = `${base}?where=${encodeURIComponent(`${field}="${codeInsee}"`)}&limit=5`
       const res = await fetch(url, { signal: AbortSignal.timeout(10000) })
       if (!res.ok) continue
-
       const data = await res.json()
-      const results: Record<string, unknown>[] = data.results || data.records || []
-      if (results.length === 0) continue
+      const results: unknown[] = data.results || data.records || []
+      if (!results.length) continue
 
-      // ODS v2.1 returns flat records (no nested .fields)
-      const rec = (results[0] as { fields?: Record<string, unknown> }).fields ?? results[0] as Record<string, unknown>
-      console.log(`[cfe-taux] economie/${dataset} code=${codeInsee} field=${field} keys:`, Object.keys(rec).join(', '))
+      const rec = unwrap(results[0])
+      console.log(`[cfe-taux] ${dataset} code=${codeInsee} field=${field} keys:`, Object.keys(rec).slice(0, 30).join(', '))
 
       const taux = extractCFETaux(rec)
-      if (taux !== null && taux > 0) {
-        return { taux, nom: extractNom(rec) }
-      }
-    } catch {
-      continue
-    }
+      if (taux !== null && taux > 0) return { taux, nom: extractNom(rec) }
+    } catch { continue }
   }
   return null
 }
 
-// ── data.ofgl.fr — REI ────────────────────────────────────────────────────────
-async function fetchFromOFGL(
-  codeInsee: string,
-): Promise<{ taux: number; nom: string; annee: number } | null> {
+// ── Source 3 : OFGL REI format long ──────────────────────────────────────────
+async function fetchOFGL(codeInsee: string): Promise<{ taux: number; nom: string; annee: number } | null> {
   const base = 'https://data.ofgl.fr/api/explore/v2.1/catalog/datasets/rei/records'
 
   for (const field of ['code_commune', 'codgeo', 'code_insee']) {
     try {
-      // Query only by commune code — no dispositif_fiscal/categorie filter
-      // because their exact values (case, accents) vary and can't be verified offline.
-      // We filter client-side instead.
+      // Ne filtre PAS sur dispositif_fiscal/categorie côté API — leurs valeurs
+      // exactes (casse, accents) ne sont pas vérifiables hors production.
+      // On filtre côté code.
       const url = `${base}?where=${encodeURIComponent(`${field}="${codeInsee}"`)}&limit=50&order_by=annee%20desc`
       const res = await fetch(url, { signal: AbortSignal.timeout(10000) })
       if (!res.ok) continue
-
       const data = await res.json()
       const results: unknown[] = data.results || data.records || []
-      if (results.length === 0) continue
+      if (!results.length) continue
 
-      console.log(`[cfe-taux] OFGL code=${codeInsee} field=${field} got ${results.length} rows, sample:`, JSON.stringify(results[0]))
+      console.log(`[cfe-taux] OFGL code=${codeInsee} field=${field} rows=${results.length} sample:`, JSON.stringify(unwrap(results[0])).slice(0, 200))
 
-      // Client-side filter: keep rows that look like "CFE taux" regardless of casing
-      const cfeTauxRows = results.filter((r) => {
+      // Filtre côté client : lignes "CFE taux" indépendamment de la casse
+      const cfeTaux = results.filter((r) => {
         const rec = unwrap(r)
         const dispositif = String(rec.dispositif_fiscal ?? rec.dispositif ?? '').toLowerCase()
         const categorie  = String(rec.categorie ?? rec.categorie_variable ?? '').toLowerCase()
@@ -114,40 +127,36 @@ async function fetchFromOFGL(
         )
       })
 
-      if (cfeTauxRows.length === 0) {
-        // Log what we got so we can diagnose the actual field values
-        console.warn(`[cfe-taux] OFGL: no CFE taux rows for ${codeInsee}, sample dispositifs:`,
-          results.slice(0, 3).map((r) => {
-            const rec = unwrap(r)
-            return `dispositif_fiscal=${rec.dispositif_fiscal}, categorie=${rec.categorie}`
-          }).join(' | ')
-        )
+      if (!cfeTaux.length) {
+        // Log les valeurs réelles pour diagnostic
+        const sample = results.slice(0, 3).map((r) => {
+          const rec = unwrap(r)
+          return `[dispositif_fiscal="${rec.dispositif_fiscal}" categorie="${rec.categorie}"]`
+        })
+        console.warn(`[cfe-taux] OFGL: aucune ligne CFE/taux pour ${codeInsee}. Valeurs trouvées:`, sample.join(', '))
         continue
       }
 
-      // Group by year, sum taux across all destinataires
+      // Grouper par année, sommer les taux de tous les destinataires
       const byYear = new Map<number, { total: number; nom: string }>()
-      for (const r of cfeTauxRows) {
+      for (const r of cfeTaux) {
         const rec = unwrap(r)
-        const annee   = toNumber(rec.annee)
+        const annee   = toNum(rec.annee)
         if (!annee) continue
-        const montant = toNumber(rec.montant ?? rec.valeur ?? rec.taux)
+        const montant = toNum(rec.montant ?? rec.valeur ?? rec.taux)
         if (montant === null || montant <= 0) continue
         const nom = String(rec.nom_commune ?? rec.lib_commune ?? rec.libelle_commune ?? rec.nom ?? '')
         const existing = byYear.get(annee)
-        if (existing) { existing.total += montant }
-        else           { byYear.set(annee, { total: montant, nom }) }
+        if (existing) existing.total += montant
+        else           byYear.set(annee, { total: montant, nom })
       }
 
-      if (byYear.size === 0) continue
-
+      if (!byYear.size) continue
       const latestYear = Math.max(...byYear.keys())
       const latest = byYear.get(latestYear)!
       return { taux: Math.round(latest.total * 100) / 100, nom: latest.nom, annee: latestYear }
 
-    } catch {
-      continue
-    }
+    } catch { continue }
   }
   return null
 }
@@ -162,7 +171,7 @@ function unwrap(r: unknown): Record<string, unknown> {
   return {}
 }
 
-function toNumber(val: unknown): number | null {
+function toNum(val: unknown): number | null {
   if (typeof val === 'number') return val
   if (typeof val === 'string') {
     const n = parseFloat(val.replace(',', '.'))
@@ -172,7 +181,6 @@ function toNumber(val: unknown): number | null {
 }
 
 function extractCFETaux(fields: Record<string, unknown>): number | null {
-  // Known field name patterns (lowercased)
   const patterns = [
     'taux_cfe_hz', 'taux_cfe', 'cfe_hz', 'cfe_taux_hz', 'cfe_taux',
     'taux_global_cfe_hz', 'taux_global_cfe', 'txg_cfe_hz', 'txg_cfe',
@@ -180,14 +188,14 @@ function extractCFETaux(fields: Record<string, unknown>): number | null {
   ]
   for (const key of patterns) {
     if (key in fields) {
-      const n = toNumber(fields[key])
+      const n = toNum(fields[key])
       if (n !== null && n > 0) return n
     }
   }
-  // Fallback: any field with "cfe" in the name that looks like a percentage
+  // Fallback : toute colonne contenant "cfe" avec une valeur de type taux (0–100 %)
   for (const [key, val] of Object.entries(fields)) {
     if (key.toLowerCase().includes('cfe')) {
-      const n = toNumber(val)
+      const n = toNum(val)
       if (n !== null && n > 0 && n < 100) return n
     }
   }
