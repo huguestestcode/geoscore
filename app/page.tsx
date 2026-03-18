@@ -23,10 +23,10 @@ type CFETaux = {
   source: string
 }
 
-// ─── Legal constants — Article 1647 D CGI (barème 2024) ──────────────────────
+// ─── Legal constants — Article 1647 D CGI (barème 2026) ──────────────────────
 // Plafonds de la base minimum de CFE par tranche de CA (N-2)
-const LEGAL_CEILING = [565, 1179, 2477, 4152, 6070, 7349]
-const LEGAL_FLOOR   = [237,  237,  237,  237,  237,  237]
+const LEGAL_CEILING = [589, 1179, 2477, 4129, 5897, 7669]
+const LEGAL_FLOOR   = [247,  247,  247,  247,  247,  247]
 const CA_THRESHOLDS = [10000, 32600, 100000, 250000, 500000]
 
 function getTranche(ca: number): number {
@@ -792,7 +792,7 @@ export default function SimulateurCFE() {
                   <strong>Méthodologie :</strong> Le taux CFE est le taux officiel voté par la commune,
                   récupéré depuis les données ouvertes DGFiP. L&apos;estimation de la CFE minimum est calculée
                   en appliquant ce taux au <strong>plafond légal de la base minimum</strong> fixé par
-                  l&apos;article 1647 D du CGI (barème 2024). Le montant réel peut être inférieur si votre
+                  l&apos;article 1647 D du CGI (barème 2026). Le montant réel peut être inférieur si votre
                   commune a voté une base en dessous du plafond légal.
                 </div>
 
