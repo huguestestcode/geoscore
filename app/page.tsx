@@ -815,7 +815,7 @@ export default function SimulateurCFE() {
                     {results.isCheaper ? ` et économisez ${fmt(results.savingsMax)}/an` : ''}
                   </h3>
                   <p style={{ fontSize: '14px', color: '#6B7280', marginBottom: '24px', lineHeight: 1.6 }}>
-                    Dès <strong>19 €/mois</strong>, bénéficiez d&apos;une adresse prestigieuse,
+                    Dès <strong>17 € HT/mois</strong>, bénéficiez d&apos;une adresse prestigieuse,
                     de la gestion de votre courrier, et des taux CFE les plus compétitifs de France.
                   </p>
                   <div style={{
@@ -896,12 +896,8 @@ export default function SimulateurCFE() {
                 a: "Les taux CFE sont récupérés en temps réel depuis les données ouvertes de la DGFiP (Direction Générale des Finances Publiques), publiées sur data.economie.gouv.fr et data.ofgl.fr. Ce sont les taux officiels votés par les communes.",
               },
               {
-                q: "Suis-je exonéré de CFE la première année ?",
-                a: "Oui ! L'année de création de votre entreprise, vous êtes exonéré de CFE. Les auto-entrepreneurs avec un CA inférieur à 5 000 € bénéficient également d'une exonération permanente (article 1447-0 du CGI).",
-              },
-              {
                 q: "Combien coûte la domiciliation LegalPlace à Paris ?",
-                a: "À partir de 19 €/mois, vous bénéficiez d'une adresse dans le 2ème arrondissement de Paris (Rue Vivienne), de la gestion de votre courrier et de tous les avantages d'une domiciliation professionnelle. Résiliable à tout moment.",
+                a: "À partir de 17 € HT/mois, vous bénéficiez d'une adresse dans le 2ème arrondissement de Paris (Rue Vivienne), de la gestion de votre courrier et de tous les avantages d'une domiciliation professionnelle. Résiliable à tout moment.",
               },
             ].map(({ q, a }) => (
               <FAQItem key={q} question={q} answer={a} />
