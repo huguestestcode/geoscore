@@ -23,10 +23,10 @@ type CFETaux = {
   source: string
 }
 
-// ─── Legal constants — Article 1647 D CGI (barème 2026) ──────────────────────
-// Plafonds de la base minimum de CFE par tranche de CA (N-2)
+// ─── Legal constants — Article 1647 D CGI ────────────────────────────────────
+// Plafonds légaux de la base minimum de CFE par tranche de CA (N-2)
+// Source : Art. 1647 D CGI — montants maximaux que la commune peut voter
 const LEGAL_CEILING = [589, 1179, 2477, 4129, 5897, 7669]
-const LEGAL_FLOOR   = [247,  247,  247,  247,  247,  247]
 const CA_THRESHOLDS = [10000, 32600, 100000, 250000, 500000]
 
 function getTranche(ca: number): number {
@@ -36,10 +36,9 @@ function getTranche(ca: number): number {
   return 5
 }
 
-function estimateCFE(taux: number, ca: number): { min: number; max: number } {
+function estimateCFE(taux: number, ca: number): { max: number } {
   const t = getTranche(ca)
   return {
-    min: Math.round(LEGAL_FLOOR[t] * taux / 100),
     max: Math.round(LEGAL_CEILING[t] * taux / 100),
   }
 }
@@ -356,11 +355,8 @@ export default function SimulateurCFE() {
     return {
       exempt: false as const,
       userMax: userCFE.max,
-      userMin: userCFE.min,
       parisMax: parisCFE.max,
-      parisMin: parisCFE.min,
       savingsMax: userCFE.max - parisCFE.max,
-      savingsMin: userCFE.min - parisCFE.min,
       isCheaper: userCFE.max > parisCFE.max,
       userTaux: communeTaux.taux,
       parisTaux: parisTaux.taux,
@@ -717,7 +713,7 @@ export default function SimulateurCFE() {
                       {fmt(results.userMax)}
                     </div>
                     <div style={{ fontSize: '12px', color: '#6B7280', marginTop: '4px' }}>
-                      CFE estimée (plafond légal × {communeTaux!.taux.toFixed(2)}%)
+                      CFE max. estimée — plafond légal Art. 1647 D × {communeTaux!.taux.toFixed(2)}%
                     </div>
                   </div>
 
@@ -746,7 +742,7 @@ export default function SimulateurCFE() {
                       {fmt(results.parisMax)}
                     </div>
                     <div style={{ fontSize: '12px', color: '#7C3AED', marginTop: '4px' }}>
-                      CFE estimée (plafond légal × {parisTaux!.taux.toFixed(2)}%)
+                      CFE max. estimée — plafond légal Art. 1647 D × {parisTaux!.taux.toFixed(2)}%
                     </div>
                   </div>
                 </div>
@@ -790,10 +786,9 @@ export default function SimulateurCFE() {
                   fontSize: '12px', color: '#92400E', lineHeight: 1.6,
                 }}>
                   <strong>Méthodologie :</strong> Le taux CFE est le taux officiel voté par la commune,
-                  récupéré depuis les données ouvertes DGFiP. L&apos;estimation de la CFE minimum est calculée
-                  en appliquant ce taux au <strong>plafond légal de la base minimum</strong> fixé par
-                  l&apos;article 1647 D du CGI (barème 2026). Le montant réel peut être inférieur si votre
-                  commune a voté une base en dessous du plafond légal.
+                  récupéré depuis les données ouvertes DGFiP. Les montants affichés sont des <strong>maximums estimés</strong>,
+                  calculés en appliquant ce taux au plafond légal de la base minimum fixé par l&apos;article 1647 D du CGI.
+                  Le montant réel de votre CFE peut être inférieur si votre commune a voté une base en dessous du plafond légal.
                 </div>
 
                 {/* CTA */}
@@ -943,8 +938,8 @@ export default function SimulateurCFE() {
         <p style={{ maxWidth: '700px', margin: '0 auto 8px' }}>
           <strong>Sources des données :</strong> Taux CFE officiels — DGFiP via data.economie.gouv.fr et data.ofgl.fr.
           Barème de la base minimum — Article 1647 D du CGI. Communes — API Découpage Administratif (geo.api.gouv.fr).
-          Les montants affichés sont des estimations calculées à partir du plafond légal de la base minimum et du taux
-          officiel voté. Le montant réel de votre CFE peut varier selon la base effectivement votée par votre commune.
+          Les montants affichés sont des estimations maximales calculées à partir du plafond légal de la base minimum (Art. 1647 D CGI)
+          et du taux officiel voté. Le montant réel de votre CFE peut être inférieur selon la base effectivement votée par votre commune.
           Ce simulateur ne constitue pas un conseil fiscal.
         </p>
         <p style={{ margin: 0 }}>© {new Date().getFullYear()} LegalPlace. Tous droits réservés.</p>
