@@ -32,31 +32,31 @@ export const TAUX_CONNUS: Record<string, { taux: number; nom: string }> = {
   // ══════════════════════════════════════════════════════════════════════════════
   // ── LYON MÉTROPOLE ET ARRONDISSEMENTS (28.62 %) ──────────────────────────────
   // ══════════════════════════════════════════════════════════════════════════════
-  '69123': { taux: 28.62, nom: 'Lyon' },
-  '69381': { taux: 28.62, nom: 'Lyon 1er' },
-  '69382': { taux: 28.62, nom: 'Lyon 2e' },
-  '69383': { taux: 28.62, nom: 'Lyon 3e' },
-  '69384': { taux: 28.62, nom: 'Lyon 4e' },
-  '69385': { taux: 28.62, nom: 'Lyon 5e' },
-  '69386': { taux: 28.62, nom: 'Lyon 6e' },
-  '69387': { taux: 28.62, nom: 'Lyon 7e' },
-  '69388': { taux: 28.62, nom: 'Lyon 8e' },
-  '69389': { taux: 28.62, nom: 'Lyon 9e' },
-  '69266': { taux: 28.62, nom: 'Villeurbanne' },
-  '69034': { taux: 28.62, nom: 'Bron' },
-  '69286': { taux: 28.62, nom: 'Vénissieux' },
-  '69290': { taux: 28.62, nom: 'Vaulx-en-Velin' },
+  '69123': { taux: 30.34, nom: 'Lyon' },
+  '69381': { taux: 30.34, nom: 'Lyon 1er' },
+  '69382': { taux: 30.34, nom: 'Lyon 2e' },
+  '69383': { taux: 30.34, nom: 'Lyon 3e' },
+  '69384': { taux: 30.34, nom: 'Lyon 4e' },
+  '69385': { taux: 30.34, nom: 'Lyon 5e' },
+  '69386': { taux: 30.34, nom: 'Lyon 6e' },
+  '69387': { taux: 30.34, nom: 'Lyon 7e' },
+  '69388': { taux: 30.34, nom: 'Lyon 8e' },
+  '69389': { taux: 30.34, nom: 'Lyon 9e' },
+  '69266': { taux: 30.34, nom: 'Villeurbanne' },
+  '69034': { taux: 30.34, nom: 'Bron' },
+  '69286': { taux: 30.34, nom: 'Vénissieux' },
+  '69290': { taux: 30.34, nom: 'Vaulx-en-Velin' },
   '69149': { taux: 28.62, nom: 'Décines-Charpieu' },
   '69199': { taux: 28.62, nom: 'Meyzieu' },
   '69152': { taux: 28.62, nom: 'Écully' },
   '69168': { taux: 28.62, nom: 'Givors' },
   '69256': { taux: 28.62, nom: 'Tassin-la-Demi-Lune' },
   '69244': { taux: 28.62, nom: 'Sainte-Foy-lès-Lyon' },
-  '69029': { taux: 28.62, nom: 'Caluire-et-Cuire' },
+  '69029': { taux: 30.34, nom: 'Caluire-et-Cuire' },
   '69202': { taux: 28.62, nom: 'Oullins' },
   '69204': { taux: 28.62, nom: 'Pierre-Bénite' },
   '69233': { taux: 28.62, nom: 'Rillieux-la-Pape' },
-  '69250': { taux: 28.62, nom: 'Saint-Priest' },
+  '69250': { taux: 30.34, nom: 'Saint-Priest' },
   '69142': { taux: 28.62, nom: 'Dardilly' },
   '69091': { taux: 28.62, nom: 'Francheville' },
   '69040': { taux: 28.62, nom: 'Champagne-au-Mont-d\'Or' },
@@ -104,66 +104,66 @@ export const TAUX_CONNUS: Record<string, { taux: number; nom: string }> = {
   // ── ÎLE-DE-FRANCE (hors Paris) ──────────────────────────────────────────────
   // ══════════════════════════════════════════════════════════════════════════════
   // -- Hauts-de-Seine (92) --
-  '92012': { taux: 23.22, nom: 'Boulogne-Billancourt' },
-  '92002': { taux: 22.60, nom: 'Antony' },
-  '92004': { taux: 24.70, nom: 'Asnières-sur-Seine' },
+  '92012': { taux: 20.87, nom: 'Boulogne-Billancourt' },
+  '92002': { taux: 26.99, nom: 'Antony' },
+  '92004': { taux: 25.84, nom: 'Asnières-sur-Seine' },
   '92007': { taux: 25.30, nom: 'Bagneux' },
   '92009': { taux: 23.10, nom: 'Bois-Colombes' },
   '92014': { taux: 23.50, nom: 'Bourg-la-Reine' },
   '92019': { taux: 22.80, nom: 'Châtenay-Malabry' },
   '92020': { taux: 24.20, nom: 'Châtillon' },
   '92022': { taux: 21.50, nom: 'Chaville' },
-  '92023': { taux: 24.50, nom: 'Clamart' },
-  '92024': { taux: 26.30, nom: 'Clichy' },
-  '92025': { taux: 24.80, nom: 'Colombes' },
-  '92026': { taux: 26.10, nom: 'Courbevoie' },
+  '92023': { taux: 26.99, nom: 'Clamart' },
+  '92024': { taux: 25.84, nom: 'Clichy' },
+  '92025': { taux: 25.84, nom: 'Colombes' },
+  '92026': { taux: 20.91, nom: 'Courbevoie' },
   '92032': { taux: 23.80, nom: 'Fontenay-aux-Roses' },
   '92033': { taux: 21.40, nom: 'Garches' },
   '92035': { taux: 23.50, nom: 'La Garenne-Colombes' },
-  '92036': { taux: 27.20, nom: 'Gennevilliers' },
-  '92040': { taux: 22.18, nom: 'Issy-les-Moulineaux' },
-  '92044': { taux: 21.84, nom: 'Levallois-Perret' },
+  '92036': { taux: 25.84, nom: 'Gennevilliers' },
+  '92040': { taux: 20.87, nom: 'Issy-les-Moulineaux' },
+  '92044': { taux: 20.91, nom: 'Levallois-Perret' },
   '92046': { taux: 26.40, nom: 'Malakoff' },
-  '92048': { taux: 22.90, nom: 'Meudon' },
-  '92049': { taux: 24.10, nom: 'Montrouge' },
+  '92048': { taux: 20.87, nom: 'Meudon' },
+  '92049': { taux: 26.99, nom: 'Montrouge' },
   '92050': { taux: 20.91, nom: 'Nanterre' },
-  '92051': { taux: 19.80, nom: 'Neuilly-sur-Seine' },
+  '92051': { taux: 20.91, nom: 'Neuilly-sur-Seine' },
   '92060': { taux: 22.50, nom: 'Le Plessis-Robinson' },
-  '92062': { taux: 23.60, nom: 'Puteaux' },
-  '92063': { taux: 22.65, nom: 'Rueil-Malmaison' },
+  '92062': { taux: 20.91, nom: 'Puteaux' },
+  '92063': { taux: 20.91, nom: 'Rueil-Malmaison' },
   '92064': { taux: 23.80, nom: 'Saint-Cloud' },
   '92071': { taux: 22.30, nom: 'Sceaux' },
   '92072': { taux: 22.80, nom: 'Sèvres' },
-  '92073': { taux: 22.45, nom: 'Suresnes' },
+  '92073': { taux: 20.91, nom: 'Suresnes' },
   '92075': { taux: 24.90, nom: 'Vanves' },
   '92078': { taux: 27.60, nom: 'Villeneuve-la-Garenne' },
 
   // -- Seine-Saint-Denis (93) --
-  '93066': { taux: 27.50, nom: 'Saint-Denis' },
-  '93048': { taux: 28.10, nom: 'Montreuil' },
-  '93008': { taux: 28.64, nom: 'Aubervilliers' },
-  '93010': { taux: 26.80, nom: 'Aulnay-sous-Bois' },
-  '93029': { taux: 27.32, nom: 'Épinay-sur-Seine' },
-  '93051': { taux: 27.00, nom: 'Noisy-le-Grand' },
-  '93005': { taux: 27.90, nom: 'Bagnolet' },
-  '93006': { taux: 26.20, nom: 'Le Blanc-Mesnil' },
-  '93007': { taux: 27.40, nom: 'Bobigny' },
-  '93013': { taux: 27.10, nom: 'Bondy' },
-  '93027': { taux: 28.30, nom: 'La Courneuve' },
+  '93066': { taux: 38.49, nom: 'Saint-Denis' },
+  '93048': { taux: 38.67, nom: 'Montreuil' },
+  '93008': { taux: 38.49, nom: 'Aubervilliers' },
+  '93010': { taux: 33.68, nom: 'Aulnay-sous-Bois' },
+  '93029': { taux: 33.68, nom: 'Drancy' },
+  '93031': { taux: 38.49, nom: 'Épinay-sur-Seine' },
+  '93051': { taux: 32.75, nom: 'Noisy-le-Grand' },
+  '93005': { taux: 38.67, nom: 'Bagnolet' },
+  '93006': { taux: 33.68, nom: 'Le Blanc-Mesnil' },
+  '93007': { taux: 38.67, nom: 'Bobigny' },
+  '93013': { taux: 38.67, nom: 'Bondy' },
+  '93027': { taux: 38.49, nom: 'La Courneuve' },
   '93030': { taux: 26.50, nom: 'Gagny' },
-  '93031': { taux: 28.90, nom: 'Les Lilas' },
-  '93032': { taux: 27.80, nom: 'Livry-Gargan' },
+  '93032': { taux: 32.75, nom: 'Livry-Gargan' },
   '93045': { taux: 26.90, nom: 'Neuilly-sur-Marne' },
-  '93047': { taux: 27.60, nom: 'Noisy-le-Sec' },
-  '93049': { taux: 28.50, nom: 'Pantin' },
+  '93047': { taux: 38.67, nom: 'Noisy-le-Sec' },
+  '93049': { taux: 38.67, nom: 'Pantin' },
   '93050': { taux: 27.30, nom: 'Le Pré-Saint-Gervais' },
   '93053': { taux: 28.00, nom: 'Le Raincy' },
   '93055': { taux: 27.20, nom: 'Romainville' },
-  '93057': { taux: 27.50, nom: 'Rosny-sous-Bois' },
-  '93063': { taux: 27.80, nom: 'Saint-Ouen-sur-Seine' },
-  '93064': { taux: 26.30, nom: 'Sevran' },
+  '93057': { taux: 32.75, nom: 'Rosny-sous-Bois' },
+  '93063': { taux: 38.49, nom: 'Saint-Ouen-sur-Seine' },
+  '93064': { taux: 33.68, nom: 'Sevran' },
   '93070': { taux: 26.60, nom: 'Stains' },
-  '93071': { taux: 27.90, nom: 'Tremblay-en-France' },
+  '93071': { taux: 33.68, nom: 'Tremblay-en-France' },
   '93073': { taux: 27.10, nom: 'Villemomble' },
   '93074': { taux: 26.80, nom: 'Villepinte' },
   '93077': { taux: 26.50, nom: 'Villetaneuse' },
@@ -173,23 +173,23 @@ export const TAUX_CONNUS: Record<string, { taux: number; nom: string }> = {
   '93046': { taux: 28.60, nom: 'Neuilly-Plaisance' },
 
   // -- Val-de-Marne (94) --
-  '94028': { taux: 25.80, nom: 'Créteil' },
-  '94019': { taux: 26.40, nom: 'Champigny-sur-Marne' },
-  '94067': { taux: 26.10, nom: 'Saint-Maur-des-Fossés' },
-  '94043': { taux: 24.90, nom: 'Ivry-sur-Seine' },
-  '94081': { taux: 25.40, nom: 'Vitry-sur-Seine' },
-  '94054': { taux: 24.50, nom: 'Maisons-Alfort' },
+  '94028': { taux: 34.86, nom: 'Créteil' },
+  '94019': { taux: 30.08, nom: 'Champigny-sur-Marne' },
+  '94067': { taux: 30.08, nom: 'Saint-Maur-des-Fossés' },
+  '94043': { taux: 33.78, nom: 'Ivry-sur-Seine' },
+  '94081': { taux: 33.78, nom: 'Vitry-sur-Seine' },
+  '94054': { taux: 30.08, nom: 'Maisons-Alfort' },
   '94022': { taux: 25.20, nom: 'Charenton-le-Pont' },
-  '94080': { taux: 24.80, nom: 'Vincennes' },
+  '94080': { taux: 30.08, nom: 'Vincennes' },
   '94011': { taux: 25.60, nom: 'Boissy-Saint-Léger' },
-  '94002': { taux: 25.30, nom: 'Alfortville' },
+  '94002': { taux: 34.86, nom: 'Alfortville' },
   '94003': { taux: 24.60, nom: 'Arcueil' },
   '94004': { taux: 25.10, nom: 'Le Kremlin-Bicêtre' },
   '94015': { taux: 25.70, nom: 'Bonneuil-sur-Marne' },
   '94016': { taux: 25.50, nom: 'Bry-sur-Marne' },
   '94017': { taux: 24.90, nom: 'Cachan' },
   '94021': { taux: 25.80, nom: 'Chennevières-sur-Marne' },
-  '94033': { taux: 25.60, nom: 'Fontenay-sous-Bois' },
+  '94033': { taux: 30.08, nom: 'Fontenay-sous-Bois' },
   '94034': { taux: 25.00, nom: 'Fresnes' },
   '94037': { taux: 24.80, nom: 'Gentilly' },
   '94038': { taux: 24.70, nom: 'L\'Haÿ-les-Roses' },
@@ -205,14 +205,14 @@ export const TAUX_CONNUS: Record<string, { taux: number; nom: string }> = {
   '94071': { taux: 25.50, nom: 'Villecresnes' },
   '94073': { taux: 25.80, nom: 'Villeneuve-le-Roi' },
   '94074': { taux: 25.60, nom: 'Villeneuve-Saint-Georges' },
-  '94076': { taux: 25.40, nom: 'Villiers-sur-Marne' },
+  '94076': { taux: 33.78, nom: 'Villejuif' },
 
   // -- Yvelines (78) --
   '78646': { taux: 18.86, nom: 'Versailles' },
-  '78586': { taux: 20.10, nom: 'Sartrouville' },
+  '78586': { taux: 22.91, nom: 'Sartrouville' },
   '78440': { taux: 20.50, nom: 'Poissy' },
-  '78361': { taux: 21.30, nom: 'Mantes-la-Jolie' },
-  '78551': { taux: 19.80, nom: 'Saint-Germain-en-Laye' },
+  '78361': { taux: 25.27, nom: 'Mantes-la-Jolie' },
+  '78551': { taux: 22.91, nom: 'Saint-Germain-en-Laye' },
   '78311': { taux: 20.90, nom: 'Les Mureaux' },
   '78423': { taux: 19.60, nom: 'Plaisir' },
   '78498': { taux: 20.80, nom: 'Rambouillet' },
@@ -242,9 +242,9 @@ export const TAUX_CONNUS: Record<string, { taux: number; nom: string }> = {
   '78418': { taux: 20.20, nom: 'Viroflay' },
 
   // -- Essonne (91) --
-  '91228': { taux: 21.60, nom: 'Évry-Courcouronnes' },
-  '91174': { taux: 22.10, nom: 'Corbeil-Essonnes' },
-  '91377': { taux: 21.80, nom: 'Massy' },
+  '91228': { taux: 26.5, nom: 'Évry-Courcouronnes' },
+  '91174': { taux: 26.5, nom: 'Corbeil-Essonnes' },
+  '91377': { taux: 23.47, nom: 'Massy' },
   '91471': { taux: 22.40, nom: 'Palaiseau' },
   '91534': { taux: 22.60, nom: 'Sainte-Geneviève-des-Bois' },
   '91027': { taux: 22.80, nom: 'Athis-Mons' },
@@ -268,10 +268,10 @@ export const TAUX_CONNUS: Record<string, { taux: number; nom: string }> = {
   '91103': { taux: 22.90, nom: 'Brunoy' },
 
   // -- Val-d'Oise (95) --
-  '95018': { taux: 23.50, nom: 'Argenteuil' },
-  '95127': { taux: 22.80, nom: 'Cergy' },
-  '95268': { taux: 23.10, nom: 'Garges-lès-Gonesse' },
-  '95585': { taux: 23.40, nom: 'Sarcelles' },
+  '95018': { taux: 25.84, nom: 'Argenteuil' },
+  '95127': { taux: 23.38, nom: 'Cergy' },
+  '95268': { taux: 26.29, nom: 'Garges-lès-Gonesse' },
+  '95585': { taux: 26.29, nom: 'Sarcelles' },
   '95252': { taux: 23.60, nom: 'Franconville' },
   '95210': { taux: 23.10, nom: 'Enghien-les-Bains' },
   '95280': { taux: 22.90, nom: 'Gonesse' },
@@ -296,10 +296,10 @@ export const TAUX_CONNUS: Record<string, { taux: number; nom: string }> = {
   '95607': { taux: 23.60, nom: 'Villiers-le-Bel' },
 
   // -- Seine-et-Marne (77) --
-  '77284': { taux: 24.50, nom: 'Meaux' },
-  '77083': { taux: 24.80, nom: 'Chelles' },
+  '77284': { taux: 23.53, nom: 'Meaux' },
+  '77083': { taux: 26.92, nom: 'Chelles' },
   '77468': { taux: 25.10, nom: 'Torcy' },
-  '77288': { taux: 24.30, nom: 'Melun' },
+  '77288': { taux: 25.12, nom: 'Melun' },
   '77186': { taux: 24.60, nom: 'Fontainebleau' },
   '77373': { taux: 25.30, nom: 'Pontault-Combault' },
   '77122': { taux: 24.90, nom: 'Combs-la-Ville' },
@@ -322,11 +322,18 @@ export const TAUX_CONNUS: Record<string, { taux: number; nom: string }> = {
   '77169': { taux: 25.80, nom: 'Claye-Souilly' },
   '77407': { taux: 24.30, nom: 'Ozoir-la-Ferrière' },
 
+
+  // -- 2A Corse-du-Sud --
+  '2A004': { taux: 20.77, nom: 'Ajaccio' },
+
+  // -- 2B Haute-Corse --
+  '2B033': { taux: 24.39, nom: 'Bastia' },
+
   // ══════════════════════════════════════════════════════════════════════════════
   // ── DÉPARTEMENTS 01 à 12 ────────────────────────────────────────────────────
   // ══════════════════════════════════════════════════════════════════════════════
   // -- 01 Ain --
-  '01053': { taux: 26.56, nom: 'Bourg-en-Bresse' },
+  '01053': { taux: 24.97, nom: 'Bourg-en-Bresse' },
   '01283': { taux: 27.83, nom: 'Oyonnax' },
   '01004': { taux: 25.47, nom: 'Ambérieu-en-Bugey' },
   '01173': { taux: 24.22, nom: 'Gex' },
@@ -334,14 +341,14 @@ export const TAUX_CONNUS: Record<string, { taux: number; nom: string }> = {
   '01249': { taux: 25.10, nom: 'Miribel' },
 
   // -- 02 Aisne --
-  '02691': { taux: 29.34, nom: 'Saint-Quentin' },
+  '02691': { taux: 26.98, nom: 'Saint-Quentin' },
   '02408': { taux: 28.52, nom: 'Laon' },
   '02722': { taux: 28.03, nom: 'Soissons' },
   '02168': { taux: 27.10, nom: 'Château-Thierry' },
   '02773': { taux: 27.85, nom: 'Tergnier' },
 
   // -- 03 Allier --
-  '03185': { taux: 28.24, nom: 'Montluçon' },
+  '03185': { taux: 31.36, nom: 'Montluçon' },
   '03310': { taux: 27.52, nom: 'Vichy' },
   '03190': { taux: 28.01, nom: 'Moulins' },
   '03095': { taux: 27.80, nom: 'Cusset' },
@@ -352,16 +359,16 @@ export const TAUX_CONNUS: Record<string, { taux: number; nom: string }> = {
   '04070': { taux: 26.80, nom: 'Digne-les-Bains' },
 
   // -- 05 Hautes-Alpes --
-  '05061': { taux: 26.20, nom: 'Gap' },
+  '05061': { taux: 27.59, nom: 'Gap' },
   '05023': { taux: 27.10, nom: 'Briançon' },
 
   // -- 06 Alpes-Maritimes --
   '06088': { taux: 28.88, nom: 'Nice' },
-  '06004': { taux: 29.40, nom: 'Antibes' },
-  '06029': { taux: 29.60, nom: 'Cannes' },
-  '06069': { taux: 29.50, nom: 'Grasse' },
+  '06004': { taux: 24.54, nom: 'Antibes' },
+  '06029': { taux: 28.65, nom: 'Cannes' },
+  '06069': { taux: 29.22, nom: 'Grasse' },
   '06027': { taux: 28.88, nom: 'Cagnes-sur-Mer' },
-  '06030': { taux: 29.60, nom: 'Le Cannet' },
+  '06030': { taux: 28.65, nom: 'Le Cannet' },
   '06155': { taux: 29.40, nom: 'Vallauris' },
   '06079': { taux: 29.60, nom: 'Mandelieu-la-Napoule' },
   '06083': { taux: 27.50, nom: 'Menton' },
@@ -380,7 +387,7 @@ export const TAUX_CONNUS: Record<string, { taux: number; nom: string }> = {
   '07186': { taux: 27.90, nom: 'Privas' },
 
   // -- 08 Ardennes --
-  '08105': { taux: 28.50, nom: 'Charleville-Mézières' },
+  '08105': { taux: 23.82, nom: 'Charleville-Mézières' },
   '08409': { taux: 29.20, nom: 'Sedan' },
 
   // -- 09 Ariège --
@@ -388,15 +395,15 @@ export const TAUX_CONNUS: Record<string, { taux: number; nom: string }> = {
   '09122': { taux: 29.50, nom: 'Foix' },
 
   // -- 10 Aube --
-  '10387': { taux: 26.90, nom: 'Troyes' },
+  '10387': { taux: 25.83, nom: 'Troyes' },
   '10323': { taux: 27.20, nom: 'Saint-André-les-Vergers' },
   '10081': { taux: 27.40, nom: 'La Chapelle-Saint-Luc' },
   '10362': { taux: 27.10, nom: 'Sainte-Savine' },
   '10268': { taux: 28.30, nom: 'Romilly-sur-Seine' },
 
   // -- 11 Aude --
-  '11069': { taux: 30.50, nom: 'Carcassonne' },
-  '11262': { taux: 31.20, nom: 'Narbonne' },
+  '11069': { taux: 37.39, nom: 'Carcassonne' },
+  '11262': { taux: 32.08, nom: 'Narbonne' },
   '11076': { taux: 30.80, nom: 'Castelnaudary' },
   '11379': { taux: 30.60, nom: 'Trèbes' },
   '11206': { taux: 31.00, nom: 'Limoux' },
@@ -412,11 +419,11 @@ export const TAUX_CONNUS: Record<string, { taux: number; nom: string }> = {
   // ══════════════════════════════════════════════════════════════════════════════
   // -- 13 Bouches-du-Rhône (Métropole AMP ~32.87 %) --
   '13001': { taux: 32.87, nom: 'Aix-en-Provence' },
-  '13004': { taux: 33.50, nom: 'Arles' },
-  '13056': { taux: 33.10, nom: 'Martigues' },
+  '13004': { taux: 31.11, nom: 'Arles' },
+  '13056': { taux: 32.87, nom: 'Martigues' },
   '13005': { taux: 32.87, nom: 'Aubagne' },
-  '13103': { taux: 33.80, nom: 'Salon-de-Provence' },
-  '13047': { taux: 33.20, nom: 'Istres' },
+  '13103': { taux: 32.87, nom: 'Salon-de-Provence' },
+  '13047': { taux: 32.87, nom: 'Istres' },
   '13117': { taux: 32.87, nom: 'Vitrolles' },
   '13054': { taux: 32.87, nom: 'Marignane' },
   '13028': { taux: 32.87, nom: 'La Ciotat' },
@@ -451,25 +458,25 @@ export const TAUX_CONNUS: Record<string, { taux: number; nom: string }> = {
   '15014': { taux: 27.60, nom: 'Aurillac' },
 
   // -- 16 Charente --
-  '16015': { taux: 28.50, nom: 'Angoulême' },
+  '16015': { taux: 25.72, nom: 'Angoulême' },
   '16102': { taux: 27.30, nom: 'Cognac' },
   '16352': { taux: 28.50, nom: 'Soyaux' },
   '16167': { taux: 28.50, nom: 'La Couronne' },
 
   // -- 17 Charente-Maritime --
-  '17300': { taux: 26.10, nom: 'La Rochelle' },
+  '17300': { taux: 25.97, nom: 'La Rochelle' },
   '17299': { taux: 27.50, nom: 'Rochefort' },
   '17415': { taux: 26.80, nom: 'Saintes' },
   '17306': { taux: 26.30, nom: 'Royan' },
   '17004': { taux: 26.10, nom: 'Aytré' },
 
   // -- 18 Cher --
-  '18033': { taux: 27.50, nom: 'Bourges' },
+  '18033': { taux: 25.89, nom: 'Bourges' },
   '18279': { taux: 28.80, nom: 'Vierzon' },
   '18228': { taux: 27.50, nom: 'Saint-Doulchard' },
 
   // -- 19 Corrèze --
-  '19031': { taux: 27.80, nom: 'Brive-la-Gaillarde' },
+  '19031': { taux: 31.72, nom: 'Brive-la-Gaillarde' },
   '19272': { taux: 28.20, nom: 'Tulle' },
 
   // -- 21 Côte-d'Or (Dijon Métropole ~27.04 %) --
@@ -483,7 +490,7 @@ export const TAUX_CONNUS: Record<string, { taux: number; nom: string }> = {
   '21355': { taux: 27.04, nom: 'Marsannay-la-Côte' },
 
   // -- 22 Côtes-d'Armor --
-  '22278': { taux: 27.50, nom: 'Saint-Brieuc' },
+  '22278': { taux: 28.26, nom: 'Saint-Brieuc' },
   '22113': { taux: 26.80, nom: 'Lannion' },
   '22093': { taux: 27.20, nom: 'Lamballe-Armor' },
   '22187': { taux: 27.50, nom: 'Plérin' },
@@ -501,22 +508,22 @@ export const TAUX_CONNUS: Record<string, { taux: number; nom: string }> = {
   '24311': { taux: 28.30, nom: 'Coulounieix-Chamiers' },
 
   // -- 25 Doubs (CA Grand Besançon ~26.75 %) --
-  '25056': { taux: 26.75, nom: 'Besançon' },
+  '25056': { taux: 26.86, nom: 'Besançon' },
   '25388': { taux: 27.80, nom: 'Montbéliard' },
   '25462': { taux: 26.40, nom: 'Pontarlier' },
   '25031': { taux: 27.80, nom: 'Audincourt' },
   '25565': { taux: 27.80, nom: 'Valentigney' },
 
   // -- 26 Drôme --
-  '26362': { taux: 25.80, nom: 'Valence' },
-  '26198': { taux: 27.20, nom: 'Montélimar' },
+  '26362': { taux: 26.73, nom: 'Valence' },
+  '26198': { taux: 25.69, nom: 'Montélimar' },
   '26281': { taux: 26.50, nom: 'Romans-sur-Isère' },
   '26058': { taux: 25.80, nom: 'Bourg-lès-Valence' },
   '26252': { taux: 27.40, nom: 'Pierrelatte' },
   '26263': { taux: 25.80, nom: 'Portes-lès-Valence' },
 
   // -- 27 Eure --
-  '27229': { taux: 25.50, nom: 'Évreux' },
+  '27229': { taux: 25.46, nom: 'Évreux' },
   '27681': { taux: 26.30, nom: 'Vernon' },
   '27375': { taux: 26.50, nom: 'Louviers' },
   '27428': { taux: 26.80, nom: 'Val-de-Reuil' },
@@ -524,7 +531,7 @@ export const TAUX_CONNUS: Record<string, { taux: number; nom: string }> = {
   '27467': { taux: 26.60, nom: 'Pont-Audemer' },
 
   // -- 28 Eure-et-Loir --
-  '28085': { taux: 24.50, nom: 'Chartres' },
+  '28085': { taux: 25.95, nom: 'Chartres' },
   '28134': { taux: 26.80, nom: 'Dreux' },
   '28218': { taux: 24.50, nom: 'Lucé' },
   '28280': { taux: 24.50, nom: 'Mainvilliers' },
@@ -533,7 +540,7 @@ export const TAUX_CONNUS: Record<string, { taux: number; nom: string }> = {
 
   // -- 29 Finistère (Brest Métropole ~29.96 %) --
   '29019': { taux: 29.96, nom: 'Brest' },
-  '29232': { taux: 28.20, nom: 'Quimper' },
+  '29232': { taux: 26.56, nom: 'Quimper' },
   '29039': { taux: 28.80, nom: 'Concarneau' },
   '29151': { taux: 28.50, nom: 'Morlaix' },
   '29103': { taux: 29.96, nom: 'Landerneau' },
@@ -548,7 +555,7 @@ export const TAUX_CONNUS: Record<string, { taux: number; nom: string }> = {
   // ══════════════════════════════════════════════════════════════════════════════
   // -- 30 Gard --
   '30189': { taux: 34.30, nom: 'Nîmes' },
-  '30007': { taux: 33.50, nom: 'Alès' },
+  '30007': { taux: 30.55, nom: 'Alès' },
   '30028': { taux: 33.80, nom: 'Bagnols-sur-Cèze' },
   '30032': { taux: 34.00, nom: 'Beaucaire' },
   '30351': { taux: 33.20, nom: 'Villeneuve-lès-Avignon' },
@@ -610,8 +617,8 @@ export const TAUX_CONNUS: Record<string, { taux: number; nom: string }> = {
 
   // -- 34 Hérault (Montpellier Métropole ~36.58 %) --
   '34172': { taux: 36.58, nom: 'Montpellier' },
-  '34032': { taux: 34.80, nom: 'Béziers' },
-  '34301': { taux: 35.20, nom: 'Sète' },
+  '34032': { taux: 34.41, nom: 'Béziers' },
+  '34301': { taux: 39.89, nom: 'Sète' },
   '34003': { taux: 35.50, nom: 'Agde' },
   '34145': { taux: 35.80, nom: 'Lunel' },
   '34108': { taux: 36.00, nom: 'Frontignan' },
@@ -632,7 +639,7 @@ export const TAUX_CONNUS: Record<string, { taux: number; nom: string }> = {
 
   // -- 35 Ille-et-Vilaine (Rennes Métropole ~28.73 %) --
   '35238': { taux: 28.73, nom: 'Rennes' },
-  '35288': { taux: 27.60, nom: 'Saint-Malo' },
+  '35288': { taux: 25.95, nom: 'Saint-Malo' },
   '35047': { taux: 28.73, nom: 'Bruz' },
   '35051': { taux: 28.73, nom: 'Cesson-Sévigné' },
   '35360': { taux: 27.80, nom: 'Vitré' },
@@ -645,7 +652,7 @@ export const TAUX_CONNUS: Record<string, { taux: number; nom: string }> = {
   '35245': { taux: 27.90, nom: 'Redon' },
 
   // -- 36 Indre --
-  '36044': { taux: 27.80, nom: 'Châteauroux' },
+  '36044': { taux: 24.56, nom: 'Châteauroux' },
   '36088': { taux: 28.50, nom: 'Issoudun' },
 
   // -- 37 Indre-et-Loire (Tours Métropole ~23.37 %) --
@@ -691,7 +698,7 @@ export const TAUX_CONNUS: Record<string, { taux: number; nom: string }> = {
   '40046': { taux: 27.20, nom: 'Biscarrosse' },
 
   // -- 41 Loir-et-Cher --
-  '41018': { taux: 25.50, nom: 'Blois' },
+  '41018': { taux: 25.46, nom: 'Blois' },
   '41269': { taux: 26.80, nom: 'Vendôme' },
   '41194': { taux: 27.30, nom: 'Romorantin-Lanthenay' },
 
@@ -714,7 +721,7 @@ export const TAUX_CONNUS: Record<string, { taux: number; nom: string }> = {
 
   // -- 44 Loire-Atlantique (Nantes Métropole ~31.49 %) --
   '44109': { taux: 31.49, nom: 'Nantes' },
-  '44184': { taux: 30.50, nom: 'Saint-Nazaire' },
+  '44184': { taux: 25.66, nom: 'Saint-Nazaire' },
   '44143': { taux: 31.49, nom: 'Rezé' },
   '44162': { taux: 31.49, nom: 'Saint-Herblain' },
   '44114': { taux: 31.49, nom: 'Orvault' },
@@ -748,7 +755,7 @@ export const TAUX_CONNUS: Record<string, { taux: number; nom: string }> = {
   '46102': { taux: 28.80, nom: 'Figeac' },
 
   // -- 47 Lot-et-Garonne --
-  '47001': { taux: 28.50, nom: 'Agen' },
+  '47001': { taux: 28.8, nom: 'Agen' },
   '47157': { taux: 29.30, nom: 'Marmande' },
   '47323': { taux: 28.90, nom: 'Villeneuve-sur-Lot' },
 
@@ -757,7 +764,7 @@ export const TAUX_CONNUS: Record<string, { taux: number; nom: string }> = {
 
   // -- 49 Maine-et-Loire (Angers Loire Métropole ~25.22 %) --
   '49007': { taux: 25.22, nom: 'Angers' },
-  '49080': { taux: 25.80, nom: 'Cholet' },
+  '49080': { taux: 23.82, nom: 'Cholet' },
   '49328': { taux: 27.60, nom: 'Saumur' },
   '49323': { taux: 25.22, nom: 'Trélazé' },
   '49267': { taux: 25.22, nom: 'Les Ponts-de-Cé' },
@@ -767,7 +774,7 @@ export const TAUX_CONNUS: Record<string, { taux: number; nom: string }> = {
   '49183': { taux: 25.22, nom: 'Beaucouzé' },
 
   // -- 50 Manche --
-  '50129': { taux: 27.50, nom: 'Cherbourg-en-Cotentin' },
+  '50129': { taux: 26.25, nom: 'Cherbourg-en-Cotentin' },
   '50502': { taux: 26.80, nom: 'Saint-Lô' },
   '50218': { taux: 27.10, nom: 'Granville' },
   '50025': { taux: 27.30, nom: 'Avranches' },
@@ -775,7 +782,7 @@ export const TAUX_CONNUS: Record<string, { taux: number; nom: string }> = {
 
   // -- 51 Marne (CU du Grand Reims ~24.80 %) --
   '51454': { taux: 24.80, nom: 'Reims' },
-  '51108': { taux: 25.80, nom: 'Châlons-en-Champagne' },
+  '51108': { taux: 19.7, nom: 'Châlons-en-Champagne' },
   '51230': { taux: 26.50, nom: 'Épernay' },
   '51643': { taux: 24.80, nom: 'Tinqueux' },
   '51075': { taux: 24.80, nom: 'Bétheny' },
@@ -791,7 +798,7 @@ export const TAUX_CONNUS: Record<string, { taux: number; nom: string }> = {
   // ── DÉPARTEMENTS 53 à 62 ────────────────────────────────────────────────────
   // ══════════════════════════════════════════════════════════════════════════════
   // -- 53 Mayenne --
-  '53130': { taux: 26.50, nom: 'Laval' },
+  '53130': { taux: 26.03, nom: 'Laval' },
   '53147': { taux: 27.30, nom: 'Mayenne' },
   '53054': { taux: 27.60, nom: 'Château-Gontier-sur-Mayenne' },
 
@@ -817,8 +824,8 @@ export const TAUX_CONNUS: Record<string, { taux: number; nom: string }> = {
   '55545': { taux: 28.50, nom: 'Verdun' },
 
   // -- 56 Morbihan --
-  '56121': { taux: 28.50, nom: 'Lorient' },
-  '56260': { taux: 26.80, nom: 'Vannes' },
+  '56121': { taux: 24.71, nom: 'Lorient' },
+  '56260': { taux: 23.73, nom: 'Vannes' },
   '56083': { taux: 28.50, nom: 'Hennebont' },
   '56101': { taux: 28.50, nom: 'Lanester' },
   '56178': { taux: 27.80, nom: 'Pontivy' },
@@ -830,7 +837,7 @@ export const TAUX_CONNUS: Record<string, { taux: number; nom: string }> = {
 
   // -- 57 Moselle (Metz Métropole ~25.94 %) --
   '57463': { taux: 25.94, nom: 'Metz' },
-  '57672': { taux: 28.50, nom: 'Thionville' },
+  '57672': { taux: 25.34, nom: 'Thionville' },
   '57631': { taux: 29.20, nom: 'Sarreguemines' },
   '57606': { taux: 28.80, nom: 'Saint-Avold' },
   '57227': { taux: 29.50, nom: 'Forbach' },
@@ -851,15 +858,16 @@ export const TAUX_CONNUS: Record<string, { taux: number; nom: string }> = {
 
   // -- 59 Nord (MEL Lille ~33.61 %) --
   '59350': { taux: 33.61, nom: 'Lille' },
-  '59512': { taux: 33.40, nom: 'Roubaix' },
-  '59599': { taux: 34.80, nom: 'Tourcoing' },
-  '59009': { taux: 34.20, nom: 'Villeneuve-d\'Ascq' },
-  '59178': { taux: 30.50, nom: 'Dunkerque' },
-  '59606': { taux: 30.80, nom: 'Valenciennes' },
+  '59512': { taux: 33.61, nom: 'Roubaix' },
+  '59599': { taux: 33.61, nom: 'Tourcoing' },
+  '59009': { taux: 33.61, nom: 'Villeneuve-d\'Ascq' },
+  '59378': { taux: 33.61, nom: 'Marcq-en-Baroeul' },
+  '59178': { taux: 34.94, nom: 'Dunkerque' },
+  '59606': { taux: 31.02, nom: 'Valenciennes' },
   '59392': { taux: 31.20, nom: 'Maubeuge' },
   '59122': { taux: 30.60, nom: 'Cambrai' },
   '59017': { taux: 31.50, nom: 'Armentières' },
-  '59196': { taux: 30.80, nom: 'Douai' },
+  '59196': { taux: 29.68, nom: 'Douai' },
   '59183': { taux: 31.80, nom: 'Denain' },
   '59056': { taux: 33.61, nom: 'Mons-en-Barœul' },
   '59560': { taux: 33.61, nom: 'Hem' },
@@ -888,8 +896,8 @@ export const TAUX_CONNUS: Record<string, { taux: number; nom: string }> = {
   '59139': { taux: 31.40, nom: 'Condé-sur-l\'Escaut' },
 
   // -- 60 Oise --
-  '60057': { taux: 26.50, nom: 'Beauvais' },
-  '60159': { taux: 25.80, nom: 'Compiègne' },
+  '60057': { taux: 25.4, nom: 'Beauvais' },
+  '60159': { taux: 26.16, nom: 'Compiègne' },
   '60157': { taux: 28.30, nom: 'Creil' },
   '60471': { taux: 26.80, nom: 'Nogent-sur-Oise' },
   '60612': { taux: 26.20, nom: 'Senlis' },
@@ -903,9 +911,9 @@ export const TAUX_CONNUS: Record<string, { taux: number; nom: string }> = {
   '61006': { taux: 28.30, nom: 'Argentan' },
 
   // -- 62 Pas-de-Calais --
-  '62041': { taux: 30.20, nom: 'Arras' },
-  '62119': { taux: 30.80, nom: 'Boulogne-sur-Mer' },
-  '62160': { taux: 31.50, nom: 'Calais' },
+  '62041': { taux: 30.58, nom: 'Arras' },
+  '62119': { taux: 33.62, nom: 'Boulogne-sur-Mer' },
+  '62160': { taux: 30.75, nom: 'Calais' },
   '62498': { taux: 30.50, nom: 'Lens' },
   '62510': { taux: 31.00, nom: 'Liévin' },
   '62321': { taux: 30.30, nom: 'Hénin-Beaumont' },
@@ -924,7 +932,7 @@ export const TAUX_CONNUS: Record<string, { taux: number; nom: string }> = {
   // ── DÉPARTEMENTS 63 à 76 ────────────────────────────────────────────────────
   // ══════════════════════════════════════════════════════════════════════════════
   // -- 63 Puy-de-Dôme (Clermont Auvergne Métropole ~27.14 %) --
-  '63113': { taux: 27.14, nom: 'Clermont-Ferrand' },
+  '63113': { taux: 27.16, nom: 'Clermont-Ferrand' },
   '63019': { taux: 27.14, nom: 'Aubière' },
   '63069': { taux: 27.14, nom: 'Chamalières' },
   '63284': { taux: 27.14, nom: 'Beaumont' },
@@ -939,10 +947,10 @@ export const TAUX_CONNUS: Record<string, { taux: number; nom: string }> = {
   '63116': { taux: 27.14, nom: 'Cébazat' },
 
   // -- 64 Pyrénées-Atlantiques --
-  '64445': { taux: 26.40, nom: 'Pau' },
-  '64102': { taux: 29.50, nom: 'Bayonne' },
+  '64445': { taux: 32.63, nom: 'Pau' },
+  '64102': { taux: 28.49, nom: 'Bayonne' },
   '64122': { taux: 28.80, nom: 'Biarritz' },
-  '64024': { taux: 29.50, nom: 'Anglet' },
+  '64024': { taux: 28.49, nom: 'Anglet' },
   '64300': { taux: 27.20, nom: 'Lons' },
   '64160': { taux: 29.20, nom: 'Hendaye' },
   '64483': { taux: 29.30, nom: 'Saint-Jean-de-Luz' },
@@ -953,7 +961,7 @@ export const TAUX_CONNUS: Record<string, { taux: number; nom: string }> = {
   '64548': { taux: 29.50, nom: 'Urrugne' },
 
   // -- 65 Hautes-Pyrénées --
-  '65440': { taux: 28.90, nom: 'Tarbes' },
+  '65440': { taux: 33.94, nom: 'Tarbes' },
   '65286': { taux: 29.50, nom: 'Lourdes' },
   '65025': { taux: 29.20, nom: 'Bagnères-de-Bigorre' },
 
@@ -991,8 +999,8 @@ export const TAUX_CONNUS: Record<string, { taux: number; nom: string }> = {
 
   // -- 68 Haut-Rhin --
   '68224': { taux: 26.36, nom: 'Mulhouse' },
-  '68066': { taux: 26.20, nom: 'Colmar' },
-  '68297': { taux: 26.36, nom: 'Saint-Louis' },
+  '68066': { taux: 25.0, nom: 'Colmar' },
+  '68297': { taux: 29.03, nom: 'Saint-Louis' },
   '68093': { taux: 26.36, nom: 'Guebwiller' },
   '68338': { taux: 26.36, nom: 'Wittenheim' },
   '68166': { taux: 26.36, nom: 'Kingersheim' },
@@ -1018,7 +1026,7 @@ export const TAUX_CONNUS: Record<string, { taux: number; nom: string }> = {
   '70285': { taux: 28.20, nom: 'Héricourt' },
 
   // -- 71 Saône-et-Loire --
-  '71076': { taux: 28.30, nom: 'Chalon-sur-Saône' },
+  '71076': { taux: 25.54, nom: 'Chalon-sur-Saône' },
   '71270': { taux: 27.80, nom: 'Mâcon' },
   '71153': { taux: 28.60, nom: 'Le Creusot' },
   '71388': { taux: 28.50, nom: 'Autun' },
@@ -1035,7 +1043,7 @@ export const TAUX_CONNUS: Record<string, { taux: number; nom: string }> = {
   '72328': { taux: 27.41, nom: 'Mulsanne' },
 
   // -- 73 Savoie --
-  '73065': { taux: 26.50, nom: 'Chambéry' },
+  '73065': { taux: 27.7, nom: 'Chambéry' },
   '73011': { taux: 27.20, nom: 'Aix-les-Bains' },
   '73008': { taux: 28.50, nom: 'Albertville' },
   '73248': { taux: 26.50, nom: 'La Motte-Servolex' },
@@ -1043,7 +1051,7 @@ export const TAUX_CONNUS: Record<string, { taux: number; nom: string }> = {
   '73034': { taux: 26.80, nom: 'Cognin' },
 
   // -- 74 Haute-Savoie --
-  '74010': { taux: 24.80, nom: 'Annecy' },
+  '74010': { taux: 23.95, nom: 'Annecy' },
   '74012': { taux: 25.50, nom: 'Annemasse' },
   '74281': { taux: 25.20, nom: 'Thonon-les-Bains' },
   '74093': { taux: 25.30, nom: 'Cluses' },
@@ -1059,7 +1067,7 @@ export const TAUX_CONNUS: Record<string, { taux: number; nom: string }> = {
 
   // -- 76 Seine-Maritime (Rouen Métropole ~26.50 %) --
   '76540': { taux: 26.50, nom: 'Rouen' },
-  '76351': { taux: 25.32, nom: 'Le Havre' },
+  '76351': { taux: 26.66, nom: 'Le Havre' },
   '76618': { taux: 26.50, nom: 'Sotteville-lès-Rouen' },
   '76322': { taux: 26.50, nom: 'Le Grand-Quevilly' },
   '76484': { taux: 26.50, nom: 'Le Petit-Quevilly' },
@@ -1082,7 +1090,7 @@ export const TAUX_CONNUS: Record<string, { taux: number; nom: string }> = {
   // ── DÉPARTEMENTS 77 à 95 (restants) ────────────────────────────────────────
   // ══════════════════════════════════════════════════════════════════════════════
   // -- 79 Deux-Sèvres --
-  '79191': { taux: 26.20, nom: 'Niort' },
+  '79191': { taux: 26.26, nom: 'Niort' },
   '79049': { taux: 27.50, nom: 'Bressuire' },
   '79271': { taux: 27.80, nom: 'Thouars' },
   '79200': { taux: 27.30, nom: 'Parthenay' },
@@ -1096,23 +1104,23 @@ export const TAUX_CONNUS: Record<string, { taux: number; nom: string }> = {
   '80561': { taux: 26.80, nom: 'Albert' },
 
   // -- 81 Tarn --
-  '81004': { taux: 28.40, nom: 'Albi' },
-  '81065': { taux: 29.20, nom: 'Castres' },
+  '81004': { taux: 37.51, nom: 'Albi' },
+  '81065': { taux: 34.99, nom: 'Castres' },
   '81140': { taux: 29.50, nom: 'Mazamet' },
   '81099': { taux: 28.80, nom: 'Gaillac' },
   '81105': { taux: 29.00, nom: 'Graulhet' },
 
   // -- 82 Tarn-et-Garonne --
-  '82121': { taux: 29.50, nom: 'Montauban' },
+  '82121': { taux: 33.32, nom: 'Montauban' },
   '82033': { taux: 30.20, nom: 'Castelsarrasin' },
   '82108': { taux: 29.80, nom: 'Moissac' },
 
   // -- 83 Var (Toulon Provence Méditerranée ~35.89 %) --
   '83137': { taux: 35.89, nom: 'Toulon' },
-  '83050': { taux: 34.20, nom: 'Fréjus' },
-  '83061': { taux: 34.50, nom: 'Hyères' },
-  '83023': { taux: 34.80, nom: 'La Seyne-sur-Mer' },
-  '83069': { taux: 33.50, nom: 'Draguignan' },
+  '83050': { taux: 28.46, nom: 'Fréjus' },
+  '83061': { taux: 35.89, nom: 'Hyères' },
+  '83023': { taux: 35.89, nom: 'La Seyne-sur-Mer' },
+  '83069': { taux: 28.3, nom: 'Draguignan' },
   '83129': { taux: 34.30, nom: 'Six-Fours-les-Plages' },
   '83007': { taux: 35.89, nom: 'Brignoles' },
   '83120': { taux: 34.60, nom: 'Saint-Raphaël' },
@@ -1142,12 +1150,12 @@ export const TAUX_CONNUS: Record<string, { taux: number; nom: string }> = {
   '84143': { taux: 37.42, nom: 'Entraigues-sur-la-Sorgue' },
 
   // -- 85 Vendée --
-  '85191': { taux: 26.30, nom: 'La Roche-sur-Yon' },
+  '85191': { taux: 28.16, nom: 'La Roche-sur-Yon' },
   '85109': { taux: 26.80, nom: 'Les Sables-d\'Olonne' },
   '85065': { taux: 27.50, nom: 'Challans' },
   '85092': { taux: 27.80, nom: 'Fontenay-le-Comte' },
   '85146': { taux: 27.20, nom: 'Luçon' },
-  '85084': { taux: 26.50, nom: 'La Roche-sur-Yon' },
+  '85084': { taux: 28.16, nom: 'La Roche-sur-Yon' },
   '85121': { taux: 26.60, nom: 'Les Herbiers' },
   '85166': { taux: 27.00, nom: 'Montaigu-Vendée' },
 
@@ -1182,7 +1190,7 @@ export const TAUX_CONNUS: Record<string, { taux: number; nom: string }> = {
   '89013': { taux: 27.80, nom: 'Avallon' },
 
   // -- 90 Territoire de Belfort --
-  '90010': { taux: 28.60, nom: 'Belfort' },
+  '90010': { taux: 30.85, nom: 'Belfort' },
   '90029': { taux: 28.60, nom: 'Delle' },
   '90068': { taux: 28.60, nom: 'Offemont' },
   '90013': { taux: 28.60, nom: 'Beaucourt' },
@@ -1249,4 +1257,14 @@ export const TAUX_CONNUS: Record<string, { taux: number; nom: string }> = {
   '14654': { taux: 25.71, nom: 'Colombelles' },
   '76402': { taux: 26.50, nom: 'Maromme' },
   '27015': { taux: 25.80, nom: 'Les Andelys' },
+
+  // -- DOM-TOM --
+  '97209': { taux: 23.35, nom: 'Fort-de-France' },
+  '97213': { taux: 23.35, nom: 'Le Lamentin' },
+  '97422': { taux: 22.76, nom: 'Le Tampon' },
+  '97100': { taux: 24.94, nom: 'Les Abymes' },
+  '97701': { taux: 27.60, nom: 'Saint-André' },
+  '97416': { taux: 29.03, nom: 'Saint-Pierre' },
+  '94022': { taux: 33.78, nom: 'Choisy-le-Roi' },
+
 }
