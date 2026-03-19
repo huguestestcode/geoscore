@@ -25,26 +25,38 @@ type CFETaux = {
 
 // ─── Legal constants — Article 1647 D CGI ────────────────────────────────────
 // Plafonds légaux de la base minimum de CFE par tranche de CA (N-2)
-// Source : Art. 1647 D CGI — montants maximaux que la commune peut voter
+// Source : Art. 1647 D CGI — montants confirmés barème 2025
+// Tranches : [5k-10k, 10k-32.6k, 32.6k-100k, 100k-250k, 250k-500k, >500k]
 const LEGAL_CEILING = [589, 1179, 2477, 4129, 5897, 7669]
+const LEGAL_MIN = 247  // minimum légal que la commune peut voter (toutes tranches)
 const CA_THRESHOLDS = [10000, 32600, 100000, 250000, 500000]
+const CA_EXEMPT_MAX = 5000  // ≤ 5 000 € → pas de base minimum (Art. 1647 D)
+const CA_DEFAULT_TRANCHE = 2  // tranche utilisée si CA N-2 inconnu (< 100k)
 
-function getTranche(ca: number): number {
+// Retourne l'index de tranche, -1 si exonéré de base minimum, ou le défaut si ca=null
+function getTranche(ca: number | null): number {
+  if (ca === null) return CA_DEFAULT_TRANCHE  // CA inconnu → tranche < 100K
+  if (ca <= CA_EXEMPT_MAX) return -1          // ≤ 5 000 € → pas de base minimum
   for (let i = 0; i < CA_THRESHOLDS.length; i++) {
     if (ca <= CA_THRESHOLDS[i]) return i
   }
   return 5
 }
 
-function estimateCFE(taux: number, ca: number): { max: number } {
+// Retourne null si exonéré de base minimum (CA ≤ 5 000 € ou statut exempté)
+function estimateCFE(taux: number, ca: number | null): { min: number; max: number } | null {
   const t = getTranche(ca)
+  if (t === -1) return null
   return {
+    min: Math.round(LEGAL_MIN * taux / 100),
     max: Math.round(LEGAL_CEILING[t] * taux / 100),
   }
 }
 
-function isExempt(statut: string, ca: number): boolean {
-  return statut === 'ae' && ca <= 5000
+function isExempt(statut: string, ca: number | null): boolean {
+  // AE exonéré totalement (Art. 1447-0 CGI) ; tous statuts : pas de base min si CA ≤ 5 000 €
+  if (ca !== null && ca <= CA_EXEMPT_MAX) return true
+  return statut === 'ae' && ca !== null && ca <= CA_EXEMPT_MAX
 }
 
 function fmt(n: number): string {
@@ -70,13 +82,14 @@ const STATUTS = [
   { id: 'ei',   name: 'Entreprise Individuelle (EI)' },
 ]
 
-const CA_PRESETS = [
-  { label: '5 000 €',    value: 5000 },
-  { label: '20 000 €',   value: 20000 },
-  { label: '50 000 €',   value: 50000 },
-  { label: '100 000 €',  value: 100000 },
-  { label: '250 000 €',  value: 250000 },
-  { label: '500 000 €',  value: 500000 },
+const CA_PRESETS: { label: string; value: number | null }[] = [
+  { label: 'Pas de CA N-2', value: null },    // nouvelle société ou CA inconnu
+  { label: '5 000 €',       value: 5000 },
+  { label: '20 000 €',      value: 20000 },
+  { label: '50 000 €',      value: 50000 },
+  { label: '100 000 €',     value: 100000 },
+  { label: '250 000 €',     value: 250000 },
+  { label: '500 000 €',     value: 500000 },
 ]
 
 // ─── API functions ────────────────────────────────────────────────────────────
@@ -297,7 +310,7 @@ function FAQItem({ question, answer }: { question: string; answer: string }) {
 export default function SimulateurCFE() {
   // Form state
   const [statut, setStatut]       = useState('sas')
-  const [ca, setCa]               = useState(50000)
+  const [ca, setCa]               = useState<number | null>(50000)
   const [caInput, setCaInput]     = useState('50000')
   const [commune, setCommune]     = useState<Commune | null>(null)
 
@@ -352,14 +365,21 @@ export default function SimulateurCFE() {
     const userCFE  = estimateCFE(communeTaux.taux, ca)
     const parisCFE = estimateCFE(parisTaux.taux, ca)
 
+    // estimateCFE returns null only if tranche = -1 (CA ≤ 5000), but isExempt already caught that
+    if (!userCFE || !parisCFE) return { exempt: true as const }
+
     return {
       exempt: false as const,
+      userMin: userCFE.min,
       userMax: userCFE.max,
+      parisMin: parisCFE.min,
       parisMax: parisCFE.max,
       savingsMax: userCFE.max - parisCFE.max,
+      savingsMin: userCFE.min - parisCFE.min,
       isCheaper: userCFE.max > parisCFE.max,
       userTaux: communeTaux.taux,
       parisTaux: parisTaux.taux,
+      caIsDefault: ca === null,
     }
   }, [commune, communeTaux, parisTaux, statut, ca])
 
@@ -376,6 +396,7 @@ export default function SimulateurCFE() {
   }
 
   const sliderPct = useMemo(() => {
+    if (ca === null) return 0
     const log = (v: number) => Math.log10(Math.max(v, 1))
     return ((log(ca) - log(1)) / (log(10_000_000) - log(1))) * 100
   }, [ca])
@@ -577,31 +598,36 @@ export default function SimulateurCFE() {
                 display: 'flex', justifyContent: 'space-between', alignItems: 'center',
                 fontSize: '14px', fontWeight: 600, color: '#374151', marginBottom: '8px',
               }}>
-                <span>Chiffre d&apos;affaires annuel</span>
+                <span>Chiffre d&apos;affaires N-2</span>
                 <span style={{
                   background: 'linear-gradient(135deg, #6C3BFF, #A78BFA)',
                   WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent',
                   fontWeight: 800, fontSize: '16px',
                 }}>
-                  {fmtCA(ca)}
+                  {ca === null ? 'Inconnu / N-A' : fmtCA(ca)}
                 </span>
               </label>
-              <input
-                type="range" min={0} max={100}
-                value={sliderPct}
-                style={{ width: '100%', marginBottom: '12px', '--range-percent': `${sliderPct}%` } as React.CSSProperties}
-                onChange={e => {
-                  const pct = parseFloat(e.target.value) / 100
-                  const log = (v: number) => Math.log10(Math.max(v, 1))
-                  const val = Math.round(Math.pow(10, log(1) + pct * (log(10_000_000) - log(1))))
-                  setCa(val); setCaInput(String(val))
-                }}
-              />
+              {ca !== null && (
+                <input
+                  type="range" min={0} max={100}
+                  value={sliderPct}
+                  style={{ width: '100%', marginBottom: '12px', '--range-percent': `${sliderPct}%` } as React.CSSProperties}
+                  onChange={e => {
+                    const pct = parseFloat(e.target.value) / 100
+                    const log = (v: number) => Math.log10(Math.max(v, 1))
+                    const val = Math.round(Math.pow(10, log(1) + pct * (log(10_000_000) - log(1))))
+                    setCa(val); setCaInput(String(val))
+                  }}
+                />
+              )}
               <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px', marginBottom: '10px' }}>
                 {CA_PRESETS.map(p => (
                   <button
-                    key={p.value}
-                    onClick={() => { setCa(p.value); setCaInput(String(p.value)) }}
+                    key={p.value ?? 'null'}
+                    onClick={() => {
+                      setCa(p.value)
+                      setCaInput(p.value === null ? '' : String(p.value))
+                    }}
                     style={{
                       padding: '4px 12px', borderRadius: '6px', fontSize: '12px', fontWeight: 500,
                       cursor: 'pointer', transition: 'all 0.15s',
@@ -613,17 +639,24 @@ export default function SimulateurCFE() {
                   </button>
                 ))}
               </div>
-              <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                <span style={{ fontSize: '13px', color: '#6B7280' }}>Saisir :</span>
-                <div style={{ display: 'flex', alignItems: 'center', border: '1.5px solid #D1D5DB', borderRadius: '8px', overflow: 'hidden' }}>
-                  <input
-                    type="text" value={caInput}
-                    onChange={e => handleCAChange(e.target.value)}
-                    style={{ padding: '6px 10px', border: 'none', outline: 'none', fontSize: '14px', width: '100px', color: '#1A1A2E' }}
-                  />
-                  <span style={{ padding: '0 10px', background: '#F9FAFB', fontSize: '13px', color: '#6B7280', borderLeft: '1px solid #E5E7EB', alignSelf: 'stretch', display: 'flex', alignItems: 'center' }}>€</span>
+              {ca === null ? (
+                <p style={{ fontSize: '12px', color: '#6B7280', margin: 0 }}>
+                  <Info size={11} style={{ display: 'inline', marginRight: '4px' }} />
+                  Société nouvelle ou CA N-2 non disponible — la tranche &lt; 100 000 € est utilisée par défaut.
+                </p>
+              ) : (
+                <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                  <span style={{ fontSize: '13px', color: '#6B7280' }}>Saisir :</span>
+                  <div style={{ display: 'flex', alignItems: 'center', border: '1.5px solid #D1D5DB', borderRadius: '8px', overflow: 'hidden' }}>
+                    <input
+                      type="text" value={caInput}
+                      onChange={e => handleCAChange(e.target.value)}
+                      style={{ padding: '6px 10px', border: 'none', outline: 'none', fontSize: '14px', width: '100px', color: '#1A1A2E' }}
+                    />
+                    <span style={{ padding: '0 10px', background: '#F9FAFB', fontSize: '13px', color: '#6B7280', borderLeft: '1px solid #E5E7EB', alignSelf: 'stretch', display: 'flex', alignItems: 'center' }}>€</span>
+                  </div>
                 </div>
-              </div>
+              )}
             </div>
 
           </div>
@@ -663,8 +696,9 @@ export default function SimulateurCFE() {
                   Vous êtes exonéré de CFE !
                 </h3>
                 <p style={{ color: '#166534', fontSize: '14px', margin: 0 }}>
-                  En tant qu&apos;auto-entrepreneur avec un CA ≤ 5 000 €, vous bénéficiez d&apos;une
-                  exonération totale de CFE (article 1447-0 du CGI).
+                  {statut === 'ae'
+                    ? "En tant qu'auto-entrepreneur avec un CA ≤ 5 000 €, vous bénéficiez d'une exonération totale de CFE (art. 1447-0 CGI)."
+                    : "Avec un CA ≤ 5 000 €, aucune base minimum de CFE ne peut être fixée par la commune (art. 1647 D CGI). En l'absence de locaux propres, votre CFE est nulle."}
                 </p>
               </div>
             ) : !results.exempt && (
@@ -710,10 +744,11 @@ export default function SimulateurCFE() {
                       fontSize: 'clamp(24px, 4vw, 36px)', fontWeight: 800,
                       color: commune.code === PARIS_CODE ? '#15803D' : '#92400E', lineHeight: 1.1,
                     }}>
-                      {fmt(results.userMax)}
+                      {fmt(results.userMin)} – {fmt(results.userMax)}
                     </div>
                     <div style={{ fontSize: '12px', color: '#6B7280', marginTop: '4px' }}>
-                      CFE max. estimée — plafond légal Art. 1647 D × {communeTaux!.taux.toFixed(2)}%
+                      Fourchette CFE estimée — Art. 1647 D × {communeTaux!.taux.toFixed(2)}%
+                      {results.caIsDefault && ' (tranche CA < 100k par défaut)'}
                     </div>
                   </div>
 
@@ -739,10 +774,10 @@ export default function SimulateurCFE() {
                       fontSize: 'clamp(24px, 4vw, 36px)', fontWeight: 800,
                       color: '#5B21B6', lineHeight: 1.1,
                     }}>
-                      {fmt(results.parisMax)}
+                      {fmt(results.parisMin)} – {fmt(results.parisMax)}
                     </div>
                     <div style={{ fontSize: '12px', color: '#7C3AED', marginTop: '4px' }}>
-                      CFE max. estimée — plafond légal Art. 1647 D × {parisTaux!.taux.toFixed(2)}%
+                      Fourchette CFE estimée — Art. 1647 D × {parisTaux!.taux.toFixed(2)}%
                     </div>
                   </div>
                 </div>
@@ -759,10 +794,10 @@ export default function SimulateurCFE() {
                       Économie annuelle estimée avec une domiciliation LegalPlace Paris
                     </div>
                     <div style={{ fontSize: 'clamp(32px, 6vw, 52px)', fontWeight: 800, lineHeight: 1.1 }}>
-                      {fmt(results.savingsMax)} / an
+                      {fmt(results.savingsMin)} – {fmt(results.savingsMax)} / an
                     </div>
                     <div style={{ fontSize: '13px', opacity: 0.75, marginTop: '6px' }}>
-                      soit {fmt(Math.round(results.savingsMax / 12))} économisés par mois sur votre CFE
+                      soit {fmt(Math.round(results.savingsMin / 12))} à {fmt(Math.round(results.savingsMax / 12))} par mois économisés sur votre CFE
                     </div>
                   </div>
                 ) : (
@@ -786,9 +821,9 @@ export default function SimulateurCFE() {
                   fontSize: '12px', color: '#92400E', lineHeight: 1.6,
                 }}>
                   <strong>Méthodologie :</strong> Le taux CFE est le taux officiel voté par la commune,
-                  récupéré depuis les données ouvertes DGFiP. Les montants affichés sont des <strong>maximums estimés</strong>,
-                  calculés en appliquant ce taux au plafond légal de la base minimum fixé par l&apos;article 1647 D du CGI.
-                  Le montant réel de votre CFE peut être inférieur si votre commune a voté une base en dessous du plafond légal.
+                  récupéré depuis les données ouvertes DGFiP. Les montants affichés sont des <strong>fourchettes estimées</strong> :
+                  le minimum correspond au plancher légal (247 €) × taux, le maximum au plafond légal (art. 1647 D CGI) × taux.
+                  Votre CFE réelle dépend de la base minimum effectivement votée par votre commune.
                 </div>
 
                 {/* CTA */}
@@ -807,7 +842,7 @@ export default function SimulateurCFE() {
                   </span>
                   <h3 style={{ fontSize: '22px', fontWeight: 800, color: '#1A1A2E', marginBottom: '8px' }}>
                     Domiciliez votre entreprise à Paris
-                    {results.isCheaper ? ` et économisez ${fmt(results.savingsMax)}/an` : ''}
+                    {results.isCheaper ? ` et économisez jusqu'à ${fmt(results.savingsMax)}/an` : ''}
                   </h3>
                   <p style={{ fontSize: '14px', color: '#6B7280', marginBottom: '24px', lineHeight: 1.6 }}>
                     Dès <strong>17 € HT/mois</strong>, bénéficiez d&apos;une adresse prestigieuse,
