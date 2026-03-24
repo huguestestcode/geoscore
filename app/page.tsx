@@ -25,10 +25,16 @@ type CFETaux = {
 
 // ─── Legal constants — Article 1647 D CGI ────────────────────────────────────
 // Plafonds légaux de la base minimum de CFE par tranche de CA (N-2)
-// Source : Art. 1647 D CGI — montants confirmés barème 2025
+// Source : Art. 1647 D CGI — Décret n° 2025-547 du 17 juin 2025 — barème 2025
 // Tranches : [5k-10k, 10k-32.6k, 32.6k-100k, 100k-250k, 250k-500k, >500k]
-const LEGAL_CEILING = [589, 1179, 2477, 4129, 5897, 7669]
-const LEGAL_MIN = 247  // minimum légal que la commune peut voter (toutes tranches)
+const LEGAL_CEILING = [579, 1158, 2433, 4056, 5793, 7533]
+const LEGAL_MIN = 243  // minimum légal que la commune peut voter (toutes tranches)
+
+// ─── Paris base minimale réelle (art. 1647 D CGI — délibération Conseil de Paris)
+// Sources : lamicrobyflo.fr, kandbaz.com, sofradom.fr (3 sources concordantes)
+// Paris vote une base UNIQUE de 399 € pour TOUT CA < 100 000 € (tranches 0, 1, 2)
+const PARIS_BASE_MINIMALE = 399  // base unique pour CA ≤ 100 000 €
+const PARIS_BASE_MINIMALE_CA_MAX = 100000  // au-delà, base inconnue → plafond légal
 const CA_THRESHOLDS = [10000, 32600, 100000, 250000, 500000]
 const CA_EXEMPT_MAX = 5000  // ≤ 5 000 € → pas de base minimum (Art. 1647 D)
 const CA_DEFAULT_TRANCHE = 2  // tranche utilisée si CA N-2 inconnu (< 100k)
@@ -50,6 +56,23 @@ function estimateCFE(taux: number, ca: number | null): { min: number; max: numbe
   return {
     min: Math.round(LEGAL_MIN * taux / 100),
     max: Math.round(LEGAL_CEILING[t] * taux / 100),
+  }
+}
+
+// CFE Paris : base minimale réelle de 399 € pour CA < 100 000 € (3 sources confirmées)
+// Pour CA ≥ 100 000 € : base inconnue → plafond légal (estimation conservatrice)
+function estimateParisCFE(taux: number, ca: number | null): { min: number; max: number; exact: boolean } | null {
+  const t = getTranche(ca)
+  if (t === -1) return null
+  const caVal = ca ?? 50000  // CA inconnu → on suppose < 100K
+  if (caVal < PARIS_BASE_MINIMALE_CA_MAX) {
+    const amount = Math.round(PARIS_BASE_MINIMALE * taux / 100)
+    return { min: amount, max: amount, exact: true }
+  }
+  return {
+    min: Math.round(LEGAL_MIN * taux / 100),
+    max: Math.round(LEGAL_CEILING[t] * taux / 100),
+    exact: false,
   }
 }
 
@@ -363,9 +386,9 @@ export default function SimulateurCFE() {
     if (exempt) return { exempt: true as const }
 
     const userCFE  = estimateCFE(communeTaux.taux, ca)
-    const parisCFE = estimateCFE(parisTaux.taux, ca)
+    const parisCFE = estimateParisCFE(parisTaux.taux, ca)
 
-    // estimateCFE returns null only if tranche = -1 (CA ≤ 5000), but isExempt already caught that
+    // returns null only if tranche = -1 (CA ≤ 5000), but isExempt already caught that
     if (!userCFE || !parisCFE) return { exempt: true as const }
 
     return {
@@ -374,6 +397,7 @@ export default function SimulateurCFE() {
       userMax: userCFE.max,
       parisMin: parisCFE.min,
       parisMax: parisCFE.max,
+      parisExact: parisCFE.exact,
       savingsMax: userCFE.max - parisCFE.max,
       savingsMin: userCFE.min - parisCFE.min,
       isCheaper: userCFE.max > parisCFE.max,
@@ -774,10 +798,14 @@ export default function SimulateurCFE() {
                       fontSize: 'clamp(24px, 4vw, 36px)', fontWeight: 800,
                       color: '#5B21B6', lineHeight: 1.1,
                     }}>
-                      {fmt(results.parisMin)} – {fmt(results.parisMax)}
+                      {results.parisExact
+                        ? fmt(results.parisMax)
+                        : `${fmt(results.parisMin)} – ${fmt(results.parisMax)}`}
                     </div>
                     <div style={{ fontSize: '12px', color: '#7C3AED', marginTop: '4px' }}>
-                      Fourchette CFE estimée — Art. 1647 D × {parisTaux!.taux.toFixed(2)}%
+                      {results.parisExact
+                        ? `CFE Paris officielle — base min. ${PARIS_BASE_MINIMALE} € × ${parisTaux!.taux.toFixed(2)}%`
+                        : `Fourchette CFE estimée — Art. 1647 D × ${parisTaux!.taux.toFixed(2)}%`}
                     </div>
                   </div>
                 </div>
@@ -822,7 +850,8 @@ export default function SimulateurCFE() {
                 }}>
                   <strong>Méthodologie :</strong> Le taux CFE est le taux officiel voté par la commune,
                   récupéré depuis les données ouvertes DGFiP. Les montants affichés sont des <strong>fourchettes estimées</strong> :
-                  le minimum correspond au plancher légal (247 €) × taux, le maximum au plafond légal (art. 1647 D CGI) × taux.
+                  le minimum correspond au plancher légal (243 €) × taux, le maximum au plafond légal (art. 1647 D CGI) × taux.
+                  Paris utilise une base officielle de 399 € (unique pour CA &lt; 100 000 €, vérifiée 2025).
                   Votre CFE réelle dépend de la base minimum effectivement votée par votre commune.
                 </div>
 
