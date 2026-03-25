@@ -32,8 +32,8 @@ type CFEBaseMin = {
 // Plafonds légaux de la base minimum de CFE par tranche de CA (N-2)
 // Source : Art. 1647 D CGI — Décret n° 2025-547 du 17 juin 2025 — barème 2025
 // Tranches : [5k-10k, 10k-32.6k, 32.6k-100k, 100k-250k, 250k-500k, >500k]
-const LEGAL_CEILING = [579, 1158, 2433, 4056, 5793, 7533]
-const LEGAL_MIN = 243  // minimum légal que la commune peut voter (toutes tranches)
+const LEGAL_CEILING = [579, 1179, 2477, 4056, 5793, 7533]
+const LEGAL_MIN = 247  // minimum légal que la commune peut voter (toutes tranches)
 
 // ─── Paris base minimale réelle (art. 1647 D CGI — délibération Conseil de Paris)
 // Sources : lamicrobyflo.fr, kandbaz.com, sofradom.fr (3 sources concordantes)

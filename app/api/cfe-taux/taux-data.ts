@@ -62,7 +62,7 @@ export const TAUX_CONNUS: Record<string, { taux: number; nom: string }> = {
   '75120': { taux: 16.52, nom: 'Paris 20e' },
 
   // ══════════════════════════════════════════════════════════════════════════════
-  // ── LYON MÉTROPOLE ET ARRONDISSEMENTS (28.62 %) ──────────────────────────────
+  // ── LYON MÉTROPOLE ET ARRONDISSEMENTS (30.34 % depuis budget voté mars 2025) ──
   // ══════════════════════════════════════════════════════════════════════════════
   '69123': { taux: 30.34, nom: 'Lyon' },
   '69381': { taux: 30.34, nom: 'Lyon 1er' },
@@ -91,7 +91,7 @@ export const TAUX_CONNUS: Record<string, { taux: number; nom: string }> = {
   '69250': { taux: 30.34, nom: 'Saint-Priest' },
   '69142': { taux: 30.34, nom: 'Dardilly' },
   '69091': { taux: 30.34, nom: 'Francheville' },
-  '69040': { taux: 28.62, nom: 'Champagne-au-Mont-d\'Or' },
+  '69040': { taux: 30.34, nom: 'Champagne-au-Mont-d\'Or' },
   '69116': { taux: 30.34, nom: 'Craponne' },
   '69259': { taux: 30.34, nom: 'Saint-Genis-Laval' },
   '69271': { taux: 30.34, nom: 'Saint-Fons' },
@@ -102,9 +102,9 @@ export const TAUX_CONNUS: Record<string, { taux: number; nom: string }> = {
   '69282': { taux: 30.34, nom: 'Solaize' },
   '69276': { taux: 30.34, nom: 'Irigny' },
   '69278': { taux: 30.34, nom: 'Charbonnières-les-Bains' },
-  '69279': { taux: 28.62, nom: 'Marcy-l\'Étoile' },
+  '69279': { taux: 30.34, nom: 'Marcy-l\'Étoile' },
   '69063': { taux: 30.34, nom: 'Limonest' },
-  '69051': { taux: 28.62, nom: 'Collonges-au-Mont-d\'Or' },
+  '69051': { taux: 30.34, nom: 'Collonges-au-Mont-d\'Or' },
   '69163': { taux: 30.34, nom: 'Grigny' },
   '69143': { taux: 30.34, nom: 'Genay' },
   '69089': { taux: 30.34, nom: 'Neuville-sur-Saône' },
