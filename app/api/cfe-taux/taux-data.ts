@@ -543,7 +543,6 @@ export const TAUX_CONNUS: Record<string, { taux: number; nom: string }> = {
   // -- 85 Vendée --
   '85191': { taux: 28.16, nom: 'La Roche-sur-Yon' },
   '85109': { taux: 26.80, nom: 'Les Sables-d\'Olonne' },
-  '85084': { taux: 28.16, nom: 'La Roche-sur-Yon' },
 
   // -- 86 Vienne --
   '86194': { taux: 26.01, nom: 'Poitiers' },
