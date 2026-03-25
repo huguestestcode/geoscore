@@ -26,6 +26,7 @@ type CFETaux = {
 type CFEBaseMin = {
   base: number | null   // base minimale votée en € (null = non disponible)
   source: string
+  caMax?: number        // CA max (€) pour lequel cette base s'applique (undefined = toutes tranches)
 }
 
 // ─── Legal constants — Article 1647 D CGI ────────────────────────────────────
@@ -407,15 +408,18 @@ export default function SimulateurCFE() {
     const t = getTranche(ca)
     if (t === -1) return { exempt: true as const }
 
-    // CFE commune actuelle — utilise la base réelle si disponible, sinon fourchette légale
-    const userBaseReal = communeBase?.base ?? null
-    const userCFE = userBaseReal
+    const caVal = ca ?? 50000
+
+    // CFE commune actuelle — base exacte seulement si connue pour cette tranche de CA
+    const rawBase = communeBase?.base ?? null
+    const caMaxOk = communeBase?.caMax === undefined || caVal <= communeBase.caMax
+    const userBaseReal = (rawBase !== null && caMaxOk) ? rawBase : null
+    const userCFE = userBaseReal !== null
       ? { min: Math.round(userBaseReal * communeTaux.taux / 100), max: Math.round(userBaseReal * communeTaux.taux / 100), exact: true }
-      : { min: Math.round(LEGAL_MIN * communeTaux.taux / 100), max: Math.round(LEGAL_CEILING[t] * communeTaux.taux / 100), exact: false }
+      : { min: 0, max: 0, exact: false }  // exact: false → données incomplètes
 
     // CFE Paris — utilise la base réelle si disponible
     const parisBaseReal = parisBase?.base ?? PARIS_BASE_MINIMALE
-    const caVal = ca ?? 50000
     const parisUsesReal = caVal < PARIS_BASE_MINIMALE_CA_MAX
     const parisCFE = parisUsesReal
       ? { min: Math.round(parisBaseReal * parisTaux.taux / 100), max: Math.round(parisBaseReal * parisTaux.taux / 100), exact: true }
@@ -784,96 +788,120 @@ export default function SimulateurCFE() {
                   </div>
                 </div>
 
-                {/* Current vs Paris */}
-                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px', marginBottom: '16px' }}>
-                  <div style={{
-                    background: commune.code === PARIS_CODE ? '#F0FDF4' : '#FEF9F0',
-                    border: `1px solid ${commune.code === PARIS_CODE ? '#86EFAC' : '#FDE68A'}`,
-                    borderRadius: '16px', padding: '24px',
-                  }}>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '12px' }}>
-                      <MapPin size={16} color="#6B7280" />
-                      <span style={{ fontSize: '13px', color: '#6B7280', fontWeight: 500 }}>Votre situation actuelle</span>
-                    </div>
-                    <div style={{ fontSize: '13px', color: '#374151', marginBottom: '4px', fontWeight: 600 }}>
-                      {commune.nom} ({commune.codeDepartement})
-                    </div>
-                    <div className="animate-countUp" style={{
-                      fontSize: 'clamp(24px, 4vw, 36px)', fontWeight: 800,
-                      color: commune.code === PARIS_CODE ? '#15803D' : '#92400E', lineHeight: 1.1,
-                    }}>
-                      {results.userExact ? fmt(results.userMax) : `${fmt(results.userMin)} – ${fmt(results.userMax)}`}
-                    </div>
-                    <div style={{ fontSize: '12px', color: '#6B7280', marginTop: '4px' }}>
-                      {results.userExact
-                        ? `Base min. ${results.userBase} € × ${communeTaux!.taux.toFixed(2)}% — ${results.userBaseSource}`
-                        : `Fourchette CFE estimée — Art. 1647 D × ${communeTaux!.taux.toFixed(2)}%${results.caIsDefault ? ' (tranche CA < 100k)' : ''}`}
-                    </div>
-                  </div>
+                {/* Current vs Paris — seulement si base minimale connue */}
+                {results.userExact ? (
+                  <>
+                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px', marginBottom: '16px' }}>
+                      <div style={{
+                        background: commune.code === PARIS_CODE ? '#F0FDF4' : '#FEF9F0',
+                        border: `1px solid ${commune.code === PARIS_CODE ? '#86EFAC' : '#FDE68A'}`,
+                        borderRadius: '16px', padding: '24px',
+                      }}>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '12px' }}>
+                          <MapPin size={16} color="#6B7280" />
+                          <span style={{ fontSize: '13px', color: '#6B7280', fontWeight: 500 }}>Votre situation actuelle</span>
+                        </div>
+                        <div style={{ fontSize: '13px', color: '#374151', marginBottom: '4px', fontWeight: 600 }}>
+                          {commune.nom} ({commune.codeDepartement})
+                        </div>
+                        <div className="animate-countUp" style={{
+                          fontSize: 'clamp(24px, 4vw, 36px)', fontWeight: 800,
+                          color: commune.code === PARIS_CODE ? '#15803D' : '#92400E', lineHeight: 1.1,
+                        }}>
+                          {fmt(results.userMax)}
+                        </div>
+                        <div style={{ fontSize: '12px', color: '#6B7280', marginTop: '4px' }}>
+                          Base min. officielle {results.userBase} € × {communeTaux!.taux.toFixed(2)}% — {results.userBaseSource}
+                        </div>
+                      </div>
 
-                  <div style={{
-                    background: 'linear-gradient(145deg, #F5F3FF, #EDE9FF)',
-                    border: '2px solid #7C3AED', borderRadius: '16px', padding: '24px',
-                    position: 'relative', overflow: 'hidden',
-                  }}>
-                    <div style={{
-                      position: 'absolute', top: '10px', right: '10px',
-                      background: 'linear-gradient(135deg, #6C3BFF, #A78BFA)',
-                      color: '#fff', fontSize: '10px', fontWeight: 700,
-                      padding: '2px 8px', borderRadius: '99px',
-                    }}>LegalPlace</div>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '12px' }}>
-                      <Sparkles size={16} color="#6C3BFF" />
-                      <span style={{ fontSize: '13px', color: '#5B21B6', fontWeight: 500 }}>Domiciliation Paris</span>
+                      <div style={{
+                        background: 'linear-gradient(145deg, #F5F3FF, #EDE9FF)',
+                        border: '2px solid #7C3AED', borderRadius: '16px', padding: '24px',
+                        position: 'relative', overflow: 'hidden',
+                      }}>
+                        <div style={{
+                          position: 'absolute', top: '10px', right: '10px',
+                          background: 'linear-gradient(135deg, #6C3BFF, #A78BFA)',
+                          color: '#fff', fontSize: '10px', fontWeight: 700,
+                          padding: '2px 8px', borderRadius: '99px',
+                        }}>LegalPlace</div>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '12px' }}>
+                          <Sparkles size={16} color="#6C3BFF" />
+                          <span style={{ fontSize: '13px', color: '#5B21B6', fontWeight: 500 }}>Domiciliation Paris</span>
+                        </div>
+                        <div style={{ fontSize: '13px', color: '#374151', marginBottom: '4px', fontWeight: 600 }}>
+                          Paris (75)
+                        </div>
+                        <div className="animate-countUp" style={{
+                          fontSize: 'clamp(24px, 4vw, 36px)', fontWeight: 800,
+                          color: '#5B21B6', lineHeight: 1.1,
+                        }}>
+                          {results.parisExact
+                            ? fmt(results.parisMax)
+                            : `${fmt(results.parisMin)} – ${fmt(results.parisMax)}`}
+                        </div>
+                        <div style={{ fontSize: '12px', color: '#7C3AED', marginTop: '4px' }}>
+                          {results.parisExact
+                            ? `CFE Paris officielle — base min. ${PARIS_BASE_MINIMALE} € × ${parisTaux!.taux.toFixed(2)}%`
+                            : `Fourchette CFE estimée — Art. 1647 D × ${parisTaux!.taux.toFixed(2)}%`}
+                        </div>
+                      </div>
                     </div>
-                    <div style={{ fontSize: '13px', color: '#374151', marginBottom: '4px', fontWeight: 600 }}>
-                      Paris (75)
-                    </div>
-                    <div className="animate-countUp" style={{
-                      fontSize: 'clamp(24px, 4vw, 36px)', fontWeight: 800,
-                      color: '#5B21B6', lineHeight: 1.1,
-                    }}>
-                      {results.parisExact
-                        ? fmt(results.parisMax)
-                        : `${fmt(results.parisMin)} – ${fmt(results.parisMax)}`}
-                    </div>
-                    <div style={{ fontSize: '12px', color: '#7C3AED', marginTop: '4px' }}>
-                      {results.parisExact
-                        ? `CFE Paris officielle — base min. ${PARIS_BASE_MINIMALE} € × ${parisTaux!.taux.toFixed(2)}%`
-                        : `Fourchette CFE estimée — Art. 1647 D × ${parisTaux!.taux.toFixed(2)}%`}
-                    </div>
-                  </div>
-                </div>
 
-                {/* Savings */}
-                {results.isCheaper ? (
-                  <div className="animate-countUp" style={{
-                    background: 'linear-gradient(135deg, #6C3BFF, #7C3AED)',
-                    borderRadius: '16px', padding: '28px 32px',
-                    textAlign: 'center', color: '#fff', marginBottom: '16px',
-                  }}>
-                    <TrendingDown size={28} style={{ marginBottom: '8px', opacity: 0.9 }} />
-                    <div style={{ fontSize: '14px', opacity: 0.85, marginBottom: '4px' }}>
-                      Économie annuelle estimée avec une domiciliation LegalPlace Paris
-                    </div>
-                    <div style={{ fontSize: 'clamp(32px, 6vw, 52px)', fontWeight: 800, lineHeight: 1.1 }}>
-                      {fmt(results.savingsMin)} – {fmt(results.savingsMax)} / an
-                    </div>
-                    <div style={{ fontSize: '13px', opacity: 0.75, marginTop: '6px' }}>
-                      soit {fmt(Math.round(results.savingsMin / 12))} à {fmt(Math.round(results.savingsMax / 12))} par mois économisés sur votre CFE
-                    </div>
-                  </div>
+                    {/* Savings */}
+                    {results.isCheaper ? (
+                      <div className="animate-countUp" style={{
+                        background: 'linear-gradient(135deg, #6C3BFF, #7C3AED)',
+                        borderRadius: '16px', padding: '28px 32px',
+                        textAlign: 'center', color: '#fff', marginBottom: '16px',
+                      }}>
+                        <TrendingDown size={28} style={{ marginBottom: '8px', opacity: 0.9 }} />
+                        <div style={{ fontSize: '14px', opacity: 0.85, marginBottom: '4px' }}>
+                          Économie annuelle avec une domiciliation LegalPlace Paris
+                        </div>
+                        <div style={{ fontSize: 'clamp(32px, 6vw, 52px)', fontWeight: 800, lineHeight: 1.1 }}>
+                          {results.savingsMin === results.savingsMax
+                            ? fmt(results.savingsMax)
+                            : `${fmt(results.savingsMin)} – ${fmt(results.savingsMax)}`} / an
+                        </div>
+                        <div style={{ fontSize: '13px', opacity: 0.75, marginTop: '6px' }}>
+                          soit {fmt(Math.round(results.savingsMax / 12))} par mois économisés sur votre CFE
+                        </div>
+                      </div>
+                    ) : (
+                      <div style={{
+                        background: '#F0FDF4', border: '1px solid #86EFAC', borderRadius: '16px',
+                        padding: '20px', textAlign: 'center', marginBottom: '16px',
+                      }}>
+                        <CheckCircle2 size={24} color="#16A34A" style={{ marginBottom: '8px' }} />
+                        <p style={{ color: '#15803D', fontWeight: 600, margin: 0 }}>
+                          {commune.code === PARIS_CODE
+                            ? 'Vous êtes déjà à Paris — vous bénéficiez déjà des taux les plus compétitifs !'
+                            : 'Votre commune a un taux compétitif. La domiciliation Paris reste avantageuse pour votre image.'}
+                        </p>
+                      </div>
+                    )}
+                  </>
                 ) : (
+                  /* Données incomplètes — base minimale non disponible pour cette commune */
                   <div style={{
-                    background: '#F0FDF4', border: '1px solid #86EFAC', borderRadius: '16px',
-                    padding: '20px', textAlign: 'center', marginBottom: '16px',
+                    background: '#FFFBEB', border: '1px solid #FDE68A',
+                    borderRadius: '16px', padding: '24px', marginBottom: '16px',
+                    display: 'flex', gap: '16px', alignItems: 'flex-start',
                   }}>
-                    <CheckCircle2 size={24} color="#16A34A" style={{ marginBottom: '8px' }} />
-                    <p style={{ color: '#15803D', fontWeight: 600, margin: 0 }}>
-                      {commune.code === PARIS_CODE
-                        ? 'Vous êtes déjà à Paris — vous bénéficiez déjà des taux les plus compétitifs !'
-                        : 'Votre commune a un taux compétitif. La domiciliation Paris reste avantageuse pour votre image.'}
-                    </p>
+                    <AlertTriangle size={20} color="#D97706" style={{ flexShrink: 0, marginTop: '2px' }} />
+                    <div>
+                      <div style={{ fontWeight: 700, color: '#92400E', marginBottom: '6px', fontSize: '14px' }}>
+                        Base minimale CFE non disponible pour {commune.nom}
+                      </div>
+                      <div style={{ fontSize: '13px', color: '#78350F', lineHeight: 1.6 }}>
+                        Le taux CFE de {communeTaux!.taux.toFixed(2)} % est confirmé, mais la base minimale officielle votée par la commune
+                        n&apos;est pas encore dans notre base de données pour cette tranche de CA.
+                        <br />
+                        Pour connaître votre CFE exacte, consultez votre <strong>avis CFE sur impots.gouv.fr</strong> ou contactez votre SIE (Service des Impôts des Entreprises).
+                      </div>
+                    </div>
                   </div>
                 )}
 
@@ -883,10 +911,10 @@ export default function SimulateurCFE() {
                   borderRadius: '12px', padding: '16px', marginBottom: '16px',
                   fontSize: '12px', color: '#92400E', lineHeight: 1.6,
                 }}>
-                  <strong>Méthodologie :</strong> Taux CFE officiel voté par la commune, récupéré depuis les données ouvertes DGFiP.
+                  <strong>Méthodologie :</strong> Taux CFE officiel voté par la commune (données ouvertes DGFiP 2025).
                   {results.userExact
                     ? <> Base minimale officielle de <strong>{results.userBase} €</strong> votée par la commune (source : {results.userBaseSource}).</>
-                    : <> Montants affichés en <strong>fourchette estimée</strong> : plancher légal (243 €) — plafond légal (art. 1647 D CGI).</>}
+                    : <> Base minimale non disponible — taux confirmé mais montant CFE non calculable.</>}
                   {' '}Paris : base officielle <strong>399 €</strong> pour CA &lt; 100 000 € (vérifiée 2025).
                 </div>
 
