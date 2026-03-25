@@ -23,6 +23,11 @@ type CFETaux = {
   source: string
 }
 
+type CFEBaseMin = {
+  base: number | null   // base minimale votée en € (null = non disponible)
+  source: string
+}
+
 // ─── Legal constants — Article 1647 D CGI ────────────────────────────────────
 // Plafonds légaux de la base minimum de CFE par tranche de CA (N-2)
 // Source : Art. 1647 D CGI — Décret n° 2025-547 du 17 juin 2025 — barème 2025
@@ -137,6 +142,14 @@ async function fetchCFETaux(codeInsee: string): Promise<CFETaux | null> {
   const data = await res.json()
   if (data.error) return null
   return data as CFETaux
+}
+
+async function fetchCFEBaseMin(codeInsee: string): Promise<CFEBaseMin | null> {
+  try {
+    const res = await fetch(`/api/cfe-base-min?code=${codeInsee}`)
+    if (!res.ok) return null
+    return await res.json() as CFEBaseMin
+  } catch { return null }
 }
 
 // ─── Sub-components ───────────────────────────────────────────────────────────
@@ -338,26 +351,28 @@ export default function SimulateurCFE() {
   const [commune, setCommune]     = useState<Commune | null>(null)
 
   // CFE data state
-  const [communeTaux, setCommuneTaux] = useState<CFETaux | null>(null)
-  const [parisTaux, setParisTaux]     = useState<CFETaux | null>(null)
-  const [loadingTaux, setLoadingTaux] = useState(false)
-  const [tauxError, setTauxError]     = useState<string | null>(null)
+  const [communeTaux, setCommuneTaux]   = useState<CFETaux | null>(null)
+  const [communeBase, setCommuneBase]   = useState<CFEBaseMin | null>(null)
+  const [parisBase, setParisBase]       = useState<CFEBaseMin | null>(null)
+  const [parisTaux, setParisTaux]       = useState<CFETaux | null>(null)
+  const [loadingTaux, setLoadingTaux]   = useState(false)
+  const [tauxError, setTauxError]       = useState<string | null>(null)
 
   // UI state
   const [step, setStep] = useState<'form' | 'results'>('form')
   const resultsRef      = useRef<HTMLDivElement>(null)
 
-  // Pre-fetch Paris taux on mount
+  // Pre-fetch Paris taux + base minimale on mount
   useEffect(() => {
-    fetchCFETaux(PARIS_CODE).then(t => {
-      if (t) setParisTaux(t)
-    })
+    fetchCFETaux(PARIS_CODE).then(t => { if (t) setParisTaux(t) })
+    fetchCFEBaseMin(PARIS_CODE).then(b => { if (b) setParisBase(b) })
   }, [])
 
-  // Fetch commune taux when commune is selected
+  // Fetch commune taux + base minimale when commune is selected
   const handleCommuneSelect = useCallback(async (c: Commune | null) => {
     setCommune(c)
     setCommuneTaux(null)
+    setCommuneBase(null)
     setTauxError(null)
     setStep('form')
 
@@ -365,12 +380,16 @@ export default function SimulateurCFE() {
 
     setLoadingTaux(true)
     try {
-      const taux = await fetchCFETaux(c.code)
+      const [taux, base] = await Promise.all([
+        fetchCFETaux(c.code),
+        fetchCFEBaseMin(c.code),
+      ])
       if (taux) {
         setCommuneTaux(taux)
       } else {
         setTauxError(`Taux CFE non trouvé pour ${c.nom}. La commune n'est peut-être pas encore dans la base open data.`)
       }
+      if (base) setCommuneBase(base)
     } catch {
       setTauxError('Erreur lors de la récupération du taux CFE. Veuillez réessayer.')
     } finally {
@@ -385,19 +404,34 @@ export default function SimulateurCFE() {
     const exempt = isExempt(statut, ca)
     if (exempt) return { exempt: true as const }
 
-    const userCFE  = estimateCFE(communeTaux.taux, ca)
-    const parisCFE = estimateParisCFE(parisTaux.taux, ca)
+    const t = getTranche(ca)
+    if (t === -1) return { exempt: true as const }
 
-    // returns null only if tranche = -1 (CA ≤ 5000), but isExempt already caught that
-    if (!userCFE || !parisCFE) return { exempt: true as const }
+    // CFE commune actuelle — utilise la base réelle si disponible, sinon fourchette légale
+    const userBaseReal = communeBase?.base ?? null
+    const userCFE = userBaseReal
+      ? { min: Math.round(userBaseReal * communeTaux.taux / 100), max: Math.round(userBaseReal * communeTaux.taux / 100), exact: true }
+      : { min: Math.round(LEGAL_MIN * communeTaux.taux / 100), max: Math.round(LEGAL_CEILING[t] * communeTaux.taux / 100), exact: false }
+
+    // CFE Paris — utilise la base réelle si disponible
+    const parisBaseReal = parisBase?.base ?? PARIS_BASE_MINIMALE
+    const caVal = ca ?? 50000
+    const parisUsesReal = caVal < PARIS_BASE_MINIMALE_CA_MAX
+    const parisCFE = parisUsesReal
+      ? { min: Math.round(parisBaseReal * parisTaux.taux / 100), max: Math.round(parisBaseReal * parisTaux.taux / 100), exact: true }
+      : { min: Math.round(LEGAL_MIN * parisTaux.taux / 100), max: Math.round(LEGAL_CEILING[t] * parisTaux.taux / 100), exact: false }
 
     return {
       exempt: false as const,
       userMin: userCFE.min,
       userMax: userCFE.max,
+      userExact: userCFE.exact,
+      userBase: userBaseReal,
+      userBaseSource: communeBase?.source ?? null,
       parisMin: parisCFE.min,
       parisMax: parisCFE.max,
       parisExact: parisCFE.exact,
+      parisBase: parisBaseReal,
       savingsMax: userCFE.max - parisCFE.max,
       savingsMin: userCFE.min - parisCFE.min,
       isCheaper: userCFE.max > parisCFE.max,
@@ -405,7 +439,7 @@ export default function SimulateurCFE() {
       parisTaux: parisTaux.taux,
       caIsDefault: ca === null,
     }
-  }, [commune, communeTaux, parisTaux, statut, ca])
+  }, [commune, communeTaux, communeBase, parisTaux, parisBase, statut, ca])
 
   function handleCalculate() {
     if (!results) return
@@ -768,11 +802,12 @@ export default function SimulateurCFE() {
                       fontSize: 'clamp(24px, 4vw, 36px)', fontWeight: 800,
                       color: commune.code === PARIS_CODE ? '#15803D' : '#92400E', lineHeight: 1.1,
                     }}>
-                      {fmt(results.userMin)} – {fmt(results.userMax)}
+                      {results.userExact ? fmt(results.userMax) : `${fmt(results.userMin)} – ${fmt(results.userMax)}`}
                     </div>
                     <div style={{ fontSize: '12px', color: '#6B7280', marginTop: '4px' }}>
-                      Fourchette CFE estimée — Art. 1647 D × {communeTaux!.taux.toFixed(2)}%
-                      {results.caIsDefault && ' (tranche CA < 100k par défaut)'}
+                      {results.userExact
+                        ? `Base min. ${results.userBase} € × ${communeTaux!.taux.toFixed(2)}% — ${results.userBaseSource}`
+                        : `Fourchette CFE estimée — Art. 1647 D × ${communeTaux!.taux.toFixed(2)}%${results.caIsDefault ? ' (tranche CA < 100k)' : ''}`}
                     </div>
                   </div>
 
@@ -848,11 +883,11 @@ export default function SimulateurCFE() {
                   borderRadius: '12px', padding: '16px', marginBottom: '16px',
                   fontSize: '12px', color: '#92400E', lineHeight: 1.6,
                 }}>
-                  <strong>Méthodologie :</strong> Le taux CFE est le taux officiel voté par la commune,
-                  récupéré depuis les données ouvertes DGFiP. Les montants affichés sont des <strong>fourchettes estimées</strong> :
-                  le minimum correspond au plancher légal (243 €) × taux, le maximum au plafond légal (art. 1647 D CGI) × taux.
-                  Paris utilise une base officielle de 399 € (unique pour CA &lt; 100 000 €, vérifiée 2025).
-                  Votre CFE réelle dépend de la base minimum effectivement votée par votre commune.
+                  <strong>Méthodologie :</strong> Taux CFE officiel voté par la commune, récupéré depuis les données ouvertes DGFiP.
+                  {results.userExact
+                    ? <> Base minimale officielle de <strong>{results.userBase} €</strong> votée par la commune (source : {results.userBaseSource}).</>
+                    : <> Montants affichés en <strong>fourchette estimée</strong> : plancher légal (243 €) — plafond légal (art. 1647 D CGI).</>}
+                  {' '}Paris : base officielle <strong>399 €</strong> pour CA &lt; 100 000 € (vérifiée 2025).
                 </div>
 
                 {/* CTA */}

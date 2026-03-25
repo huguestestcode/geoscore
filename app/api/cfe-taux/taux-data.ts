@@ -5,6 +5,36 @@
 // UNIQUEMENT des données 100% fiables — aucun taux estimé ou inventé
 // Le taux indiqué est le taux global CFE HZ (hors zone) = commune + EPCI + syndicats
 export const ANNEE_TAUX = 2025
+
+// ── Base minimale CFE hardcodée par commune — art. 1647 D CGI ─────────────────
+// Sources vérifiées : délibérations communales, lamicrobyflo.fr, kandbaz.com, sofradom.fr
+// base = montant en € voté par la commune (entre 243 € min légal et plafond par tranche)
+// Pour Paris : base unique de 399 € pour CA ≤ 100 000 € (3 sources concordantes — 2025)
+export type BaseMinEntry = { base: number; source: string; caMax?: number }
+export const BASE_MINIMALE_CONNUES: Record<string, BaseMinEntry> = {
+  // Paris — base unique 399 € pour CA ≤ 100 000 € (sources : lamicrobyflo.fr, kandbaz.com, sofradom.fr)
+  '75056': { base: 399, source: 'Délibération Conseil de Paris 2025', caMax: 100000 },
+  '75101': { base: 399, source: 'Délibération Conseil de Paris 2025', caMax: 100000 },
+  '75102': { base: 399, source: 'Délibération Conseil de Paris 2025', caMax: 100000 },
+  '75103': { base: 399, source: 'Délibération Conseil de Paris 2025', caMax: 100000 },
+  '75104': { base: 399, source: 'Délibération Conseil de Paris 2025', caMax: 100000 },
+  '75105': { base: 399, source: 'Délibération Conseil de Paris 2025', caMax: 100000 },
+  '75106': { base: 399, source: 'Délibération Conseil de Paris 2025', caMax: 100000 },
+  '75107': { base: 399, source: 'Délibération Conseil de Paris 2025', caMax: 100000 },
+  '75108': { base: 399, source: 'Délibération Conseil de Paris 2025', caMax: 100000 },
+  '75109': { base: 399, source: 'Délibération Conseil de Paris 2025', caMax: 100000 },
+  '75110': { base: 399, source: 'Délibération Conseil de Paris 2025', caMax: 100000 },
+  '75111': { base: 399, source: 'Délibération Conseil de Paris 2025', caMax: 100000 },
+  '75112': { base: 399, source: 'Délibération Conseil de Paris 2025', caMax: 100000 },
+  '75113': { base: 399, source: 'Délibération Conseil de Paris 2025', caMax: 100000 },
+  '75114': { base: 399, source: 'Délibération Conseil de Paris 2025', caMax: 100000 },
+  '75115': { base: 399, source: 'Délibération Conseil de Paris 2025', caMax: 100000 },
+  '75116': { base: 399, source: 'Délibération Conseil de Paris 2025', caMax: 100000 },
+  '75117': { base: 399, source: 'Délibération Conseil de Paris 2025', caMax: 100000 },
+  '75118': { base: 399, source: 'Délibération Conseil de Paris 2025', caMax: 100000 },
+  '75119': { base: 399, source: 'Délibération Conseil de Paris 2025', caMax: 100000 },
+  '75120': { base: 399, source: 'Délibération Conseil de Paris 2025', caMax: 100000 },
+}
 export const TAUX_CONNUS: Record<string, { taux: number; nom: string }> = {
   // ══════════════════════════════════════════════════════════════════════════════
   // ── PARIS ET ARRONDISSEMENTS ─────────────────────────────────────────────────
