@@ -24,9 +24,10 @@ type CFETaux = {
 }
 
 type CFEBaseMin = {
-  base: number | null   // base minimale votée en € (null = non disponible)
+  base: number | null        // base minimale votée en € (null = non disponible)
   source: string
-  caMax?: number        // CA max (€) pour lequel cette base s'applique (undefined = toutes tranches)
+  caMax?: number             // CA max (€) pour lequel la base unique s'applique
+  tranches?: (number | null)[] // base par tranche [t0..t5], prioritaire sur base+caMax
 }
 
 // ─── Legal constants — Article 1647 D CGI ────────────────────────────────────
@@ -411,9 +412,15 @@ export default function SimulateurCFE() {
     const caVal = ca ?? 50000
 
     // CFE commune actuelle — base exacte seulement si connue pour cette tranche de CA
-    const rawBase = communeBase?.base ?? null
-    const caMaxOk = communeBase?.caMax === undefined || caVal <= communeBase.caMax
-    const userBaseReal = (rawBase !== null && caMaxOk) ? rawBase : null
+    let userBaseReal: number | null = null
+    if (communeBase?.tranches) {
+      // Données par tranche disponibles (ex : Bordeaux applique le max légal par tranche)
+      userBaseReal = communeBase.tranches[t] ?? null
+    } else if (communeBase?.base != null) {
+      // Base unique avec plafond CA (ex : Paris 399 € pour CA ≤ 100k)
+      const caMaxOk = communeBase.caMax === undefined || caVal <= communeBase.caMax
+      userBaseReal = caMaxOk ? communeBase.base : null
+    }
     const userCFE = userBaseReal !== null
       ? { min: Math.round(userBaseReal * communeTaux.taux / 100), max: Math.round(userBaseReal * communeTaux.taux / 100), exact: true }
       : { min: 0, max: 0, exact: false }  // exact: false → données incomplètes

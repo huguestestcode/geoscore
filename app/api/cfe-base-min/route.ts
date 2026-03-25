@@ -26,7 +26,13 @@ export async function GET(req: NextRequest) {
   // 2. Données hardcodées
   const known = BASE_MINIMALE_CONNUES[code]
   if (known) {
-    const result = { base: known.base, source: known.source, caMax: known.caMax, fetchedAt: Date.now() }
+    const result = {
+      base: known.base,
+      source: known.source,
+      caMax: known.caMax,
+      tranches: known.tranches,
+      fetchedAt: Date.now(),
+    }
     cache.set(code, result)
     return NextResponse.json(result)
   }

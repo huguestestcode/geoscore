@@ -9,8 +9,14 @@ export const ANNEE_TAUX = 2025
 // ── Base minimale CFE hardcodée par commune — art. 1647 D CGI ─────────────────
 // Sources vérifiées : délibérations communales, lamicrobyflo.fr, kandbaz.com, sofradom.fr
 // base = montant en € voté par la commune (entre 243 € min légal et plafond par tranche)
-// Pour Paris : base unique de 399 € pour CA ≤ 100 000 € (3 sources concordantes — 2025)
-export type BaseMinEntry = { base: number; source: string; caMax?: number }
+// tranches = [t0,t1,t2,t3,t4,t5] = base par tranche CA : [≤10k, 10k-32.6k, 32.6k-100k, 100k-250k, 250k-500k, >500k]
+// caMax = CA maximum (€) pour lequel la base unique s'applique (si pas de tranches)
+export type BaseMinEntry = {
+  base: number
+  source: string
+  caMax?: number          // CA max pour base unique (ex : Paris 100k, Marseille 32.6k)
+  tranches?: (number | null)[]  // base par tranche [t0..t5], null = inconnue
+}
 export const BASE_MINIMALE_CONNUES: Record<string, BaseMinEntry> = {
   // Paris — base unique 399 € pour CA ≤ 100 000 € (sources : lamicrobyflo.fr, kandbaz.com, sofradom.fr)
   '75056': { base: 399, source: 'Délibération Conseil de Paris 2025', caMax: 100000 },
@@ -52,6 +58,13 @@ export const BASE_MINIMALE_CONNUES: Record<string, BaseMinEntry> = {
   '13214': { base: 1019, source: 'Délibération Marseille Provence Métropole 2025', caMax: 32600 },
   '13215': { base: 1019, source: 'Délibération Marseille Provence Métropole 2025', caMax: 32600 },
   '13216': { base: 1019, source: 'Délibération Marseille Provence Métropole 2025', caMax: 32600 },
+  // Bordeaux Métropole — applique les maximums légaux pour toutes les tranches (source : lamicrobyflo.fr, entreprendre.bordeaux-metropole.fr)
+  // tranches [t0..t5] = maxima légaux 2025 : 579/1158/2433/4056/5793/7533 €
+  '33063': { base: 579, source: 'Bordeaux Métropole 2025 — maximums légaux art. 1647 D', tranches: [579, 1158, 2433, 4056, 5793, 7533] },
+  '33281': { base: 579, source: 'Bordeaux Métropole 2025 — maximums légaux art. 1647 D', tranches: [579, 1158, 2433, 4056, 5793, 7533] },
+  '33318': { base: 579, source: 'Bordeaux Métropole 2025 — maximums légaux art. 1647 D', tranches: [579, 1158, 2433, 4056, 5793, 7533] },
+  '33522': { base: 579, source: 'Bordeaux Métropole 2025 — maximums légaux art. 1647 D', tranches: [579, 1158, 2433, 4056, 5793, 7533] },
+  '33550': { base: 579, source: 'Bordeaux Métropole 2025 — maximums légaux art. 1647 D', tranches: [579, 1158, 2433, 4056, 5793, 7533] },
 }
 export const TAUX_CONNUS: Record<string, { taux: number; nom: string }> = {
   // ══════════════════════════════════════════════════════════════════════════════
