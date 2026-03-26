@@ -65,6 +65,14 @@ export const BASE_MINIMALE_CONNUES: Record<string, BaseMinEntry> = {
   '33318': { base: 579, source: 'Bordeaux Métropole 2025 — maximums légaux art. 1647 D', tranches: [579, 1158, 2433, 4056, 5793, 7533] },
   '33522': { base: 579, source: 'Bordeaux Métropole 2025 — maximums légaux art. 1647 D', tranches: [579, 1158, 2433, 4056, 5793, 7533] },
   '33550': { base: 579, source: 'Bordeaux Métropole 2025 — maximums légaux art. 1647 D', tranches: [579, 1158, 2433, 4056, 5793, 7533] },
+  // Aix-Marseille-Provence Métropole — zone MPM (taux 32.87 %) — même EPCI que Marseille → même base minimale
+  // Source : FPU — base votée par la métropole, identique pour toutes les communes de la zone MPM
+  '13001': { base: 1019, source: 'Aix-Marseille-Provence Métropole 2025 (zone MPM, FPU)', caMax: 32600 },
+  '13005': { base: 1019, source: 'Aix-Marseille-Provence Métropole 2025 (zone MPM, FPU)', caMax: 32600 },
+  '13047': { base: 1019, source: 'Aix-Marseille-Provence Métropole 2025 (zone MPM, FPU)', caMax: 32600 },
+  '13056': { base: 1019, source: 'Aix-Marseille-Provence Métropole 2025 (zone MPM, FPU)', caMax: 32600 },
+  '13103': { base: 1019, source: 'Aix-Marseille-Provence Métropole 2025 (zone MPM, FPU)', caMax: 32600 },
+  '13117': { base: 1019, source: 'Aix-Marseille-Provence Métropole 2025 (zone MPM, FPU)', caMax: 32600 },
 }
 export const TAUX_CONNUS: Record<string, { taux: number; nom: string }> = {
   // ══════════════════════════════════════════════════════════════════════════════
