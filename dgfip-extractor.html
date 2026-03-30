@@ -2,11 +2,11 @@
 <html lang="fr">
 <head>
 <meta charset="UTF-8">
-<title>DGFiP CFE Base Minimale 2025</title>
+<title>DGFiP CFE Base Minimale 2025 — Communes + EPCIs</title>
 <style>
   body { font-family: monospace; background: #1e1e1e; color: #d4d4d4; padding: 20px; }
   h1 { color: #4fc3f7; }
-  button { padding: 10px 20px; font-size: 15px; border: none; border-radius: 4px; cursor: pointer; margin-right: 8px; }
+  button { padding: 10px 20px; font-size: 15px; border: none; border-radius: 4px; cursor: pointer; margin-right: 8px; margin-bottom: 8px; }
   #btn-run { background: #0d47a1; color: white; }
   #btn-run:disabled { background: #555; cursor: not-allowed; }
   #btn-copy { background: #2e7d32; color: white; display: none; }
@@ -15,8 +15,8 @@
 </style>
 </head>
 <body>
-<h1>DGFiP — CFE Base Minimale 2025</h1>
-<p style="color:#81c784">Interroge <code>data.economie.gouv.fr</code> directement depuis ton navigateur — 284 communes</p>
+<h1>DGFiP — CFE Base Minimale 2025 (Communes + EPCIs FPU)</h1>
+<p style="color:#81c784">Interroge <code>data.economie.gouv.fr</code> — communes directes + EPCI pour les communes en FPU</p>
 <div>
   <button id="btn-run" onclick="run()">🚀 Lancer l'extraction</button>
   <button id="btn-copy" onclick="copy()">📋 Copier le TypeScript</button>
@@ -57,62 +57,221 @@ const ALL_CODES = [
   '97213','97416','97422','97701',
 ];
 
-const DATASET = 'deliberations-de-fiscalite-directe-locale-des-communes-2025-hors-taux';
-const BASE_URL = `https://data.economie.gouv.fr/api/explore/v2.1/catalog/datasets/${DATASET}/records`;
-const SELECT = 'depcom,libcom,bazmincfe1mt,bazmincfe2mt,bazmincfe3mt,bazmincfe4mt,bazmincfe5mt,bazmincfe6mt';
+// Mapping commune INSEE → EPCI SIREN (pour communes en FPU)
+// Seules les communes dont la base minimale est votée par l'EPCI (null dans le dataset communes)
+const COMMUNE_TO_EPCI = {
+  // Métropole de Lyon (SIREN 200046977)
+  '69029':'200046977','69034':'200046977','69040':'200046977','69044':'200046977',
+  '69051':'200046977','69063':'200046977','69068':'200046977','69081':'200046977',
+  '69089':'200046977','69091':'200046977','69100':'200046977','69116':'200046977',
+  '69123':'200046977','69142':'200046977','69143':'200046977','69149':'200046977',
+  '69152':'200046977','69163':'200046977','69168':'200046977','69194':'200046977',
+  '69199':'200046977','69202':'200046977','69204':'200046977','69233':'200046977',
+  '69244':'200046977','69250':'200046977','69256':'200046977','69259':'200046977',
+  '69266':'200046977','69271':'200046977','69275':'200046977','69276':'200046977',
+  '69278':'200046977','69279':'200046977','69282':'200046977','69284':'200046977',
+  '69286':'200046977','69290':'200046977',
+  '69381':'200046977','69382':'200046977','69383':'200046977','69384':'200046977',
+  '69385':'200046977','69386':'200046977','69387':'200046977','69388':'200046977',
+  '69389':'200046977',
+  // Toulouse Métropole (SIREN 243100518)
+  '31555':'243100518','31561':'243100518',
+  // Nantes Métropole (SIREN 244400404)
+  '44109':'244400404','44143':'244400404','44162':'244400404','44184':'244400404',
+  // Métropole Européenne de Lille - MEL (SIREN 245900410)
+  '59009':'245900410','59139':'245900410','59178':'245900410','59196':'245900410',
+  '59350':'245900410','59378':'245900410','59512':'245900410','59599':'245900410',
+  '59606':'245900410','59640':'245900410',
+  // Eurométropole de Strasbourg (SIREN 246700488)
+  '67482':'246700488',
+  // Métropole Nice Côte d'Azur (SIREN 200030195)
+  '06004':'200030195','06027':'200030195','06029':'200030195','06030':'200030195',
+  '06069':'200030195','06088':'200030195',
+  // Aix-Marseille-Provence Métropole (SIREN 200054807)
+  // Note: Marseille + arrondissements ont souvent leur propre délibération
+  '13001':'200054807','13004':'200054807','13005':'200054807','13014':'200054807',
+  '13047':'200054807','13055':'200054807','13056':'200054807','13081':'200054807',
+  '13103':'200054807','13117':'200054807',
+  '13201':'200054807','13202':'200054807','13203':'200054807','13204':'200054807',
+  '13205':'200054807','13206':'200054807','13207':'200054807','13208':'200054807',
+  '13209':'200054807','13210':'200054807','13211':'200054807','13212':'200054807',
+  '13213':'200054807','13214':'200054807','13215':'200054807','13216':'200054807',
+  // Montpellier Méditerranée Métropole (SIREN 243400017)
+  '34032':'243400017','34172':'243400017','34301':'243400017',
+  // Rennes Métropole (SIREN 243500139)
+  '35238':'243500139','35288':'243500139',
+  // Grenoble-Alpes Métropole (SIREN 200040715)
+  '38185':'200040715','38364':'200040715','38421':'200040715',
+  // Clermont Auvergne Métropole (SIREN 246300701)
+  '63113':'246300701','63124':'246300701',
+  // Eurométropole de Metz (SIREN 200052013)
+  '57463':'200052013','57672':'200052013',
+  // Métropole du Grand Nancy (SIREN 200017703)
+  '54395':'200017703',
+  // Bordeaux Métropole (SIREN 243300316)
+  '33063':'243300316','33281':'243300316','33318':'243300316',
+  '33522':'243300316','33550':'243300316',
+};
+
+// EPCI SIRENs uniques
+const EPCI_SIRENS = [...new Set(Object.values(COMMUNE_TO_EPCI))];
+
+const DATASET_COMMUNES = 'deliberations-de-fiscalite-directe-locale-des-communes-2025-hors-taux';
+const BASE_URL = 'https://data.economie.gouv.fr/api/explore/v2.1/catalog/datasets';
+
+// Candidats pour le dataset EPCI (du plus probable au moins)
+const EPCI_DATASET_CANDIDATES = [
+  'deliberations-de-fiscalite-directe-locale-des-groupements-2025-hors-taux',
+  'deliberations-de-fiscalite-directe-locale-des-epci-2025-hors-taux',
+  'deliberations-de-fiscalite-directe-locale-des-groupements-de-communes-2025-hors-taux',
+  'deliberations-de-fiscalite-directe-locale-des-etablissements-publics-de-cooperation-intercommunale-2025-hors-taux',
+  'deliberations-de-fiscalite-directe-locale-des-groupements-a-fiscalite-propre-2025-hors-taux',
+  'deliberations-de-fiscalite-directe-locale-des-epci-a-fiscalite-propre-2025-hors-taux',
+  'deliberations-de-fiscalite-directe-locale-groupements-2025-hors-taux',
+];
+
+const SELECT_COMMUNES = 'depcom,libcom,bazmincfe1mt,bazmincfe2mt,bazmincfe3mt,bazmincfe4mt,bazmincfe5mt,bazmincfe6mt';
 const TRANCHE_FIELDS = ['bazmincfe1mt','bazmincfe2mt','bazmincfe3mt','bazmincfe4mt','bazmincfe5mt','bazmincfe6mt'];
 
 let outputText = '';
 
 function setStatus(msg) { document.getElementById('status').textContent = msg; }
 function setOutput(txt) { outputText = txt; document.getElementById('output').textContent = txt; }
+function addLog(msg) {
+  outputText += msg + '\n';
+  document.getElementById('output').textContent = outputText;
+}
+
+async function fetchJson(url) {
+  const res = await fetch(url);
+  if (!res.ok) {
+    const text = await res.text().catch(() => '');
+    throw new Error(`HTTP ${res.status}: ${text.slice(0, 200)}`);
+  }
+  return res.json();
+}
 
 async function run() {
   const btn = document.getElementById('btn-run');
   btn.disabled = true;
   document.getElementById('btn-copy').style.display = 'none';
   setOutput('');
+  outputText = '';
 
   try {
-    setStatus('📡 Connexion à l\'API DGFiP...');
+    // ── ÉTAPE 1 : Communes ────────────────────────────────────────────────────────
+    setStatus('📡 Étape 1/3 — Chargement dataset communes...');
 
     const BATCH = 50;
-    const allRecords = [];
+    const allComRecords = [];
     const batches = [];
     for (let i = 0; i < ALL_CODES.length; i += BATCH) batches.push(ALL_CODES.slice(i, i + BATCH));
 
     for (let b = 0; b < batches.length; b++) {
       const batch = batches[b];
-      setStatus(`📥 Batch ${b+1}/${batches.length} — ${allRecords.length} communes chargées...`);
-
+      setStatus(`📥 Communes batch ${b+1}/${batches.length} — ${allComRecords.length} chargées...`);
       const inClause = batch.map(c => `"${c}"`).join(',');
       const params = new URLSearchParams({
         where: `depcom IN (${inClause})`,
-        select: SELECT,
+        select: SELECT_COMMUNES,
         limit: '100',
         offset: '0',
       });
-
-      const res = await fetch(`${BASE_URL}?${params}`);
-      if (!res.ok) {
-        const text = await res.text();
-        throw new Error(`HTTP ${res.status} batch ${b+1}: ${text.slice(0, 300)}`);
-      }
-      const data = await res.json();
-      allRecords.push(...(data.results || []));
-
-      if (b < batches.length - 1) await new Promise(r => setTimeout(r, 300));
+      const data = await fetchJson(`${BASE_URL}/${DATASET_COMMUNES}/records?${params}`);
+      allComRecords.push(...(data.results || []));
+      if (b < batches.length - 1) await new Promise(r => setTimeout(r, 200));
     }
 
-    setStatus(`✅ ${allRecords.length} communes — génération TypeScript...`);
-    const ts = buildTS(allRecords);
+    setStatus(`✅ ${allComRecords.length} communes chargées. Étape 2/3 — Détection dataset EPCI...`);
+
+    // ── ÉTAPE 2 : Trouver le dataset EPCI ────────────────────────────────────────
+    let epciDataset = null;
+    let epciSirenField = null;
+    let epciNameField = null;
+
+    for (const candidate of EPCI_DATASET_CANDIDATES) {
+      setStatus(`🔍 Test dataset EPCI: ${candidate.slice(0, 50)}...`);
+      try {
+        const probe = await fetchJson(`${BASE_URL}/${candidate}/records?limit=2`);
+        if (probe.results && probe.results.length > 0) {
+          epciDataset = candidate;
+          // Détecter les champs disponibles
+          const firstRow = probe.results[0];
+          const keys = Object.keys(firstRow);
+          // Champ SIREN EPCI
+          for (const k of ['siren','sirenepci','siren_epci','depgrp','codgeo','codepci']) {
+            if (keys.includes(k)) { epciSirenField = k; break; }
+          }
+          // Champ nom EPCI
+          for (const k of ['libepci','libgroupement','libcom','nom','libelle']) {
+            if (keys.includes(k)) { epciNameField = k; break; }
+          }
+          addLog(`✅ Dataset EPCI trouvé: ${candidate}`);
+          addLog(`   Champs détectés: ${keys.join(', ')}`);
+          addLog(`   Champ SIREN: ${epciSirenField || '⚠️ non détecté — inspecter manuellement'}`);
+          addLog(`   Premier enregistrement: ${JSON.stringify(firstRow, null, 2)}`);
+          addLog('');
+          break;
+        }
+      } catch(e) {
+        addLog(`   ❌ ${candidate}: ${e.message.slice(0, 80)}`);
+      }
+      await new Promise(r => setTimeout(r, 150));
+    }
+
+    // ── ÉTAPE 3 : Requêtes EPCI (si dataset trouvé) ────────────────────────────
+    const epciData = new Map(); // SIREN → record
+
+    if (epciDataset && epciSirenField) {
+      setStatus(`📡 Étape 3/3 — Chargement données EPCI (${EPCI_SIRENS.length} EPCIs)...`);
+
+      // Batch par 20 SIRENs
+      const epciSirenBatches = [];
+      for (let i = 0; i < EPCI_SIRENS.length; i += 20) epciSirenBatches.push(EPCI_SIRENS.slice(i, i + 20));
+
+      for (let b = 0; b < epciSirenBatches.length; b++) {
+        const batch = epciSirenBatches[b];
+        setStatus(`📥 EPCI batch ${b+1}/${epciSirenBatches.length}...`);
+        const inClause = batch.map(s => `"${s}"`).join(',');
+        const selectFields = [epciSirenField, epciNameField, ...TRANCHE_FIELDS].filter(Boolean).join(',');
+        const params = new URLSearchParams({
+          where: `${epciSirenField} IN (${inClause})`,
+          select: selectFields,
+          limit: '50',
+          offset: '0',
+        });
+        try {
+          const data = await fetchJson(`${BASE_URL}/${epciDataset}/records?${params}`);
+          for (const r of (data.results || [])) {
+            const siren = r[epciSirenField];
+            if (siren) epciData.set(String(siren), r);
+          }
+          addLog(`   Batch EPCI ${b+1}: ${(data.results||[]).length} résultats → ${JSON.stringify(data.results||[])}`);
+        } catch(e) {
+          addLog(`   ❌ EPCI batch ${b+1}: ${e.message}`);
+        }
+        await new Promise(r => setTimeout(r, 200));
+      }
+
+      addLog(`\n✅ ${epciData.size}/${EPCI_SIRENS.length} EPCIs trouvés\n`);
+    } else if (!epciDataset) {
+      addLog('\n⚠️  Aucun dataset EPCI trouvé parmi les candidats testés.');
+      addLog('Les communes en FPU (Lyon, Toulouse, Nantes, Lille, etc.) ne pourront pas être traitées.\n');
+    } else {
+      addLog('\n⚠️  Dataset EPCI trouvé mais champ SIREN non identifié automatiquement.');
+      addLog('Examine le premier enregistrement ci-dessus et adapte le code.\n');
+    }
+
+    // ── Génération TypeScript ────────────────────────────────────────────────────
+    setStatus('🔨 Génération TypeScript...');
+    const ts = buildTS(allComRecords, epciData, epciSirenField, epciNameField, epciDataset);
     setOutput(ts);
     document.getElementById('btn-copy').style.display = 'inline-block';
-    setStatus(`🎉 ${allRecords.length}/${ALL_CODES.length} communes trouvées. Copie le résultat !`);
+    setStatus(`🎉 Terminé ! ${allComRecords.length} communes + ${epciData.size} EPCIs. Copie et colle dans taux-data.ts`);
 
   } catch(e) {
     setStatus(`❌ Erreur: ${e.message}`);
-    setOutput(`Erreur: ${e.message}`);
+    addLog(`\nErreur fatale: ${e.message}`);
   }
   btn.disabled = false;
 }
@@ -124,66 +283,103 @@ function copy() {
   });
 }
 
-function buildTS(records) {
+function extractTranches(r) {
+  return TRANCHE_FIELDS.map(f => r[f] !== undefined ? r[f] : null);
+}
+
+function buildTS(comRecords, epciData, epciSirenField, epciNameField, epciDataset) {
   const lines = [];
   const date = new Date().toISOString().slice(0, 10);
-  const SOURCE = `'DGFiP — délibérations fiscalité directe locale 2025'`;
+  const SOURCE_COM = `'DGFiP délibérations communes 2025'`;
+  const SOURCE_EPCI = `'DGFiP délibérations EPCI 2025'`;
 
-  lines.push(`// AUTO-GÉNÉRÉ depuis l'API DGFiP — ${date}`);
-  lines.push(`// ${records.length} communes récupérées sur ${ALL_CODES.length} demandées`);
+  lines.push(`// AUTO-GÉNÉRÉ — ${date}`);
+  lines.push(`// Dataset communes: ${DATASET_COMMUNES}`);
+  if (epciDataset) lines.push(`// Dataset EPCI: ${epciDataset}`);
   lines.push(`// bazmincfe1mt..6mt = tranches CA: ≤10k | 10k-32.6k | 32.6k-100k | 100k-250k | 250k-500k | >500k`);
   lines.push('');
 
-  const byCode = new Map(records.map(r => [r.depcom, r]));
-  const newEntries = [];
-  const nullEntries = [];
+  const byCode = new Map(comRecords.map(r => [r.depcom, r]));
+  const newEntries = [], nullEntries = [], epciEntries = [], notFoundEntries = [];
   const foundCodes = new Set();
 
   for (const code of [...ALL_CODES].sort()) {
     const r = byCode.get(code);
-    if (!r) continue;
-    foundCodes.add(code);
+    if (r) {
+      foundCodes.add(code);
+      const nom = r.libcom || '';
+      const tranches = extractTranches(r);
+      const hasAny = tranches.some(t => t !== null);
 
-    const nom = r.libcom || '';
-    const tranches = TRANCHE_FIELDS.map(f => r[f]);
-    const hasAny = tranches.some(t => t !== null);
+      if (!hasAny) {
+        // FPU ou pas de délibération — essayer l'EPCI
+        const epciSiren = COMMUNE_TO_EPCI[code];
+        if (epciSiren && epciData.has(epciSiren)) {
+          const epciRec = epciData.get(epciSiren);
+          const epciTranches = extractTranches(epciRec);
+          const epciHasAny = epciTranches.some(t => t !== null);
+          const epciNom = epciNameField ? (epciRec[epciNameField] || '') : epciSiren;
 
-    if (!hasAny) {
-      nullEntries.push(`  // ${code} ${nom} — pas de délibération (plancher légal)`);
-      continue;
-    }
+          if (epciHasAny) {
+            const nonNull = epciTranches.filter(t => t !== null);
+            const allSame = nonNull.every(v => v === nonNull[0]);
+            epciEntries.push(`  // ${nom} (FPU ${epciNom})`);
+            if (allSame) {
+              epciEntries.push(`  '${code}': { base: ${nonNull[0]}, source: ${SOURCE_EPCI} },`);
+            } else {
+              const t1 = epciTranches[0] ?? nonNull[0];
+              const trancheArr = `[${epciTranches.map(t => t ?? 'null').join(', ')}]`;
+              epciEntries.push(`  '${code}': { base: ${t1}, source: ${SOURCE_EPCI}, tranches: ${trancheArr} },`);
+            }
+          } else {
+            nullEntries.push(`  // ${code} ${nom} — EPCI ${epciSiren} trouvé mais base nulle aussi`);
+          }
+        } else if (epciSiren) {
+          nullEntries.push(`  // ${code} ${nom} — FPU, EPCI ${epciSiren} non trouvé dans dataset`);
+        } else {
+          nullEntries.push(`  // ${code} ${nom} — pas de délibération (plancher légal)`);
+        }
+        continue;
+      }
 
-    const nonNull = tranches.filter(t => t !== null);
-    const allSame = nonNull.every(v => v === nonNull[0]);
-
-    newEntries.push(`  // ${nom}`);
-    if (allSame) {
-      newEntries.push(`  '${code}': { base: ${nonNull[0]}, source: ${SOURCE} },`);
+      const nonNull = tranches.filter(t => t !== null);
+      const allSame = nonNull.every(v => v === nonNull[0]);
+      newEntries.push(`  // ${nom}`);
+      if (allSame) {
+        newEntries.push(`  '${code}': { base: ${nonNull[0]}, source: ${SOURCE_COM} },`);
+      } else {
+        const t1 = tranches[0] ?? nonNull[0];
+        const trancheArr = `[${tranches.map(t => t ?? 'null').join(', ')}]`;
+        newEntries.push(`  '${code}': { base: ${t1}, source: ${SOURCE_COM}, tranches: ${trancheArr} },`);
+      }
     } else {
-      const trancheArr = `[${tranches.map(t => t ?? 'null').join(', ')}]`;
-      newEntries.push(`  '${code}': { base: ${nonNull[0]}, source: ${SOURCE}, tranches: ${trancheArr} },`);
+      notFoundEntries.push(code);
     }
   }
 
-  const notFound = ALL_CODES.filter(c => !foundCodes.has(c));
-
   if (newEntries.length > 0) {
-    lines.push('// ── COLLER DANS BASE_MINIMALE_CONNUES ─────────────────────────────────────────');
+    lines.push('// ── COMMUNES (données directes) ──────────────────────────────────────────────');
     lines.push(...newEntries);
+  }
+  if (epciEntries.length > 0) {
+    lines.push('');
+    lines.push('// ── COMMUNES FPU (données EPCI) ──────────────────────────────────────────────');
+    lines.push(...epciEntries);
   }
   if (nullEntries.length > 0) {
     lines.push('');
-    lines.push('// ── COMMUNES SANS DÉLIBÉRATION (plancher légal) ──────────────────────────────');
+    lines.push('// ── SANS DÉLIBÉRATION / EPCI MANQUANT ────────────────────────────────────────');
     lines.push(...nullEntries);
   }
-  if (notFound.length > 0) {
+  if (notFoundEntries.length > 0) {
     lines.push('');
-    lines.push(`// ── INTROUVABLES dans l'API (${notFound.length}) ─────────────────────────────`);
-    lines.push(`// ${notFound.join(', ')}`);
+    lines.push(`// ── INTROUVABLES dans l'API communes (${notFoundEntries.length}) ──────────────`);
+    lines.push(`// ${notFoundEntries.join(', ')}`);
   }
 
+  const withBase = [...newEntries, ...epciEntries].filter(l => l.trim().startsWith("'")).length;
   lines.push('');
-  lines.push(`// RÉSUMÉ: ${newEntries.filter(l => l.startsWith("  '")).length} entrées avec base, ${nullEntries.length} sans délibération, ${notFound.length} introuvables`);
+  lines.push(`// RÉSUMÉ: ${withBase} entrées avec base, ${nullEntries.length} sans base, ${notFoundEntries.length} introuvables`);
   return lines.join('\n');
 }
 </script>

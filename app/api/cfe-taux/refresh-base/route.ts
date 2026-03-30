@@ -1,5 +1,15 @@
-'use client'
-import { useState, useCallback } from 'react'
+/**
+ * GET /api/cfe-taux/refresh-base
+ *
+ * Interroge l'API DGFiP data.economie.gouv.fr pour récupérer les bases minimales CFE 2025.
+ * - Dataset communes : bazmincfe1mt..6mt directement sur la commune
+ * - Dataset EPCI     : pour les communes en FPU (base votée par l'EPCI)
+ *
+ * Retourne le bloc TypeScript à coller dans BASE_MINIMALE_CONNUES de taux-data.ts
+ * ou une erreur si le serveur ne peut pas atteindre data.economie.gouv.fr.
+ */
+
+import { NextResponse } from 'next/server'
 
 const ALL_CODES = [
   '01053','02691','03185','05061','06004','06027','06029','06030','06069','06088',
@@ -33,7 +43,6 @@ const ALL_CODES = [
   '97213','97416','97422','97701',
 ]
 
-// Commune INSEE → EPCI SIREN (pour communes en FPU dont la base est votée par l'EPCI)
 const COMMUNE_TO_EPCI: Record<string, string> = {
   // Métropole de Lyon (SIREN 200046977)
   '69029':'200046977','69034':'200046977','69040':'200046977','69044':'200046977',
@@ -89,11 +98,10 @@ const COMMUNE_TO_EPCI: Record<string, string> = {
 
 const EPCI_SIRENS = [...new Set(Object.values(COMMUNE_TO_EPCI))]
 
+const BASE_URL = 'https://data.economie.gouv.fr/api/explore/v2.1/catalog/datasets'
 const DATASET_COMMUNES = 'deliberations-de-fiscalite-directe-locale-des-communes-2025-hors-taux'
-const BASE_URL = `https://data.economie.gouv.fr/api/explore/v2.1/catalog/datasets`
 const SELECT_COM = 'depcom,libcom,bazmincfe1mt,bazmincfe2mt,bazmincfe3mt,bazmincfe4mt,bazmincfe5mt,bazmincfe6mt'
 const TRANCHE_FIELDS = ['bazmincfe1mt','bazmincfe2mt','bazmincfe3mt','bazmincfe4mt','bazmincfe5mt','bazmincfe6mt'] as const
-
 const EPCI_CANDIDATES = [
   'deliberations-de-fiscalite-directe-locale-des-groupements-2025-hors-taux',
   'deliberations-de-fiscalite-directe-locale-des-epci-2025-hors-taux',
@@ -102,141 +110,117 @@ const EPCI_CANDIDATES = [
   'deliberations-de-fiscalite-directe-locale-des-epci-a-fiscalite-propre-2025-hors-taux',
 ]
 
-type CfeRec = Record<string, number | string | null>
+async function dgfip(url: string): Promise<unknown> {
+  const res = await fetch(url, { next: { revalidate: 0 } })
+  if (!res.ok) {
+    const txt = await res.text().catch(() => '')
+    throw new Error(`HTTP ${res.status}: ${txt.slice(0, 200)}`)
+  }
+  return res.json()
+}
 
-export default function DGFiPExtractor() {
-  const [status, setStatus] = useState('')
-  const [output, setOutput] = useState('Clique sur "Lancer" pour démarrer...')
-  const [done, setDone] = useState(false)
-  const [running, setRunning] = useState(false)
+function extractTranches(r: Record<string, unknown>) {
+  return TRANCHE_FIELDS.map(f => {
+    const v = r[f]
+    return (v !== null && v !== undefined) ? Number(v) : null
+  })
+}
 
-  const run = useCallback(async () => {
-    setRunning(true)
-    setDone(false)
-    setOutput('')
+type CfeRecord = Record<string, unknown>
 
-    const log: string[] = []
+export async function GET() {
+  const log: string[] = []
 
-    try {
-      // ── Étape 1 : dataset communes ────────────────────────────────────────────
-      setStatus('📡 Étape 1/3 — Chargement communes...')
-      const comRecords: CfeRec[] = []
-      const batches: string[][] = []
-      for (let i = 0; i < ALL_CODES.length; i += 50) batches.push(ALL_CODES.slice(i, i + 50))
+  try {
+    // ── Communes ─────────────────────────────────────────────────────────────────
+    log.push(`Fetching communes dataset...`)
+    const comRecords: CfeRecord[] = []
+    const batches: string[][] = []
+    for (let i = 0; i < ALL_CODES.length; i += 50) batches.push(ALL_CODES.slice(i, i + 50))
 
-      for (let b = 0; b < batches.length; b++) {
-        setStatus(`📥 Communes batch ${b + 1}/${batches.length} — ${comRecords.length} chargées...`)
-        const inClause = batches[b].map(c => `"${c}"`).join(',')
-        const params = new URLSearchParams({ where: `depcom IN (${inClause})`, select: SELECT_COM, limit: '100', offset: '0' })
-        const res = await fetch(`${BASE_URL}/${DATASET_COMMUNES}/records?${params}`)
-        if (!res.ok) throw new Error(`HTTP ${res.status} communes batch ${b + 1}`)
-        const data = await res.json()
-        comRecords.push(...(data.results ?? []))
-        if (b < batches.length - 1) await new Promise(r => setTimeout(r, 200))
-      }
-      log.push(`${comRecords.length} communes chargées`)
+    for (let b = 0; b < batches.length; b++) {
+      const inClause = batches[b].map(c => `"${c}"`).join(',')
+      const params = new URLSearchParams({
+        where: `depcom IN (${inClause})`,
+        select: SELECT_COM,
+        limit: '100',
+        offset: '0',
+      })
+      const data = await dgfip(`${BASE_URL}/${DATASET_COMMUNES}/records?${params}`) as { results?: CfeRecord[] }
+      comRecords.push(...(data.results ?? []))
+      if (b < batches.length - 1) await new Promise(r => setTimeout(r, 150))
+    }
+    log.push(`Communes: ${comRecords.length} records`)
 
-      // ── Étape 2 : probe dataset EPCI ─────────────────────────────────────────
-      setStatus('🔍 Étape 2/3 — Détection dataset EPCI...')
-      let epciDataset: string | null = null
-      let epciSirenField: string | null = null
-      let epciNameField: string | null = null
+    // ── EPCI dataset probe ────────────────────────────────────────────────────────
+    let epciDataset: string | null = null
+    let epciSirenField: string | null = null
+    let epciNameField: string | null = null
 
-      for (const candidate of EPCI_CANDIDATES) {
-        setStatus(`🔍 Test: ${candidate.slice(0, 55)}...`)
-        try {
-          const res = await fetch(`${BASE_URL}/${candidate}/records?limit=2`)
-          if (res.ok) {
-            const probe = await res.json()
-            if (probe.results?.length > 0) {
-              epciDataset = candidate
-              const keys: string[] = Object.keys(probe.results[0])
-              for (const k of ['siren','sirenepci','siren_epci','depgrp','codgeo','codepci']) {
-                if (keys.includes(k)) { epciSirenField = k; break }
-              }
-              for (const k of ['libepci','libgroupement','nom','libelle','libcom']) {
-                if (keys.includes(k)) { epciNameField = k; break }
-              }
-              log.push(`Dataset EPCI: ${candidate}`)
-              log.push(`Champs: ${keys.join(', ')}`)
-              log.push(`Champ SIREN détecté: ${epciSirenField ?? '⚠️ non trouvé'}`)
-              log.push(`Premier enregistrement: ${JSON.stringify(probe.results[0], null, 2)}`)
-              break
-            }
+    for (const candidate of EPCI_CANDIDATES) {
+      try {
+        const probe = await dgfip(`${BASE_URL}/${candidate}/records?limit=2`) as { results?: CfeRecord[] }
+        if (probe.results && probe.results.length > 0) {
+          epciDataset = candidate
+          const keys = Object.keys(probe.results[0])
+          for (const k of ['siren','sirenepci','siren_epci','depgrp','codgeo','codepci']) {
+            if (keys.includes(k)) { epciSirenField = k; break }
           }
-        } catch { /* try next */ }
+          for (const k of ['libepci','libgroupement','nom','libelle','libcom']) {
+            if (keys.includes(k)) { epciNameField = k; break }
+          }
+          log.push(`EPCI dataset: ${candidate} (siren field: ${epciSirenField}, fields: ${keys.join(',')})`)
+          break
+        }
+      } catch {
+        // try next
+      }
+    }
+
+    // ── EPCI records ──────────────────────────────────────────────────────────────
+    const epciData = new Map<string, CfeRecord>()
+
+    if (epciDataset && epciSirenField) {
+      const epciField = epciSirenField
+      const nameField = epciNameField
+      const sirenBatches: string[][] = []
+      for (let i = 0; i < EPCI_SIRENS.length; i += 20) sirenBatches.push(EPCI_SIRENS.slice(i, i + 20))
+
+      for (const batch of sirenBatches) {
+        const inClause = batch.map(s => `"${s}"`).join(',')
+        const selectFields = [epciField, nameField, ...TRANCHE_FIELDS].filter(Boolean).join(',')
+        const params = new URLSearchParams({
+          where: `${epciField} IN (${inClause})`,
+          select: selectFields,
+          limit: '50',
+          offset: '0',
+        })
+        try {
+          const data = await dgfip(`${BASE_URL}/${epciDataset}/records?${params}`) as { results?: CfeRecord[] }
+          for (const r of (data.results ?? [])) {
+            const siren = String(r[epciField] ?? '')
+            if (siren) epciData.set(siren, r)
+          }
+        } catch (e) {
+          log.push(`EPCI batch error: ${e}`)
+        }
         await new Promise(r => setTimeout(r, 150))
       }
-
-      if (!epciDataset) {
-        log.push('⚠️ Aucun dataset EPCI trouvé parmi les candidats testés')
-      }
-
-      // ── Étape 3 : données EPCI ────────────────────────────────────────────────
-      const epciData = new Map<string, CfeRec>()
-
-      if (epciDataset && epciSirenField) {
-        setStatus(`📡 Étape 3/3 — Chargement EPCIs (${EPCI_SIRENS.length} SIRENs)...`)
-        const sirenBatches: string[][] = []
-        for (let i = 0; i < EPCI_SIRENS.length; i += 20) sirenBatches.push(EPCI_SIRENS.slice(i, i + 20))
-
-        for (let b = 0; b < sirenBatches.length; b++) {
-          setStatus(`📥 EPCI batch ${b + 1}/${sirenBatches.length}...`)
-          const inClause = sirenBatches[b].map(s => `"${s}"`).join(',')
-          const selectFields = [epciSirenField, epciNameField, ...TRANCHE_FIELDS].filter(Boolean).join(',')
-          const params = new URLSearchParams({
-            where: `${epciSirenField} IN (${inClause})`,
-            select: selectFields,
-            limit: '50',
-            offset: '0',
-          })
-          try {
-            const res = await fetch(`${BASE_URL}/${epciDataset}/records?${params}`)
-            if (res.ok) {
-              const data = await res.json()
-              for (const r of (data.results ?? [])) {
-                const siren = String(r[epciSirenField] ?? '')
-                if (siren) epciData.set(siren, r)
-              }
-            }
-          } catch { /* log but continue */ }
-          if (b < sirenBatches.length - 1) await new Promise(r => setTimeout(r, 200))
-        }
-        log.push(`EPCIs trouvés: ${epciData.size}/${EPCI_SIRENS.length}`)
-      }
-
-      const ts = buildTS(comRecords, epciData, epciSirenField, epciNameField, epciDataset, log)
-      setOutput(ts)
-      setDone(true)
-      const withBase = (ts.match(/^\s+'[0-9A-Z]+': /gm) ?? []).length
-      setStatus(`🎉 ${withBase} communes avec base. Copie et colle dans BASE_MINIMALE_CONNUES de taux-data.ts`)
-
-    } catch (e: unknown) {
-      const msg = e instanceof Error ? e.message : String(e)
-      setStatus(`❌ Erreur: ${msg}`)
-      setOutput(`// Erreur: ${msg}\n// LOG:\n${log.map(l => `// ${l}`).join('\n')}`)
+      log.push(`EPCI records: ${epciData.size}/${EPCI_SIRENS.length}`)
     }
-    setRunning(false)
-  }, [])
 
-  function buildTS(
-    comRecords: CfeRec[],
-    epciData: Map<string, CfeRec>,
-    epciSirenField: string | null,
-    epciNameField: string | null,
-    epciDataset: string | null,
-    log: string[],
-  ): string {
-    const lines: string[] = []
-    const date = new Date().toISOString().slice(0, 10)
+    // ── Build TypeScript ──────────────────────────────────────────────────────────
     const SOURCE_COM = `'DGFiP délibérations communes 2025'`
     const SOURCE_EPCI = `'DGFiP délibérations EPCI 2025'`
+    const date = new Date().toISOString().slice(0, 10)
 
-    lines.push(`// AUTO-GÉNÉRÉ — ${date}`)
-    lines.push(`// Dataset communes: ${DATASET_COMMUNES}`)
-    if (epciDataset) lines.push(`// Dataset EPCI: ${epciDataset}`)
-    lines.push(`// bazmincfe1mt..6mt : ≤10k | 10k-32.6k | 32.6k-100k | 100k-250k | 250k-500k | >500k`)
-    lines.push('')
+    const lines: string[] = [
+      `// AUTO-GÉNÉRÉ — ${date}`,
+      `// Dataset communes: ${DATASET_COMMUNES}`,
+      ...(epciDataset ? [`// Dataset EPCI: ${epciDataset}`] : []),
+      `// bazmincfe1mt..6mt : ≤10k | 10k-32.6k | 32.6k-100k | 100k-250k | 250k-500k | >500k`,
+      '',
+    ]
 
     const byCode = new Map(comRecords.map(r => [r.depcom as string, r]))
     const direct: string[] = [], fromEpci: string[] = [], noBase: string[] = [], notFound: string[] = []
@@ -246,14 +230,14 @@ export default function DGFiPExtractor() {
       if (!r) { notFound.push(code); continue }
 
       const nom = String(r.libcom ?? '')
-      const tranches = TRANCHE_FIELDS.map(f => r[f] !== null && r[f] !== undefined ? Number(r[f]) : null)
+      const tranches = extractTranches(r)
       const hasAny = tranches.some(t => t !== null)
 
       if (!hasAny) {
         const siren = COMMUNE_TO_EPCI[code]
         if (siren && epciData.has(siren)) {
           const er = epciData.get(siren)!
-          const et = TRANCHE_FIELDS.map(f => er[f] !== null && er[f] !== undefined ? Number(er[f]) : null)
+          const et = extractTranches(er)
           const etHas = et.some(t => t !== null)
           if (etHas) {
             const nonNull = et.filter((t): t is number => t !== null)
@@ -302,64 +286,26 @@ export default function DGFiPExtractor() {
     }
     if (notFound.length) {
       lines.push('')
-      lines.push(`// ── INTROUVABLES (${notFound.length}) ───────────────────────────────────────`)
+      lines.push(`// ── INTROUVABLES dans l'API communes (${notFound.length}) ──────────`)
       lines.push(`// ${notFound.join(', ')}`)
     }
 
     const withBase = [...direct, ...fromEpci].filter(l => l.trim().startsWith("'")).length
     lines.push('')
-    lines.push(`// RÉSUMÉ: ${withBase} avec base, ${noBase.length} sans base, ${notFound.length} introuvables`)
+    lines.push(`// RÉSUMÉ: ${withBase} entrées avec base, ${noBase.length} sans base, ${notFound.length} introuvables`)
     lines.push('')
     lines.push('// LOG:')
     for (const l of log) lines.push(`// ${l}`)
 
-    return lines.join('\n')
+    return new NextResponse(lines.join('\n'), {
+      headers: { 'Content-Type': 'text/plain; charset=utf-8' },
+    })
+
+  } catch (e: unknown) {
+    const msg = e instanceof Error ? e.message : String(e)
+    return new NextResponse(
+      `// ERREUR: ${msg}\n// LOG:\n${log.map(l => `// ${l}`).join('\n')}`,
+      { status: 500, headers: { 'Content-Type': 'text/plain; charset=utf-8' } }
+    )
   }
-
-  return (
-    <div style={{ fontFamily: 'monospace', background: '#1e1e1e', color: '#d4d4d4', minHeight: '100vh', padding: '20px' }}>
-      <h1 style={{ color: '#4fc3f7' }}>DGFiP — CFE Base Minimale 2025</h1>
-      <p style={{ color: '#81c784' }}>
-        Communes + EPCIs FPU (Lyon, Toulouse, Nantes, Lille, Strasbourg, Nice, Marseille, Bordeaux…) — {ALL_CODES.length} communes
-      </p>
-      <p style={{ color: '#90caf9', fontSize: 13 }}>
-        Ou appelle directement&nbsp;
-        <code style={{ background: '#333', padding: '2px 6px', borderRadius: 3 }}>
-          /api/cfe-taux/refresh-base
-        </code>
-        &nbsp;(serveur-side, même résultat)
-      </p>
-
-      <div style={{ marginBottom: 12 }}>
-        <button
-          onClick={run}
-          disabled={running}
-          style={{
-            padding: '10px 20px', fontSize: 15, cursor: running ? 'not-allowed' : 'pointer',
-            background: running ? '#555' : '#0d47a1', color: 'white', border: 'none',
-            borderRadius: 4, marginRight: 8,
-          }}
-        >
-          {running ? '⏳ En cours...' : '🚀 Lancer l\'extraction'}
-        </button>
-        {done && (
-          <button
-            onClick={() => navigator.clipboard.writeText(output)}
-            style={{ padding: '10px 20px', fontSize: 15, background: '#2e7d32', color: 'white', border: 'none', borderRadius: 4 }}
-          >
-            📋 Copier le TypeScript
-          </button>
-        )}
-      </div>
-
-      {status && <div style={{ color: '#ffb74d', marginBottom: 8 }}>{status}</div>}
-
-      <pre style={{
-        background: '#2d2d2d', border: '1px solid #555', padding: 15,
-        whiteSpace: 'pre-wrap', fontSize: 12, maxHeight: '70vh', overflowY: 'auto',
-      }}>
-        {output}
-      </pre>
-    </div>
-  )
 }
