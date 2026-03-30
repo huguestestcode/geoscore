@@ -33,94 +33,78 @@ const ALL_CODES = [
   '97213','97416','97422','97701',
 ]
 
-const ALREADY_CONFIRMED = new Set([
-  '75056','75101','75102','75103','75104','75105','75106','75107','75108','75109',
-  '75110','75111','75112','75113','75114','75115','75116','75117','75118','75119','75120',
-  '13055','13201','13202','13203','13204','13205','13206','13207','13208','13209',
-  '13210','13211','13212','13213','13214','13215','13216',
-  '13001','13005','13047','13056','13103','13117',
-  '33063','33281','33318','33522','33550',
-])
-
 const DATASET = 'deliberations-de-fiscalite-directe-locale-des-communes-2025-hors-taux'
 const BASE_URL = `https://data.economie.gouv.fr/api/explore/v2.1/catalog/datasets/${DATASET}/records`
+const SELECT = 'depcom,libcom,bazmincfe1mt,bazmincfe2mt,bazmincfe3mt,bazmincfe4mt,bazmincfe5mt,bazmincfe6mt'
+
+// Tranches CA : t1=≤10k, t2=10k-32.6k, t3=32.6k-100k, t4=100k-250k, t5=250k-500k, t6=>500k
+const TRANCHE_FIELDS = ['bazmincfe1mt','bazmincfe2mt','bazmincfe3mt','bazmincfe4mt','bazmincfe5mt','bazmincfe6mt'] as const
+
+type Record = {
+  depcom: string
+  libcom: string
+  bazmincfe1mt: number | null
+  bazmincfe2mt: number | null
+  bazmincfe3mt: number | null
+  bazmincfe4mt: number | null
+  bazmincfe5mt: number | null
+  bazmincfe6mt: number | null
+}
 
 export default function DGFiPExtractor() {
   const [status, setStatus] = useState('')
   const [output, setOutput] = useState('Clique sur "Lancer" pour démarrer...')
   const [done, setDone] = useState(false)
   const [running, setRunning] = useState(false)
-  const [rawSample, setRawSample] = useState<unknown>(null)
 
   const run = useCallback(async () => {
     setRunning(true)
     setDone(false)
     setOutput('')
-    setRawSample(null)
 
     try {
-      // ── Étape 1 : explorer le schéma ──────────────────────────────────
       setStatus('📡 Connexion à l\'API DGFiP...')
-      const sampleRes = await fetch(
-        `${BASE_URL}?where=code_dispositif%3D%22TFB-CFE-14%22&limit=3&select=*`
-      )
-      if (!sampleRes.ok) {
-        throw new Error(`HTTP ${sampleRes.status} — ${sampleRes.statusText}\n${await sampleRes.text()}`)
-      }
-      const sampleData = await sampleRes.json()
-      setRawSample(sampleData)
-      const total: number = sampleData.total_count ?? 0
-      setStatus(`✅ API OK — ${total} enregistrements TFB-CFE-14 trouvés. Chargement...`)
 
-      if (total === 0) {
-        setOutput(
-          '// ⚠️  Aucun résultat pour TFB-CFE-14\n' +
-          '// Dataset peut-être nommé différemment ou code dispositif incorrect.\n' +
-          '// Voici un sample brut (3 enregistrements sans filtre) pour debug :\n' +
-          JSON.stringify(sampleData, null, 2)
-        )
-        setDone(false)
-        setRunning(false)
-        return
+      // Fetch par batches de 50 codes (IN query)
+      const BATCH = 50
+      const allRecords: Record[] = []
+      const batches: string[][] = []
+      for (let i = 0; i < ALL_CODES.length; i += BATCH) {
+        batches.push(ALL_CODES.slice(i, i + BATCH))
       }
 
-      // ── Étape 2 : pagination ────────────────────────────────────────────
-      const allRecords: Record<string, unknown>[] = [...(sampleData.results ?? [])]
-      let offset = allRecords.length
+      for (let b = 0; b < batches.length; b++) {
+        const batch = batches[b]
+        setStatus(`📥 Batch ${b + 1}/${batches.length} — ${allRecords.length} communes chargées...`)
 
-      while (allRecords.length < total) {
-        setStatus(`📥 ${allRecords.length}/${total} chargés...`)
-        const res = await fetch(
-          `${BASE_URL}?where=code_dispositif%3D%22TFB-CFE-14%22&limit=100&offset=${offset}&select=*`
-        )
-        if (!res.ok) throw new Error(`HTTP ${res.status} offset=${offset}`)
-        const page = await res.json()
-        const results: Record<string, unknown>[] = page.results ?? []
-        if (results.length === 0) break
+        const inClause = batch.map(c => `"${c}"`).join(',')
+        const params = new URLSearchParams({
+          where: `depcom IN (${inClause})`,
+          select: SELECT,
+          limit: '100',
+          offset: '0',
+        })
+
+        const res = await fetch(`${BASE_URL}?${params}`)
+        if (!res.ok) {
+          const text = await res.text()
+          throw new Error(`HTTP ${res.status} batch ${b + 1}: ${text.slice(0, 200)}`)
+        }
+        const data = await res.json()
+        const results: Record[] = data.results ?? []
         allRecords.push(...results)
-        offset += results.length
-        if (results.length < 100) break
-        await new Promise(r => setTimeout(r, 150))
+
+        if (b < batches.length - 1) {
+          await new Promise(r => setTimeout(r, 200))
+        }
       }
 
-      setStatus(`✅ ${allRecords.length} enregistrements récupérés — génération TypeScript...`)
+      setStatus(`✅ ${allRecords.length} communes récupérées — génération TypeScript...`)
 
-      // ── Étape 3 : grouper par commune ──────────────────────────────────
-      const ourSet = new Set(ALL_CODES)
-      const byCommune: Record<string, { nom: string; records: Record<string, unknown>[] }> = {}
-
-      for (const r of allRecords) {
-        const code = String(r.codgeo ?? '')
-        if (!ourSet.has(code)) continue
-        if (!byCommune[code]) byCommune[code] = { nom: String(r.libgeo ?? ''), records: [] }
-        byCommune[code].records.push(r)
-      }
-
-      // ── Étape 4 : générer le TS ─────────────────────────────────────────
-      const ts = buildTS(byCommune, allRecords.length)
+      const ts = buildTS(allRecords)
       setOutput(ts)
       setDone(true)
-      setStatus(`🎉 ${Object.keys(byCommune).length} communes trouvées. Copie le résultat et colle-le dans taux-data.ts`)
+      setStatus(`🎉 ${allRecords.length}/${ALL_CODES.length} communes trouvées. Copie le résultat et colle-le dans taux-data.ts`)
 
     } catch (e: unknown) {
       const msg = e instanceof Error ? e.message : String(e)
@@ -130,103 +114,83 @@ export default function DGFiPExtractor() {
     setRunning(false)
   }, [])
 
-  function buildTS(
-    byCommune: Record<string, { nom: string; records: Record<string, unknown>[] }>,
-    totalFetched: number
-  ): string {
+  function buildTS(records: Record[]): string {
     const lines: string[] = []
-    lines.push(`// AUTO-GÉNÉRÉ depuis l'API DGFiP — ${new Date().toISOString().slice(0, 10)}`)
+    const date = new Date().toISOString().slice(0, 10)
+    lines.push(`// AUTO-GÉNÉRÉ depuis l'API DGFiP — ${date}`)
     lines.push(`// Dataset: ${DATASET}`)
-    lines.push(`// TFB-CFE-14 = base minimale CFE art. 1647 D CGI`)
-    lines.push(`// Total enregistrements récupérés: ${totalFetched}`)
-    lines.push(`// Communes matchées sur nos ${ALL_CODES.length} codes: ${Object.keys(byCommune).length}`)
-    lines.push('')
-
-    // Inspecter les champs disponibles depuis le premier record
-    const firstRecord = Object.values(byCommune)[0]?.records[0]
-    if (firstRecord) {
-      lines.push(`// Champs disponibles: ${Object.keys(firstRecord).join(', ')}`)
-      lines.push(`// Exemple: ${JSON.stringify(firstRecord)}`)
-      lines.push('')
-    }
-
-    // Tranche mapping: chercher un champ "tranche" dans les enregistrements
-    const trancheField = firstRecord
-      ? Object.keys(firstRecord).find(k => k.toLowerCase().includes('tranche'))
-      : null
-    const montantField = firstRecord
-      ? Object.keys(firstRecord).find(k =>
-          k === 'montant' || k === 'montant_base_min' || k === 'base_minimum' ||
-          k === 'valeur' || k === 'base_minimale' || k.toLowerCase().includes('montant')
-        )
-      : null
-
-    lines.push(`// Champ tranche détecté: ${trancheField ?? 'AUCUN'}`)
-    lines.push(`// Champ montant détecté: ${montantField ?? 'AUCUN'}`)
+    lines.push(`// Champs: bazmincfe1mt..bazmincfe6mt = base minimale CFE par tranche CA`)
+    lines.push(`// t1=CA≤10k | t2=10k-32.6k | t3=32.6k-100k | t4=100k-250k | t5=250k-500k | t6=>500k`)
+    lines.push(`// ${records.length} communes récupérées sur ${ALL_CODES.length} demandées`)
     lines.push('')
 
     const SOURCE = `'DGFiP — délibérations fiscalité directe locale 2025'`
 
-    const newEntries: string[] = []
-    for (const [code, { nom, records }] of Object.entries(byCommune).sort()) {
-      if (ALREADY_CONFIRMED.has(code)) continue
+    // Index par code
+    const byCode = new Map(records.map(r => [r.depcom, r]))
 
-      let entryStr = ''
-      if (!montantField) {
-        // Pas de champ montant reconnu — dump brut
-        entryStr = `  // ${code} ${nom} — champ montant non reconnu, données brutes:\n  // ${JSON.stringify(records[0])}`
-      } else if (records.length === 1) {
-        const val = parseFloat(String(records[0][montantField] ?? ''))
-        entryStr = `  '${code}': { base: ${val}, source: ${SOURCE} },`
-      } else if (trancheField && records.length > 1) {
-        // Plusieurs enregistrements = un par tranche
-        const TRANCHE_MAP: Record<string, number> = { '1': 0, '2': 1, '3': 2, '4': 3, '5': 4, '6': 5 }
-        const tranches: (number | null)[] = [null, null, null, null, null, null]
-        for (const r of records) {
-          const tn = String(r[trancheField] ?? '')
-          const idx = TRANCHE_MAP[tn]
-          const val = parseFloat(String(r[montantField] ?? ''))
-          if (idx !== undefined && !isNaN(val)) tranches[idx] = val
-        }
-        const allSame = tranches.every((v, _, a) => v === null || v === a.find(x => x !== null))
-        const firstVal = tranches.find(t => t !== null) ?? 0
-        if (allSame) {
-          entryStr = `  '${code}': { base: ${firstVal}, source: ${SOURCE} },`
-        } else {
-          entryStr = `  '${code}': { base: ${firstVal}, source: ${SOURCE}, tranches: [${tranches.map(t => t ?? 'null').join(', ')}] },`
-        }
-      } else {
-        const val = parseFloat(String(records[0][montantField] ?? ''))
-        entryStr = `  '${code}': { base: ${val}, source: ${SOURCE} },`
+    const newEntries: string[] = []
+    const nullEntries: string[] = []
+    const foundCodes = new Set<string>()
+
+    for (const code of [...ALL_CODES].sort()) {
+      const r = byCode.get(code)
+      if (!r) continue
+      foundCodes.add(code)
+
+      const nom = r.libcom ?? ''
+      const tranches = TRANCHE_FIELDS.map(f => r[f])
+      const hasAny = tranches.some(t => t !== null)
+
+      if (!hasAny) {
+        // Toutes null = pas de délibération = plancher légal
+        nullEntries.push(`  // ${code} ${nom} — pas de délibération (plancher légal s'applique)`)
+        continue
       }
+
+      // Toutes identiques ?
+      const nonNull = tranches.filter((t): t is number => t !== null)
+      const allSame = nonNull.every(v => v === nonNull[0])
+
       newEntries.push(`  // ${nom}`)
-      newEntries.push(entryStr)
+      if (allSame) {
+        newEntries.push(`  '${code}': { base: ${nonNull[0]}, source: ${SOURCE} },`)
+      } else {
+        const t1 = tranches[0] ?? nonNull[0]
+        const trancheArr = `[${tranches.map(t => t ?? 'null').join(', ')}]`
+        newEntries.push(`  '${code}': { base: ${t1}, source: ${SOURCE}, tranches: ${trancheArr} },`)
+      }
     }
 
     if (newEntries.length > 0) {
-      lines.push('// ── COLLER DANS BASE_MINIMALE_CONNUES ────────────────────────────────────────')
+      lines.push('// ── COLLER DANS BASE_MINIMALE_CONNUES ─────────────────────────────────────────')
       lines.push(...newEntries)
-    } else {
-      lines.push('// Aucune nouvelle commune (toutes déjà confirmées ou non trouvées)')
     }
 
-    // Not found
-    const foundCodes = new Set(Object.keys(byCommune))
-    const notFound = ALL_CODES.filter(c => !foundCodes.has(c) && !ALREADY_CONFIRMED.has(c))
+    if (nullEntries.length > 0) {
+      lines.push('')
+      lines.push('// ── COMMUNES SANS DÉLIBÉRATION (plancher légal) ──────────────────────────────')
+      lines.push(...nullEntries)
+    }
+
+    const notFound = ALL_CODES.filter(c => !foundCodes.has(c))
     if (notFound.length > 0) {
       lines.push('')
-      lines.push(`// INTROUVABLES dans l'API (${notFound.length}): ${notFound.join(', ')}`)
+      lines.push(`// ── INTROUVABLES dans l'API (${notFound.length}) ─────────────────────────────`)
+      lines.push(`// ${notFound.join(', ')}`)
     }
+
+    lines.push('')
+    lines.push(`// RÉSUMÉ: ${newEntries.filter(l => l.startsWith("  '")).length} entrées avec base, ${nullEntries.length} sans délibération, ${notFound.length} introuvables`)
 
     return lines.join('\n')
   }
 
   return (
     <div style={{ fontFamily: 'monospace', background: '#1e1e1e', color: '#d4d4d4', minHeight: '100vh', padding: '20px' }}>
-      <h1 style={{ color: '#4fc3f7' }}>🔍 DGFiP — CFE Base Minimale 2025</h1>
+      <h1 style={{ color: '#4fc3f7' }}>DGFiP — CFE Base Minimale 2025</h1>
       <p style={{ color: '#81c784' }}>
-        Interroge directement <code>data.economie.gouv.fr</code> depuis ton navigateur
-        (dataset TFB-CFE-14) pour les {ALL_CODES.length} communes du simulateur.
+        Interroge <code>data.economie.gouv.fr</code> — champs <code>bazmincfe1mt..bazmincfe6mt</code> — {ALL_CODES.length} communes
       </p>
 
       <div style={{ marginBottom: 12 }}>
@@ -253,18 +217,9 @@ export default function DGFiPExtractor() {
 
       {status && <div style={{ color: '#ffb74d', marginBottom: 8 }}>{status}</div>}
 
-      {rawSample && (
-        <details style={{ marginBottom: 8 }}>
-          <summary style={{ cursor: 'pointer', color: '#90caf9' }}>🔬 Sample brut (3 enregistrements)</summary>
-          <pre style={{ fontSize: 11, color: '#aaa', maxHeight: 200, overflow: 'auto' }}>
-            {JSON.stringify(rawSample, null, 2)}
-          </pre>
-        </details>
-      )}
-
       <pre style={{
         background: '#2d2d2d', border: '1px solid #555', padding: 15,
-        whiteSpace: 'pre-wrap', fontSize: 12, maxHeight: '60vh', overflowY: 'auto',
+        whiteSpace: 'pre-wrap', fontSize: 12, maxHeight: '70vh', overflowY: 'auto',
       }}>
         {output}
       </pre>
