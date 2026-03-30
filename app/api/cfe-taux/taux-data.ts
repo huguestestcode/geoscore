@@ -18,28 +18,28 @@ export type BaseMinEntry = {
   tranches?: (number | null)[]  // base par tranche [t0..t5], null = inconnue
 }
 export const BASE_MINIMALE_CONNUES: Record<string, BaseMinEntry> = {
-  // Paris — base unique 399 € pour CA ≤ 100 000 € (sources : lamicrobyflo.fr, kandbaz.com, sofradom.fr)
-  '75056': { base: 399, source: 'Délibération Conseil de Paris 2025', caMax: 100000 },
-  '75101': { base: 399, source: 'Délibération Conseil de Paris 2025', caMax: 100000 },
-  '75102': { base: 399, source: 'Délibération Conseil de Paris 2025', caMax: 100000 },
-  '75103': { base: 399, source: 'Délibération Conseil de Paris 2025', caMax: 100000 },
-  '75104': { base: 399, source: 'Délibération Conseil de Paris 2025', caMax: 100000 },
-  '75105': { base: 399, source: 'Délibération Conseil de Paris 2025', caMax: 100000 },
-  '75106': { base: 399, source: 'Délibération Conseil de Paris 2025', caMax: 100000 },
-  '75107': { base: 399, source: 'Délibération Conseil de Paris 2025', caMax: 100000 },
-  '75108': { base: 399, source: 'Délibération Conseil de Paris 2025', caMax: 100000 },
-  '75109': { base: 399, source: 'Délibération Conseil de Paris 2025', caMax: 100000 },
-  '75110': { base: 399, source: 'Délibération Conseil de Paris 2025', caMax: 100000 },
-  '75111': { base: 399, source: 'Délibération Conseil de Paris 2025', caMax: 100000 },
-  '75112': { base: 399, source: 'Délibération Conseil de Paris 2025', caMax: 100000 },
-  '75113': { base: 399, source: 'Délibération Conseil de Paris 2025', caMax: 100000 },
-  '75114': { base: 399, source: 'Délibération Conseil de Paris 2025', caMax: 100000 },
-  '75115': { base: 399, source: 'Délibération Conseil de Paris 2025', caMax: 100000 },
-  '75116': { base: 399, source: 'Délibération Conseil de Paris 2025', caMax: 100000 },
-  '75117': { base: 399, source: 'Délibération Conseil de Paris 2025', caMax: 100000 },
-  '75118': { base: 399, source: 'Délibération Conseil de Paris 2025', caMax: 100000 },
-  '75119': { base: 399, source: 'Délibération Conseil de Paris 2025', caMax: 100000 },
-  '75120': { base: 399, source: 'Délibération Conseil de Paris 2025', caMax: 100000 },
+  // Paris — source officielle DGFiP 2025 : t1(≤10k)=plancher légal, t2-t3=416€, t4-t6=2432€
+  '75056': { base: 416, source: 'DGFiP délibérations 2025', tranches: [null, 416, 416, 2432, 2432, 2432] },
+  '75101': { base: 416, source: 'DGFiP délibérations 2025', tranches: [null, 416, 416, 2432, 2432, 2432] },
+  '75102': { base: 416, source: 'DGFiP délibérations 2025', tranches: [null, 416, 416, 2432, 2432, 2432] },
+  '75103': { base: 416, source: 'DGFiP délibérations 2025', tranches: [null, 416, 416, 2432, 2432, 2432] },
+  '75104': { base: 416, source: 'DGFiP délibérations 2025', tranches: [null, 416, 416, 2432, 2432, 2432] },
+  '75105': { base: 416, source: 'DGFiP délibérations 2025', tranches: [null, 416, 416, 2432, 2432, 2432] },
+  '75106': { base: 416, source: 'DGFiP délibérations 2025', tranches: [null, 416, 416, 2432, 2432, 2432] },
+  '75107': { base: 416, source: 'DGFiP délibérations 2025', tranches: [null, 416, 416, 2432, 2432, 2432] },
+  '75108': { base: 416, source: 'DGFiP délibérations 2025', tranches: [null, 416, 416, 2432, 2432, 2432] },
+  '75109': { base: 416, source: 'DGFiP délibérations 2025', tranches: [null, 416, 416, 2432, 2432, 2432] },
+  '75110': { base: 416, source: 'DGFiP délibérations 2025', tranches: [null, 416, 416, 2432, 2432, 2432] },
+  '75111': { base: 416, source: 'DGFiP délibérations 2025', tranches: [null, 416, 416, 2432, 2432, 2432] },
+  '75112': { base: 416, source: 'DGFiP délibérations 2025', tranches: [null, 416, 416, 2432, 2432, 2432] },
+  '75113': { base: 416, source: 'DGFiP délibérations 2025', tranches: [null, 416, 416, 2432, 2432, 2432] },
+  '75114': { base: 416, source: 'DGFiP délibérations 2025', tranches: [null, 416, 416, 2432, 2432, 2432] },
+  '75115': { base: 416, source: 'DGFiP délibérations 2025', tranches: [null, 416, 416, 2432, 2432, 2432] },
+  '75116': { base: 416, source: 'DGFiP délibérations 2025', tranches: [null, 416, 416, 2432, 2432, 2432] },
+  '75117': { base: 416, source: 'DGFiP délibérations 2025', tranches: [null, 416, 416, 2432, 2432, 2432] },
+  '75118': { base: 416, source: 'DGFiP délibérations 2025', tranches: [null, 416, 416, 2432, 2432, 2432] },
+  '75119': { base: 416, source: 'DGFiP délibérations 2025', tranches: [null, 416, 416, 2432, 2432, 2432] },
+  '75120': { base: 416, source: 'DGFiP délibérations 2025', tranches: [null, 416, 416, 2432, 2432, 2432] },
   // Marseille — base 1 019 € pour CA ≤ 32 600 € (sources : lamicrobyflo.fr, shine.fr, propulsebyca.fr — 2025)
   '13055': { base: 1019, source: 'Délibération Marseille Provence Métropole 2025', caMax: 32600 },
   '13201': { base: 1019, source: 'Délibération Marseille Provence Métropole 2025', caMax: 32600 },
@@ -73,6 +73,25 @@ export const BASE_MINIMALE_CONNUES: Record<string, BaseMinEntry> = {
   '13056': { base: 1019, source: 'Aix-Marseille-Provence Métropole 2025 (zone MPM, FPU)', caMax: 32600 },
   '13103': { base: 1019, source: 'Aix-Marseille-Provence Métropole 2025 (zone MPM, FPU)', caMax: 32600 },
   '13117': { base: 1019, source: 'Aix-Marseille-Provence Métropole 2025 (zone MPM, FPU)', caMax: 32600 },
+  // ── Nouvelles communes — source officielle DGFiP délibérations 2025 ───────────
+  // t1=CA≤10k | t2=10k-32.6k | t3=32.6k-100k | t4=100k-250k | t5=250k-500k | t6=>500k
+  // Loire-Authion (commune nouvelle Maine-et-Loire)
+  '49307': { base: 585, source: 'DGFiP délibérations 2025', tranches: [585, 1169, 2453, 2453, 2453, 2453] },
+  // Le Mans
+  '72181': { base: 577, source: 'DGFiP délibérations 2025', tranches: [577, 1153, 1814, 4036, 5764, 7496] },
+  // Hauts-de-Seine (92)
+  '92004': { base: 350, source: 'DGFiP délibérations 2025', tranches: [350, 1168, 2454, 4092, 5845, 7599] },   // Asnières-sur-Seine
+  '92024': { base: 584, source: 'DGFiP délibérations 2025', tranches: [584, 1168, 2454, 4092, 5845, 7599] },   // Clichy
+  '92036': { base: 1794, source: 'DGFiP délibérations 2025', tranches: [null, 1794, 1794, 1794, 1794, 1794] }, // Gennevilliers
+  // Seine-Saint-Denis (93)
+  '93005': { base: 589, source: 'DGFiP délibérations 2025', tranches: [589, 1179, 2360, 3539, 4717, 5897] },   // Aulnay-sous-Bois
+  '93007': { base: 584, source: 'DGFiP délibérations 2025', tranches: [584, 1168, 1753, 1753, 1753, 1753] },   // Le Blanc-Mesnil
+  '93051': { base: 2474, source: 'DGFiP délibérations 2025', tranches: [null, 2474, 2474, 2474, 2474, 2474] }, // Noisy-le-Grand
+  '93057': { base: 589, source: 'DGFiP délibérations 2025', tranches: [589, 1179, 1887, 1887, 5309, 7669] },   // Les Pavillons-sous-Bois
+  // Val-de-Marne (94)
+  '94033': { base: 584, source: 'DGFiP délibérations 2025', tranches: [584, 1168, 1763, 4092, 5845, 7599] },   // Fontenay-sous-Bois
+  '94067': { base: 584, source: 'DGFiP délibérations 2025', tranches: [584, 1168, 2454, 4092, 5845, 7599] },   // Saint-Mandé
+  '94080': { base: 589, source: 'DGFiP délibérations 2025', tranches: [589, 1179, 2477, 4129, 5897, 7669] },   // Vincennes
 }
 export const TAUX_CONNUS: Record<string, { taux: number; nom: string }> = {
   // ══════════════════════════════════════════════════════════════════════════════
