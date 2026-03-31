@@ -186,6 +186,212 @@ export const BASE_MINIMALE_CONNUES: Record<string, BaseMinEntry> = {
   // Clermont Auvergne Métropole (sirepci=246300701) — null/1179/1717/3248/4423/5752 €
   '63113': { base: 1179, source: 'DGFiP délibérations EPCI 2025 (Clermont Auvergne Métropole)', tranches: [null, 1179, 1717, 3248, 4423, 5752] }, // Clermont-Ferrand
   '63124': { base: 1179, source: 'DGFiP délibérations EPCI 2025 (Clermont Auvergne Métropole)', tranches: [null, 1179, 1717, 3248, 4423, 5752] }, // Cournon-d'Auvergne
+
+  // ── Metz Métropole (sirepci=200039865) — 584/1168/1404/3508/4676/5845 €
+  '57463': { base: 584, source: 'DGFiP délibérations EPCI 2025 (Metz Métropole)', tranches: [584, 1168, 1404, 3508, 4676, 5845] }, // Metz
+  '57672': { base: 584, source: 'DGFiP délibérations EPCI 2025 (Metz Métropole)', tranches: [584, 1168, 1404, 3508, 4676, 5845] }, // Woippy
+
+  // ── Métropole du Grand Nancy (sirepci=245400676) — 589/1179/1651/3419/5309/7079 €
+  '54395': { base: 589, source: 'DGFiP délibérations EPCI 2025 (Grand Nancy)', tranches: [589, 1179, 1651, 3419, 5309, 7079] }, // Nancy
+
+  // ── MGP EPT T02 VALLÉE SUD GRAND PARIS (sirepci=200057966) — 585/1158/2433/4055/5793/7532 €
+  '92002': { base: 585, source: 'DGFiP délibérations EPCI 2025 (T02 Vallée Sud)', tranches: [585, 1158, 2433, 4055, 5793, 7532] }, // Antony
+  '92023': { base: 585, source: 'DGFiP délibérations EPCI 2025 (T02 Vallée Sud)', tranches: [585, 1158, 2433, 4055, 5793, 7532] }, // Clamart
+  '92048': { base: 585, source: 'DGFiP délibérations EPCI 2025 (T02 Vallée Sud)', tranches: [585, 1158, 2433, 4055, 5793, 7532] }, // Meudon
+  '92049': { base: 585, source: 'DGFiP délibérations EPCI 2025 (T02 Vallée Sud)', tranches: [585, 1158, 2433, 4055, 5793, 7532] }, // Montrouge
+
+  // ── MGP EPT T03 GRAND PARIS SEINE OUEST (sirepci=200057974) — 577/1153/2020/2597/2883/3747 €
+  '92012': { base: 577, source: 'DGFiP délibérations EPCI 2025 (T03 Seine Ouest)', tranches: [577, 1153, 2020, 2597, 2883, 3747] }, // Boulogne-Billancourt
+  '92040': { base: 577, source: 'DGFiP délibérations EPCI 2025 (T03 Seine Ouest)', tranches: [577, 1153, 2020, 2597, 2883, 3747] }, // Issy-les-Moulineaux
+
+  // ── MGP EPT T04 PARIS OUEST LA DÉFENSE (sirepci=200057982) — 584/1167/2281/3601/4296/4587 €
+  '92025': { base: 584, source: 'DGFiP délibérations EPCI 2025 (T04 Paris Ouest)', tranches: [584, 1167, 2281, 3601, 4296, 4587] }, // Colombes
+  '92026': { base: 584, source: 'DGFiP délibérations EPCI 2025 (T04 Paris Ouest)', tranches: [584, 1167, 2281, 3601, 4296, 4587] }, // Courbevoie
+  '92044': { base: 584, source: 'DGFiP délibérations EPCI 2025 (T04 Paris Ouest)', tranches: [584, 1167, 2281, 3601, 4296, 4587] }, // Levallois-Perret
+  '92050': { base: 584, source: 'DGFiP délibérations EPCI 2025 (T04 Paris Ouest)', tranches: [584, 1167, 2281, 3601, 4296, 4587] }, // Nanterre
+  '92051': { base: 584, source: 'DGFiP délibérations EPCI 2025 (T04 Paris Ouest)', tranches: [584, 1167, 2281, 3601, 4296, 4587] }, // Neuilly-sur-Seine
+  '92062': { base: 584, source: 'DGFiP délibérations EPCI 2025 (T04 Paris Ouest)', tranches: [584, 1167, 2281, 3601, 4296, 4587] }, // Puteaux
+  '92063': { base: 584, source: 'DGFiP délibérations EPCI 2025 (T04 Paris Ouest)', tranches: [584, 1167, 2281, 3601, 4296, 4587] }, // Rueil-Malmaison
+  '92073': { base: 584, source: 'DGFiP délibérations EPCI 2025 (T04 Paris Ouest)', tranches: [584, 1167, 2281, 3601, 4296, 4587] }, // Suresnes
+
+  // ── MGP EPT T06 PLAINE COMMUNE (sirepci=200057867) — 539/1142/2400/4000/5714/7427 €
+  '93008': { base: 539, source: 'DGFiP délibérations EPCI 2025 (T06 Plaine Commune)', tranches: [539, 1142, 2400, 4000, 5714, 7427] }, // Aubervilliers
+  '93027': { base: 539, source: 'DGFiP délibérations EPCI 2025 (T06 Plaine Commune)', tranches: [539, 1142, 2400, 4000, 5714, 7427] }, // La Courneuve
+  '93031': { base: 539, source: 'DGFiP délibérations EPCI 2025 (T06 Plaine Commune)', tranches: [539, 1142, 2400, 4000, 5714, 7427] }, // Épinay-sur-Seine
+  '93063': { base: 539, source: 'DGFiP délibérations EPCI 2025 (T06 Plaine Commune)', tranches: [539, 1142, 2400, 4000, 5714, 7427] }, // Saint-Ouen-sur-Seine
+  '93066': { base: 539, source: 'DGFiP délibérations EPCI 2025 (T06 Plaine Commune)', tranches: [539, 1142, 2400, 4000, 5714, 7427] }, // Saint-Denis
+
+  // ── MGP EPT T08 EST ENSEMBLE (sirepci=200057875) — 584/1167/1717/2371/5840/7592 €
+  '93013': { base: 584, source: 'DGFiP délibérations EPCI 2025 (T08 Est Ensemble)', tranches: [584, 1167, 1717, 2371, 5840, 7592] }, // Bondy
+  '93047': { base: 584, source: 'DGFiP délibérations EPCI 2025 (T08 Est Ensemble)', tranches: [584, 1167, 1717, 2371, 5840, 7592] }, // Noisy-le-Sec
+  '93048': { base: 584, source: 'DGFiP délibérations EPCI 2025 (T08 Est Ensemble)', tranches: [584, 1167, 1717, 2371, 5840, 7592] }, // Montreuil
+  '93049': { base: 584, source: 'DGFiP délibérations EPCI 2025 (T08 Est Ensemble)', tranches: [584, 1167, 1717, 2371, 5840, 7592] }, // Pantin
+
+  // ── MGP EPT T09 GRAND PARIS - GRAND EST (sirepci=200058790) — 580/1158/2433/3386/4838/6289 €
+  '93032': { base: 580, source: 'DGFiP délibérations EPCI 2025 (T09 Grand Paris Grand Est)', tranches: [580, 1158, 2433, 3386, 4838, 6289] }, // Livry-Gargan
+
+  // ── MGP EPT T10 PARIS-EST-MARNE ET BOIS (sirepci=200057941) — 585/1148/2182/4020/5850/7608 €
+  '94019': { base: 585, source: 'DGFiP délibérations EPCI 2025 (T10 Paris-Est-Marne)', tranches: [585, 1148, 2182, 4020, 5850, 7608] }, // Champigny-sur-Marne
+
+  // ── MGP EPT T11 PLAINE CENTRALE (sirepci=200058006) — 585/1169/2424/4097/5793/6890 €
+  '94002': { base: 585, source: 'DGFiP délibérations EPCI 2025 (T11 Plaine Centrale)', tranches: [585, 1169, 2424, 4097, 5793, 6890] }, // Alfortville
+  '94022': { base: 585, source: 'DGFiP délibérations EPCI 2025 (T11 Plaine Centrale)', tranches: [585, 1169, 2424, 4097, 5793, 6890] }, // Choisy-le-Roi
+  '94028': { base: 585, source: 'DGFiP délibérations EPCI 2025 (T11 Plaine Centrale)', tranches: [585, 1169, 2424, 4097, 5793, 6890] }, // Créteil
+  '94054': { base: 585, source: 'DGFiP délibérations EPCI 2025 (T11 Plaine Centrale)', tranches: [585, 1169, 2424, 4097, 5793, 6890] }, // Maisons-Alfort
+
+  // ── MGP EPT T12 GRAND-ORLY VAL-DE-BIÈVRE (sirepci=200058014) — 580/1158/1208/2392/5793/7532 €
+  '94038': { base: 580, source: 'DGFiP délibérations EPCI 2025 (T12 Grand-Orly)', tranches: [580, 1158, 1208, 2392, 5793, 7532] }, // L'Haÿ-les-Roses
+  '94043': { base: 580, source: 'DGFiP délibérations EPCI 2025 (T12 Grand-Orly)', tranches: [580, 1158, 1208, 2392, 5793, 7532] }, // Ivry-sur-Seine
+  '94076': { base: 580, source: 'DGFiP délibérations EPCI 2025 (T12 Grand-Orly)', tranches: [580, 1158, 1208, 2392, 5793, 7532] }, // Villejuif
+  '94081': { base: 580, source: 'DGFiP délibérations EPCI 2025 (T12 Grand-Orly)', tranches: [580, 1158, 1208, 2392, 5793, 7532] }, // Vitry-sur-Seine
+
+  // ── CA Val Parisis dep 95 (sirepci=200058485) — 575/1148/2068/2872/2987/3101 €
+  '95018': { base: 575, source: 'DGFiP délibérations EPCI 2025 (CA Val Parisis)', tranches: [575, 1148, 2068, 2872, 2987, 3101] }, // Argenteuil
+  '95268': { base: 575, source: 'DGFiP délibérations EPCI 2025 (CA Val Parisis)', tranches: [575, 1148, 2068, 2872, 2987, 3101] }, // Garges-lès-Gonesse
+  '95585': { base: 575, source: 'DGFiP délibérations EPCI 2025 (CA Val Parisis)', tranches: [575, 1148, 2068, 2872, 2987, 3101] }, // Sarcelles
+
+  // ── Provinces — EPCIs FPU / délibérations 2025 ──────────────────────────────
+  // CA Ardenne Métropole (08) — 584/1134/2041/2918/4006/4913 €
+  '08105': { base: 584, source: 'DGFiP délibérations EPCI 2025 (CA Ardenne Métropole)', tranches: [584, 1134, 2041, 2918, 4006, 4913] }, // Charleville-Mézières
+  // CA Troyes Champagne Métropole (10) — 584/1167/1705/2386/3070/3695 €
+  '10387': { base: 584, source: 'DGFiP délibérations EPCI 2025 (CA Troyes Champagne)', tranches: [584, 1167, 1705, 2386, 3070, 3695] }, // Troyes
+  // CA Carcassonne Agglo (11) — 403/517/1786/2763/3799/4841 €
+  '11069': { base: 403, source: 'DGFiP délibérations EPCI 2025 (CA Carcassonne Agglo)', tranches: [403, 517, 1786, 2763, 3799, 4841] }, // Carcassonne
+  // CA Le Grand Narbonne (11) — 579/926/1157/1737/2893/3472 €
+  '11262': { base: 579, source: 'DGFiP délibérations EPCI 2025 (CA Le Grand Narbonne)', tranches: [579, 926, 1157, 1737, 2893, 3472] }, // Narbonne
+  // CU Caen la Mer (14) — 584/1167/1705/2273/3410/4549 €
+  '14118': { base: 584, source: 'DGFiP délibérations EPCI 2025 (CU Caen la Mer)', tranches: [584, 1167, 1705, 2273, 3410, 4549] }, // Caen
+  // CA Grand Angoulême (16) — 584/1167/1766/3032/4207/5974 €
+  '16015': { base: 584, source: 'DGFiP délibérations EPCI 2025 (CA Grand Angoulême)', tranches: [584, 1167, 1766, 3032, 4207, 5974] }, // Angoulême
+  // CA de La Rochelle (17) — 589/1179/2477/4129/5897/7669 €
+  '17300': { base: 589, source: 'DGFiP délibérations EPCI 2025 (CA de La Rochelle)', tranches: [589, 1179, 2477, 4129, 5897, 7669] }, // La Rochelle
+  // CA Bourges Plus (18) — 416/708/1349/2169/3045/3922 €
+  '18033': { base: 416, source: 'DGFiP délibérations EPCI 2025 (CA Bourges Plus)', tranches: [416, 708, 1349, 2169, 3045, 3922] }, // Bourges
+  // CA du Bassin de Brive (19) — 575/734/876/876/876/876 €
+  '19031': { base: 575, source: 'DGFiP délibérations EPCI 2025 (CA Bassin de Brive)', tranches: [575, 734, 876, 876, 876, 876] }, // Brive-la-Gaillarde
+  // CA Saint-Brieuc Armor Agglomération (22) — 584/1167/2313/2893/5557/7410 €
+  '22278': { base: 584, source: 'DGFiP délibérations EPCI 2025 (CA Saint-Brieuc Armor)', tranches: [584, 1167, 2313, 2893, 5557, 7410] }, // Saint-Brieuc
+  // CA Montélimar Agglomération (26) — 584/1168/2104/2690/3624/4092 €
+  '26198': { base: 584, source: 'DGFiP délibérations EPCI 2025 (CA Montélimar Agglomération)', tranches: [584, 1168, 2104, 2690, 3624, 4092] }, // Montélimar
+  // CA Valence Romans Agglo (26) — 579/1157/2145/2745/3049/null €
+  '26362': { base: 579, source: 'DGFiP délibérations EPCI 2025 (CA Valence Romans Agglo)', tranches: [579, 1157, 2145, 2745, 3049, null] }, // Valence
+  // CA Évreux Portes de Normandie (27) — 534/1070/2081/3741/5345/6412 €
+  '27229': { base: 534, source: 'DGFiP délibérations EPCI 2025 (CA Évreux Portes de Normandie)', tranches: [534, 1070, 2081, 3741, 5345, 6412] }, // Évreux
+  // CA Chartres Métropole (28) — 589/1179/2477/4129/5897/7669 €
+  '28085': { base: 589, source: 'DGFiP délibérations EPCI 2025 (CA Chartres Métropole)', tranches: [589, 1179, 2477, 4129, 5897, 7669] }, // Chartres
+  // Brest Métropole (29) — 589/1179/1958/3913/4717/5897 €
+  '29019': { base: 589, source: 'DGFiP délibérations EPCI 2025 (Brest Métropole)', tranches: [589, 1179, 1958, 3913, 4717, 5897] }, // Brest
+  // CA Quimper Bretagne Occidentale (29) — 550/1099/1759/2463/3202/3842 €
+  '29232': { base: 550, source: 'DGFiP délibérations EPCI 2025 (CA Quimper Bretagne)', tranches: [550, 1099, 1759, 2463, 3202, 3842] }, // Quimper
+  // CA du Pays Ajaccien (2A) — 577/1153/1684/1684/1684/1684 €
+  '2A004': { base: 577, source: 'DGFiP délibérations EPCI 2025 (CA Pays Ajaccien)', tranches: [577, 1153, 1684, 1684, 1684, 1684] }, // Ajaccio
+  // CA de Bastia (2B) — null/2470/2470/4936/7198/7198 €
+  '2B033': { base: 2470, source: 'DGFiP délibérations EPCI 2025 (CA de Bastia)', tranches: [null, 2470, 2470, 4936, 7198, 7198] }, // Bastia
+  // CA Alès Agglomération (30) — 589/1179/2477/2956/5897/6503 €
+  '30007': { base: 589, source: 'DGFiP délibérations EPCI 2025 (CA Alès Agglomération)', tranches: [589, 1179, 2477, 2956, 5897, 6503] }, // Alès
+  // CA de Nîmes Métropole (30) — null/null/null/2452/3182/3965 €
+  '30189': { base: 2452, source: 'DGFiP délibérations EPCI 2025 (CA Nîmes Métropole)', tranches: [null, null, null, 2452, 3182, 3965] }, // Nîmes
+  // CA Châteauroux Métropole (36) — 579/1158/1825/3042/4345/5650 €
+  '36044': { base: 579, source: 'DGFiP délibérations EPCI 2025 (CA Châteauroux Métropole)', tranches: [579, 1158, 1825, 3042, 4345, 5650] }, // Châteauroux
+  // Saint-Étienne Métropole (42) — 584/1168/1989/2104/4209/5260 €
+  '42218': { base: 584, source: 'DGFiP délibérations EPCI 2025 (Saint-Étienne Métropole)', tranches: [584, 1168, 1989, 2104, 4209, 5260] }, // Saint-Étienne
+  // CA Agglomération d'Agen (47) — 554/1101/1646/3037/4140/5248 €
+  '47001': { base: 554, source: 'DGFiP délibérations EPCI 2025 (CA Agglomération d\'Agen)', tranches: [554, 1101, 1646, 3037, 4140, 5248] }, // Agen
+  // CA du Cotentin (50) — 420/734/816/1224/1633/2041 €
+  '50129': { base: 420, source: 'DGFiP délibérations EPCI 2025 (CA du Cotentin)', tranches: [420, 734, 816, 1224, 1633, 2041] }, // Cherbourg-en-Cotentin
+  // CA de Châlons-en-Champagne (51) — 584/1167/2452/4089/5840/7593 €
+  '51108': { base: 584, source: 'DGFiP délibérations EPCI 2025 (CA Châlons-en-Champagne)', tranches: [584, 1167, 2452, 4089, 5840, 7593] }, // Châlons-en-Champagne
+  // CU du Grand Reims (51) — 580/1158/1956/2030/2114/2252 €
+  '51454': { base: 580, source: 'DGFiP délibérations EPCI 2025 (CU Grand Reims)', tranches: [580, 1158, 1956, 2030, 2114, 2252] }, // Reims
+  // CA Laval Agglomération (53) — 577/1153/1604/4036/4755/4755 €
+  '53130': { base: 577, source: 'DGFiP délibérations EPCI 2025 (CA Laval Agglomération)', tranches: [577, 1153, 1604, 4036, 4755, 4755] }, // Laval
+  // CA Lorient Agglomération (56) — 584/1168/2454/2454/2454/2454 €
+  '56121': { base: 584, source: 'DGFiP délibérations EPCI 2025 (CA Lorient Agglomération)', tranches: [584, 1168, 2454, 2454, 2454, 2454] }, // Lorient
+  // CA Golfe du Morbihan - Vannes Agglomération (56) — 577/1153/1993/2983/3684/4614 €
+  '56260': { base: 577, source: 'DGFiP délibérations EPCI 2025 (CA Golfe du Morbihan-Vannes)', tranches: [577, 1153, 1993, 2983, 3684, 4614] }, // Vannes
+  // CA du Beauvaisis (60) — 584/1167/1845/2230/2896/3767 €
+  '60057': { base: 584, source: 'DGFiP délibérations EPCI 2025 (CA du Beauvaisis)', tranches: [584, 1167, 1845, 2230, 2896, 3767] }, // Beauvais
+  // CA de la Région de Compiègne (60) — 584/1167/1446/2408/2408/2408 €
+  '60159': { base: 584, source: 'DGFiP délibérations EPCI 2025 (CA Région de Compiègne)', tranches: [584, 1167, 1446, 2408, 2408, 2408] }, // Compiègne
+  // CU d'Arras (62) — null/1441/1441/2401/2401/2401 €
+  '62041': { base: 1441, source: 'DGFiP délibérations EPCI 2025 (CU d\'Arras)', tranches: [null, 1441, 1441, 2401, 2401, 2401] }, // Arras
+  // CA Grand Calais Terres et Mers (62) — 292/988/1744/2325/2904/3487 €
+  '62160': { base: 292, source: 'DGFiP délibérations EPCI 2025 (CA Grand Calais)', tranches: [292, 988, 1744, 2325, 2904, 3487] }, // Calais
+  // CA Tarbes-Lourdes-Pyrénées (65) — 580/1158/1331/1330/1330/1330 €
+  '65440': { base: 580, source: 'DGFiP délibérations EPCI 2025 (CA Tarbes-Lourdes-Pyrénées)', tranches: [580, 1158, 1331, 1330, 1330, 1330] }, // Tarbes
+  // CU Perpignan Méditerranée Métropole (66) — 579/1016/1157/2893/5209/6943 €
+  '66136': { base: 579, source: 'DGFiP délibérations EPCI 2025 (CU Perpignan Méditerranée)', tranches: [579, 1016, 1157, 2893, 5209, 6943] }, // Perpignan
+  // CA Colmar Agglomération (68) — 577/1153/1571/3143/3592/4489 €
+  '68066': { base: 577, source: 'DGFiP délibérations EPCI 2025 (CA Colmar Agglomération)', tranches: [577, 1153, 1571, 3143, 3592, 4489] }, // Colmar
+  // CA Mulhouse Alsace Agglomération (68) — 584/1167/2445/4089/5799/7506 €
+  '68224': { base: 584, source: 'DGFiP délibérations EPCI 2025 (CA Mulhouse Alsace Agglomération)', tranches: [584, 1167, 2445, 4089, 5799, 7506] }, // Mulhouse
+  // CA Saint-Louis Agglomération (68) — 584/1167/1747/1820/1820/1820 €
+  '68297': { base: 584, source: 'DGFiP délibérations EPCI 2025 (CA Saint-Louis Agglomération)', tranches: [584, 1167, 1747, 1820, 1820, 1820] }, // Saint-Louis
+  // CA du Grand Chambéry (73) — 589/1179/1259/2388/3585/3585 €
+  '73065': { base: 589, source: 'DGFiP délibérations EPCI 2025 (CA Grand Chambéry)', tranches: [589, 1179, 1259, 2388, 3585, 3585] }, // Chambéry
+  // CA du Grand Annecy (74) — 584/1165/1716/2023/2384/2811 €
+  '74010': { base: 584, source: 'DGFiP délibérations EPCI 2025 (CA Grand Annecy)', tranches: [584, 1165, 1716, 2023, 2384, 2811] }, // Annecy
+  // CU Le Havre Seine Métropole (76) — 574/1148/1886/3024/4317/5614 €
+  '76351': { base: 574, source: 'DGFiP délibérations EPCI 2025 (CU Le Havre Seine Métropole)', tranches: [574, 1148, 1886, 3024, 4317, 5614] }, // Le Havre
+  // Métropole Rouen Normandie (76) — 589/1179/1968/2890/4129/5309 €
+  '76540': { base: 589, source: 'DGFiP délibérations EPCI 2025 (Métropole Rouen Normandie)', tranches: [589, 1179, 1968, 2890, 4129, 5309] }, // Rouen
+  // CA Paris - Vallée de la Marne (77) — 585/1169/2456/3618/4331/5743 €
+  '77083': { base: 585, source: 'DGFiP délibérations EPCI 2025 (CA Paris-Vallée de la Marne)', tranches: [585, 1169, 2456, 3618, 4331, 5743] }, // Chelles
+  // CA du Pays de Meaux (77) — 556/1112/1667/2388/3112/3946 €
+  '77284': { base: 556, source: 'DGFiP délibérations EPCI 2025 (CA Pays de Meaux)', tranches: [556, 1112, 1667, 2388, 3112, 3946] }, // Meaux
+  // CA Melun Val de Seine (77) — 247/247/247/247/247/247 €
+  '77288': { base: 247, source: 'DGFiP délibérations EPCI 2025 (CA Melun Val de Seine)', tranches: [247, 247, 247, 247, 247, 247] }, // Melun
+  // CU Grand Paris Seine et Oise (78) — 585/1160/2068/3331/4364/5167 €
+  '78361': { base: 585, source: 'DGFiP délibérations EPCI 2025 (CU Grand Paris Seine et Oise)', tranches: [585, 1160, 2068, 3331, 4364, 5167] }, // Mantes-la-Jolie
+  // CA de Saint-Quentin-en-Yvelines (78) — 584/1168/1984/2611/3785/3886 €
+  '78517': { base: 584, source: 'DGFiP délibérations EPCI 2025 (CA Saint-Quentin-en-Yvelines)', tranches: [584, 1168, 1984, 2611, 3785, 3886] }, // Saint-Cyr-l'École
+  // CA Saint Germain Boucles de Seine (78) — 567/1121/1831/2872/3413/3844 €
+  '78551': { base: 567, source: 'DGFiP délibérations EPCI 2025 (CA Saint-Germain Boucles de Seine)', tranches: [567, 1121, 1831, 2872, 3413, 3844] }, // Saint-Germain-en-Laye
+  '78586': { base: 567, source: 'DGFiP délibérations EPCI 2025 (CA Saint-Germain Boucles de Seine)', tranches: [567, 1121, 1831, 2872, 3413, 3844] }, // Sartrouville
+  // CA Versailles Grand Parc (78) — 589/1887/1887/3066/3066/3066 €
+  '78646': { base: 589, source: 'DGFiP délibérations EPCI 2025 (CA Versailles Grand Parc)', tranches: [589, 1887, 1887, 3066, 3066, 3066] }, // Versailles
+  // CA du Niortais (79) — 245/817/1753/3273/4444/5611 €
+  '79191': { base: 245, source: 'DGFiP délibérations EPCI 2025 (CA du Niortais)', tranches: [245, 817, 1753, 3273, 4444, 5611] }, // Niort
+  // CA Amiens Métropole (80) — 580/1160/2137/4058/5800/7539 €
+  '80021': { base: 580, source: 'DGFiP délibérations EPCI 2025 (CA Amiens Métropole)', tranches: [580, 1160, 2137, 4058, 5800, 7539] }, // Amiens
+  // CA de l'Albigeois (81) — 471/944/1769/2360/4717/4717 €
+  '81004': { base: 471, source: 'DGFiP délibérations EPCI 2025 (CA de l\'Albigeois)', tranches: [471, 944, 1769, 2360, 4717, 4717] }, // Albi
+  // CA de Castres-Mazamet (81) — 584/1168/1286/2220/3390/4561 €
+  '81065': { base: 584, source: 'DGFiP délibérations EPCI 2025 (CA Castres-Mazamet)', tranches: [584, 1168, 1286, 2220, 3390, 4561] }, // Castres
+  // CA Grand Montauban (82) — 584/1062/1259/1737/2313/4051 €
+  '82121': { base: 584, source: 'DGFiP délibérations EPCI 2025 (CA Grand Montauban)', tranches: [584, 1062, 1259, 1737, 2313, 4051] }, // Montauban
+  // Métropole Toulon-Provence-Méditerranée (83) — null/1649/1649/2990/2990/2990 €
+  '83023': { base: 1649, source: 'DGFiP délibérations EPCI 2025 (Métropole TPM)', tranches: [null, 1649, 1649, 2990, 2990, 2990] }, // La Seyne-sur-Mer
+  // CA Estérel Côte d'Azur Agglomération (83) — 584/1168/2456/4097/5850/7608 €
+  '83050': { base: 584, source: 'DGFiP délibérations EPCI 2025 (CA Estérel Côte d\'Azur)', tranches: [584, 1168, 2456, 4097, 5850, 7608] }, // Fréjus
+  '83061': { base: 1649, source: 'DGFiP délibérations EPCI 2025 (Métropole TPM)', tranches: [null, 1649, 1649, 2990, 2990, 2990] }, // Hyères
+  // CA Dracénie Provence Verdon Agglomération (83) — 577/1088/1633/2176/2721/3265 €
+  '83069': { base: 577, source: 'DGFiP délibérations EPCI 2025 (CA Dracénie Provence Verdon)', tranches: [577, 1088, 1633, 2176, 2721, 3265] }, // Draguignan
+  '83137': { base: 1649, source: 'DGFiP délibérations EPCI 2025 (Métropole TPM)', tranches: [null, 1649, 1649, 2990, 2990, 2990] }, // Toulon
+  // CA du Grand Avignon (84) — 589/1179/2360/3539/5309/6489 €
+  '84007': { base: 589, source: 'DGFiP délibérations EPCI 2025 (CA Grand Avignon)', tranches: [589, 1179, 2360, 3539, 5309, 6489] }, // Avignon
+  // CA Les Sables d'Olonne Agglomération (85) — 470/941/1632/3057/4233/7055 €
+  '85109': { base: 470, source: 'DGFiP délibérations EPCI 2025 (CA Les Sables d\'Olonne)', tranches: [470, 941, 1632, 3057, 4233, 7055] }, // Les Sables-d'Olonne
+  // CA La Roche-sur-Yon Agglomération (85) — null/2236/2236/2927/5377/5377 €
+  '85191': { base: 2236, source: 'DGFiP délibérations EPCI 2025 (CA La Roche-sur-Yon)', tranches: [null, 2236, 2236, 2927, 5377, 5377] }, // La Roche-sur-Yon
+  // CU du Grand Poitiers (86) — 575/1148/2049/2412/3905/5743 €
+  '86194': { base: 575, source: 'DGFiP délibérations EPCI 2025 (CU Grand Poitiers)', tranches: [575, 1148, 2049, 2412, 3905, 5743] }, // Poitiers
+  // CU Limoges Métropole (87) — 403/803/1608/3172/4758/6605 €
+  '87085': { base: 403, source: 'DGFiP délibérations EPCI 2025 (CU Limoges Métropole)', tranches: [403, 803, 1608, 3172, 4758, 6605] }, // Limoges
+  // CA Grand Belfort (90) — 582/1164/2446/4076/5821/7570 €
+  '90010': { base: 582, source: 'DGFiP délibérations EPCI 2025 (CA Grand Belfort)', tranches: [582, 1164, 2446, 4076, 5821, 7570] }, // Belfort
+
+  // ── DOM/TOM — EPCIs 2025 ──────────────────────────────────────────────────────
+  // CA CAP Excellence (971 Guadeloupe) — 584/1168/2454/4092/5845/7599 €
+  '97100': { base: 584, source: 'DGFiP délibérations EPCI 2025 (CA CAP Excellence)', tranches: [584, 1168, 2454, 4092, 5845, 7599] }, // Les Abymes
+  // CA du Centre de la Martinique (972) — 584/1168/2454/4092/5845/7599 €
+  '97209': { base: 584, source: 'DGFiP délibérations EPCI 2025 (CA Centre de la Martinique)', tranches: [584, 1168, 2454, 4092, 5845, 7599] }, // Fort-de-France
+  '97213': { base: 584, source: 'DGFiP délibérations EPCI 2025 (CA Centre de la Martinique)', tranches: [584, 1168, 2454, 4092, 5845, 7599] }, // Le Lamentin
+  // CA CIVIS (974 La Réunion) — 589/1179/2477/4129/5897/7669 €
+  '97416': { base: 589, source: 'DGFiP délibérations EPCI 2025 (CA CIVIS Réunion)', tranches: [589, 1179, 2477, 4129, 5897, 7669] }, // Saint-Pierre
+  '97422': { base: 589, source: 'DGFiP délibérations EPCI 2025 (CA CIVIS Réunion)', tranches: [589, 1179, 2477, 4129, 5897, 7669] }, // Le Tampon
+  // CA Intercommunale de la Réunion Est - CIREST (974) — 589/1179/1240/1357/2950/4129 €
+  '97701': { base: 589, source: 'DGFiP délibérations EPCI 2025 (CA CIREST Réunion Est)', tranches: [589, 1179, 1240, 1357, 2950, 4129] }, // Saint-André
 }
 export const TAUX_CONNUS: Record<string, { taux: number; nom: string }> = {
   // ══════════════════════════════════════════════════════════════════════════════
