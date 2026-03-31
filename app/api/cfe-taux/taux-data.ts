@@ -40,39 +40,41 @@ export const BASE_MINIMALE_CONNUES: Record<string, BaseMinEntry> = {
   '75118': { base: 416, source: 'DGFiP délibérations 2025', tranches: [null, 416, 416, 2432, 2432, 2432] },
   '75119': { base: 416, source: 'DGFiP délibérations 2025', tranches: [null, 416, 416, 2432, 2432, 2432] },
   '75120': { base: 416, source: 'DGFiP délibérations 2025', tranches: [null, 416, 416, 2432, 2432, 2432] },
-  // Marseille — base 1 019 € pour CA ≤ 32 600 € (sources : lamicrobyflo.fr, shine.fr, propulsebyca.fr — 2025)
-  '13055': { base: 1019, source: 'Délibération Marseille Provence Métropole 2025', caMax: 32600 },
-  '13201': { base: 1019, source: 'Délibération Marseille Provence Métropole 2025', caMax: 32600 },
-  '13202': { base: 1019, source: 'Délibération Marseille Provence Métropole 2025', caMax: 32600 },
-  '13203': { base: 1019, source: 'Délibération Marseille Provence Métropole 2025', caMax: 32600 },
-  '13204': { base: 1019, source: 'Délibération Marseille Provence Métropole 2025', caMax: 32600 },
-  '13205': { base: 1019, source: 'Délibération Marseille Provence Métropole 2025', caMax: 32600 },
-  '13206': { base: 1019, source: 'Délibération Marseille Provence Métropole 2025', caMax: 32600 },
-  '13207': { base: 1019, source: 'Délibération Marseille Provence Métropole 2025', caMax: 32600 },
-  '13208': { base: 1019, source: 'Délibération Marseille Provence Métropole 2025', caMax: 32600 },
-  '13209': { base: 1019, source: 'Délibération Marseille Provence Métropole 2025', caMax: 32600 },
-  '13210': { base: 1019, source: 'Délibération Marseille Provence Métropole 2025', caMax: 32600 },
-  '13211': { base: 1019, source: 'Délibération Marseille Provence Métropole 2025', caMax: 32600 },
-  '13212': { base: 1019, source: 'Délibération Marseille Provence Métropole 2025', caMax: 32600 },
-  '13213': { base: 1019, source: 'Délibération Marseille Provence Métropole 2025', caMax: 32600 },
-  '13214': { base: 1019, source: 'Délibération Marseille Provence Métropole 2025', caMax: 32600 },
-  '13215': { base: 1019, source: 'Délibération Marseille Provence Métropole 2025', caMax: 32600 },
-  '13216': { base: 1019, source: 'Délibération Marseille Provence Métropole 2025', caMax: 32600 },
-  // Bordeaux Métropole — applique les maximums légaux pour toutes les tranches (source : lamicrobyflo.fr, entreprendre.bordeaux-metropole.fr)
-  // tranches [t0..t5] = maxima légaux 2025 : 579/1158/2433/4056/5793/7533 €
-  '33063': { base: 579, source: 'Bordeaux Métropole 2025 — maximums légaux art. 1647 D', tranches: [579, 1158, 2433, 4056, 5793, 7533] },
-  '33281': { base: 579, source: 'Bordeaux Métropole 2025 — maximums légaux art. 1647 D', tranches: [579, 1158, 2433, 4056, 5793, 7533] },
-  '33318': { base: 579, source: 'Bordeaux Métropole 2025 — maximums légaux art. 1647 D', tranches: [579, 1158, 2433, 4056, 5793, 7533] },
-  '33522': { base: 579, source: 'Bordeaux Métropole 2025 — maximums légaux art. 1647 D', tranches: [579, 1158, 2433, 4056, 5793, 7533] },
-  '33550': { base: 579, source: 'Bordeaux Métropole 2025 — maximums légaux art. 1647 D', tranches: [579, 1158, 2433, 4056, 5793, 7533] },
-  // Aix-Marseille-Provence Métropole — zone MPM (taux 32.87 %) — même EPCI que Marseille → même base minimale
-  // Source : FPU — base votée par la métropole, identique pour toutes les communes de la zone MPM
-  '13001': { base: 1019, source: 'Aix-Marseille-Provence Métropole 2025 (zone MPM, FPU)', caMax: 32600 },
-  '13005': { base: 1019, source: 'Aix-Marseille-Provence Métropole 2025 (zone MPM, FPU)', caMax: 32600 },
-  '13047': { base: 1019, source: 'Aix-Marseille-Provence Métropole 2025 (zone MPM, FPU)', caMax: 32600 },
-  '13056': { base: 1019, source: 'Aix-Marseille-Provence Métropole 2025 (zone MPM, FPU)', caMax: 32600 },
-  '13103': { base: 1019, source: 'Aix-Marseille-Provence Métropole 2025 (zone MPM, FPU)', caMax: 32600 },
-  '13117': { base: 1019, source: 'Aix-Marseille-Provence Métropole 2025 (zone MPM, FPU)', caMax: 32600 },
+  // Aix-Marseille-Provence Métropole (FPU) — source officielle DGFiP EPCI 2025
+  // sirepci=200054807 — tranches : 585/1169/2068/3216/4364/5512 €
+  '13001': { base: 585, source: 'DGFiP délibérations EPCI 2025 (Métropole AMP)', tranches: [585, 1169, 2068, 3216, 4364, 5512] }, // Aix-en-Provence
+  '13004': { base: 585, source: 'DGFiP délibérations EPCI 2025 (Métropole AMP)', tranches: [585, 1169, 2068, 3216, 4364, 5512] }, // Allauch
+  '13005': { base: 585, source: 'DGFiP délibérations EPCI 2025 (Métropole AMP)', tranches: [585, 1169, 2068, 3216, 4364, 5512] }, // Aubagne
+  '13014': { base: 585, source: 'DGFiP délibérations EPCI 2025 (Métropole AMP)', tranches: [585, 1169, 2068, 3216, 4364, 5512] }, // Berre-l'Étang
+  '13047': { base: 585, source: 'DGFiP délibérations EPCI 2025 (Métropole AMP)', tranches: [585, 1169, 2068, 3216, 4364, 5512] }, // Istres
+  '13055': { base: 585, source: 'DGFiP délibérations EPCI 2025 (Métropole AMP)', tranches: [585, 1169, 2068, 3216, 4364, 5512] }, // Marseille
+  '13056': { base: 585, source: 'DGFiP délibérations EPCI 2025 (Métropole AMP)', tranches: [585, 1169, 2068, 3216, 4364, 5512] }, // Martigues
+  '13081': { base: 585, source: 'DGFiP délibérations EPCI 2025 (Métropole AMP)', tranches: [585, 1169, 2068, 3216, 4364, 5512] }, // Plan-de-Cuques
+  '13103': { base: 585, source: 'DGFiP délibérations EPCI 2025 (Métropole AMP)', tranches: [585, 1169, 2068, 3216, 4364, 5512] }, // Salon-de-Provence
+  '13117': { base: 585, source: 'DGFiP délibérations EPCI 2025 (Métropole AMP)', tranches: [585, 1169, 2068, 3216, 4364, 5512] }, // Vitrolles
+  '13201': { base: 585, source: 'DGFiP délibérations EPCI 2025 (Métropole AMP)', tranches: [585, 1169, 2068, 3216, 4364, 5512] }, // Marseille 1er
+  '13202': { base: 585, source: 'DGFiP délibérations EPCI 2025 (Métropole AMP)', tranches: [585, 1169, 2068, 3216, 4364, 5512] },
+  '13203': { base: 585, source: 'DGFiP délibérations EPCI 2025 (Métropole AMP)', tranches: [585, 1169, 2068, 3216, 4364, 5512] },
+  '13204': { base: 585, source: 'DGFiP délibérations EPCI 2025 (Métropole AMP)', tranches: [585, 1169, 2068, 3216, 4364, 5512] },
+  '13205': { base: 585, source: 'DGFiP délibérations EPCI 2025 (Métropole AMP)', tranches: [585, 1169, 2068, 3216, 4364, 5512] },
+  '13206': { base: 585, source: 'DGFiP délibérations EPCI 2025 (Métropole AMP)', tranches: [585, 1169, 2068, 3216, 4364, 5512] },
+  '13207': { base: 585, source: 'DGFiP délibérations EPCI 2025 (Métropole AMP)', tranches: [585, 1169, 2068, 3216, 4364, 5512] },
+  '13208': { base: 585, source: 'DGFiP délibérations EPCI 2025 (Métropole AMP)', tranches: [585, 1169, 2068, 3216, 4364, 5512] },
+  '13209': { base: 585, source: 'DGFiP délibérations EPCI 2025 (Métropole AMP)', tranches: [585, 1169, 2068, 3216, 4364, 5512] },
+  '13210': { base: 585, source: 'DGFiP délibérations EPCI 2025 (Métropole AMP)', tranches: [585, 1169, 2068, 3216, 4364, 5512] },
+  '13211': { base: 585, source: 'DGFiP délibérations EPCI 2025 (Métropole AMP)', tranches: [585, 1169, 2068, 3216, 4364, 5512] },
+  '13212': { base: 585, source: 'DGFiP délibérations EPCI 2025 (Métropole AMP)', tranches: [585, 1169, 2068, 3216, 4364, 5512] },
+  '13213': { base: 585, source: 'DGFiP délibérations EPCI 2025 (Métropole AMP)', tranches: [585, 1169, 2068, 3216, 4364, 5512] },
+  '13214': { base: 585, source: 'DGFiP délibérations EPCI 2025 (Métropole AMP)', tranches: [585, 1169, 2068, 3216, 4364, 5512] },
+  '13215': { base: 585, source: 'DGFiP délibérations EPCI 2025 (Métropole AMP)', tranches: [585, 1169, 2068, 3216, 4364, 5512] },
+  '13216': { base: 585, source: 'DGFiP délibérations EPCI 2025 (Métropole AMP)', tranches: [585, 1169, 2068, 3216, 4364, 5512] }, // Marseille 16e
+  // Bordeaux Métropole (FPU) — source officielle DGFiP EPCI 2025
+  // sirepci=243300316 — tranches : 589/1179/2353/3303/5897/7669 €
+  '33063': { base: 589, source: 'DGFiP délibérations EPCI 2025 (Bordeaux Métropole)', tranches: [589, 1179, 2353, 3303, 5897, 7669] }, // Bordeaux
+  '33281': { base: 589, source: 'DGFiP délibérations EPCI 2025 (Bordeaux Métropole)', tranches: [589, 1179, 2353, 3303, 5897, 7669] }, // Mérignac
+  '33318': { base: 589, source: 'DGFiP délibérations EPCI 2025 (Bordeaux Métropole)', tranches: [589, 1179, 2353, 3303, 5897, 7669] }, // Pessac
+  '33522': { base: 589, source: 'DGFiP délibérations EPCI 2025 (Bordeaux Métropole)', tranches: [589, 1179, 2353, 3303, 5897, 7669] }, // Talence
+  '33550': { base: 589, source: 'DGFiP délibérations EPCI 2025 (Bordeaux Métropole)', tranches: [589, 1179, 2353, 3303, 5897, 7669] }, // Villenave-d'Ornon
   // ── Nouvelles communes — source officielle DGFiP délibérations 2025 ───────────
   // t1=CA≤10k | t2=10k-32.6k | t3=32.6k-100k | t4=100k-250k | t5=250k-500k | t6=>500k
   // Loire-Authion (commune nouvelle Maine-et-Loire)
@@ -92,6 +94,98 @@ export const BASE_MINIMALE_CONNUES: Record<string, BaseMinEntry> = {
   '94033': { base: 584, source: 'DGFiP délibérations 2025', tranches: [584, 1168, 1763, 4092, 5845, 7599] },   // Fontenay-sous-Bois
   '94067': { base: 584, source: 'DGFiP délibérations 2025', tranches: [584, 1168, 2454, 4092, 5845, 7599] },   // Saint-Mandé
   '94080': { base: 589, source: 'DGFiP délibérations 2025', tranches: [589, 1179, 2477, 4129, 5897, 7669] },   // Vincennes
+
+  // ── EPCIs FPU — source officielle DGFiP 2025 ──────────────────────────────────
+  // Dataset : deliberations-de-fiscalite-directe-locale-des-groupements-a-fiscalite-propre-2025-hors-taux
+  // t1=≤10k | t2=10k-32.6k | t3=32.6k-100k | t4=100k-250k | t5=250k-500k | t6=>500k
+
+  // Métropole de Lyon (sirepci=200046977) — 589/1179/2123/2714/4011/5189 €
+  '69029': { base: 589, source: 'DGFiP délibérations EPCI 2025 (Métropole de Lyon)', tranches: [589, 1179, 2123, 2714, 4011, 5189] }, // Caluire-et-Cuire
+  '69034': { base: 589, source: 'DGFiP délibérations EPCI 2025 (Métropole de Lyon)', tranches: [589, 1179, 2123, 2714, 4011, 5189] }, // Bron
+  '69040': { base: 589, source: 'DGFiP délibérations EPCI 2025 (Métropole de Lyon)', tranches: [589, 1179, 2123, 2714, 4011, 5189] }, // Champagne-au-Mont-d'Or
+  '69044': { base: 589, source: 'DGFiP délibérations EPCI 2025 (Métropole de Lyon)', tranches: [589, 1179, 2123, 2714, 4011, 5189] }, // Charbonnières-les-Bains
+  '69051': { base: 589, source: 'DGFiP délibérations EPCI 2025 (Métropole de Lyon)', tranches: [589, 1179, 2123, 2714, 4011, 5189] }, // Collonges-au-Mont-d'Or
+  '69063': { base: 589, source: 'DGFiP délibérations EPCI 2025 (Métropole de Lyon)', tranches: [589, 1179, 2123, 2714, 4011, 5189] }, // Limonest
+  '69068': { base: 589, source: 'DGFiP délibérations EPCI 2025 (Métropole de Lyon)', tranches: [589, 1179, 2123, 2714, 4011, 5189] }, // Feyzin
+  '69081': { base: 589, source: 'DGFiP délibérations EPCI 2025 (Métropole de Lyon)', tranches: [589, 1179, 2123, 2714, 4011, 5189] }, // Mions
+  '69089': { base: 589, source: 'DGFiP délibérations EPCI 2025 (Métropole de Lyon)', tranches: [589, 1179, 2123, 2714, 4011, 5189] }, // Neuville-sur-Saône
+  '69091': { base: 589, source: 'DGFiP délibérations EPCI 2025 (Métropole de Lyon)', tranches: [589, 1179, 2123, 2714, 4011, 5189] }, // Francheville
+  '69100': { base: 589, source: 'DGFiP délibérations EPCI 2025 (Métropole de Lyon)', tranches: [589, 1179, 2123, 2714, 4011, 5189] }, // Fontaines-sur-Saône
+  '69116': { base: 589, source: 'DGFiP délibérations EPCI 2025 (Métropole de Lyon)', tranches: [589, 1179, 2123, 2714, 4011, 5189] }, // Craponne
+  '69123': { base: 589, source: 'DGFiP délibérations EPCI 2025 (Métropole de Lyon)', tranches: [589, 1179, 2123, 2714, 4011, 5189] }, // Lyon
+  '69142': { base: 589, source: 'DGFiP délibérations EPCI 2025 (Métropole de Lyon)', tranches: [589, 1179, 2123, 2714, 4011, 5189] }, // Dardilly
+  '69143': { base: 589, source: 'DGFiP délibérations EPCI 2025 (Métropole de Lyon)', tranches: [589, 1179, 2123, 2714, 4011, 5189] }, // Genay
+  '69149': { base: 589, source: 'DGFiP délibérations EPCI 2025 (Métropole de Lyon)', tranches: [589, 1179, 2123, 2714, 4011, 5189] }, // Décines-Charpieu
+  '69152': { base: 589, source: 'DGFiP délibérations EPCI 2025 (Métropole de Lyon)', tranches: [589, 1179, 2123, 2714, 4011, 5189] }, // Écully
+  '69163': { base: 589, source: 'DGFiP délibérations EPCI 2025 (Métropole de Lyon)', tranches: [589, 1179, 2123, 2714, 4011, 5189] }, // Grigny
+  '69168': { base: 589, source: 'DGFiP délibérations EPCI 2025 (Métropole de Lyon)', tranches: [589, 1179, 2123, 2714, 4011, 5189] }, // Givors
+  '69194': { base: 589, source: 'DGFiP délibérations EPCI 2025 (Métropole de Lyon)', tranches: [589, 1179, 2123, 2714, 4011, 5189] }, // Sathonay-Camp
+  '69199': { base: 589, source: 'DGFiP délibérations EPCI 2025 (Métropole de Lyon)', tranches: [589, 1179, 2123, 2714, 4011, 5189] }, // Meyzieu
+  '69202': { base: 589, source: 'DGFiP délibérations EPCI 2025 (Métropole de Lyon)', tranches: [589, 1179, 2123, 2714, 4011, 5189] }, // Oullins
+  '69204': { base: 589, source: 'DGFiP délibérations EPCI 2025 (Métropole de Lyon)', tranches: [589, 1179, 2123, 2714, 4011, 5189] }, // Pierre-Bénite
+  '69233': { base: 589, source: 'DGFiP délibérations EPCI 2025 (Métropole de Lyon)', tranches: [589, 1179, 2123, 2714, 4011, 5189] }, // Rillieux-la-Pape
+  '69244': { base: 589, source: 'DGFiP délibérations EPCI 2025 (Métropole de Lyon)', tranches: [589, 1179, 2123, 2714, 4011, 5189] }, // Sainte-Foy-lès-Lyon
+  '69250': { base: 589, source: 'DGFiP délibérations EPCI 2025 (Métropole de Lyon)', tranches: [589, 1179, 2123, 2714, 4011, 5189] }, // Saint-Priest
+  '69256': { base: 589, source: 'DGFiP délibérations EPCI 2025 (Métropole de Lyon)', tranches: [589, 1179, 2123, 2714, 4011, 5189] }, // Tassin-la-Demi-Lune
+  '69259': { base: 589, source: 'DGFiP délibérations EPCI 2025 (Métropole de Lyon)', tranches: [589, 1179, 2123, 2714, 4011, 5189] }, // Saint-Genis-Laval
+  '69266': { base: 589, source: 'DGFiP délibérations EPCI 2025 (Métropole de Lyon)', tranches: [589, 1179, 2123, 2714, 4011, 5189] }, // Villeurbanne
+  '69271': { base: 589, source: 'DGFiP délibérations EPCI 2025 (Métropole de Lyon)', tranches: [589, 1179, 2123, 2714, 4011, 5189] }, // Saint-Fons
+  '69275': { base: 589, source: 'DGFiP délibérations EPCI 2025 (Métropole de Lyon)', tranches: [589, 1179, 2123, 2714, 4011, 5189] }, // Saint-Genis-les-Ollières
+  '69276': { base: 589, source: 'DGFiP délibérations EPCI 2025 (Métropole de Lyon)', tranches: [589, 1179, 2123, 2714, 4011, 5189] }, // Irigny
+  '69278': { base: 589, source: 'DGFiP délibérations EPCI 2025 (Métropole de Lyon)', tranches: [589, 1179, 2123, 2714, 4011, 5189] }, // Charbonnières-les-Bains
+  '69279': { base: 589, source: 'DGFiP délibérations EPCI 2025 (Métropole de Lyon)', tranches: [589, 1179, 2123, 2714, 4011, 5189] }, // Marcy-l'Étoile
+  '69282': { base: 589, source: 'DGFiP délibérations EPCI 2025 (Métropole de Lyon)', tranches: [589, 1179, 2123, 2714, 4011, 5189] }, // Solaize
+  '69284': { base: 589, source: 'DGFiP délibérations EPCI 2025 (Métropole de Lyon)', tranches: [589, 1179, 2123, 2714, 4011, 5189] }, // Corbas
+  '69286': { base: 589, source: 'DGFiP délibérations EPCI 2025 (Métropole de Lyon)', tranches: [589, 1179, 2123, 2714, 4011, 5189] }, // Vénissieux
+  '69290': { base: 589, source: 'DGFiP délibérations EPCI 2025 (Métropole de Lyon)', tranches: [589, 1179, 2123, 2714, 4011, 5189] }, // Vaulx-en-Velin
+  '69381': { base: 589, source: 'DGFiP délibérations EPCI 2025 (Métropole de Lyon)', tranches: [589, 1179, 2123, 2714, 4011, 5189] }, // Lyon 1er
+  '69382': { base: 589, source: 'DGFiP délibérations EPCI 2025 (Métropole de Lyon)', tranches: [589, 1179, 2123, 2714, 4011, 5189] },
+  '69383': { base: 589, source: 'DGFiP délibérations EPCI 2025 (Métropole de Lyon)', tranches: [589, 1179, 2123, 2714, 4011, 5189] },
+  '69384': { base: 589, source: 'DGFiP délibérations EPCI 2025 (Métropole de Lyon)', tranches: [589, 1179, 2123, 2714, 4011, 5189] },
+  '69385': { base: 589, source: 'DGFiP délibérations EPCI 2025 (Métropole de Lyon)', tranches: [589, 1179, 2123, 2714, 4011, 5189] },
+  '69386': { base: 589, source: 'DGFiP délibérations EPCI 2025 (Métropole de Lyon)', tranches: [589, 1179, 2123, 2714, 4011, 5189] },
+  '69387': { base: 589, source: 'DGFiP délibérations EPCI 2025 (Métropole de Lyon)', tranches: [589, 1179, 2123, 2714, 4011, 5189] },
+  '69388': { base: 589, source: 'DGFiP délibérations EPCI 2025 (Métropole de Lyon)', tranches: [589, 1179, 2123, 2714, 4011, 5189] },
+  '69389': { base: 589, source: 'DGFiP délibérations EPCI 2025 (Métropole de Lyon)', tranches: [589, 1179, 2123, 2714, 4011, 5189] }, // Lyon 9e
+
+  // Toulouse Métropole (sirepci=243100518) — null/null/1906/3649/5528/7599 €
+  '31555': { base: 1906, source: 'DGFiP délibérations EPCI 2025 (Toulouse Métropole)', tranches: [null, null, 1906, 3649, 5528, 7599] }, // Toulouse
+  '31561': { base: 1906, source: 'DGFiP délibérations EPCI 2025 (Toulouse Métropole)', tranches: [null, null, 1906, 3649, 5528, 7599] }, // Tournefeuille
+
+  // Nantes Métropole (sirepci=244400404) — 584/1168/1966/3273/4676/6081 €
+  '44109': { base: 584, source: 'DGFiP délibérations EPCI 2025 (Nantes Métropole)', tranches: [584, 1168, 1966, 3273, 4676, 6081] }, // Nantes
+  '44143': { base: 584, source: 'DGFiP délibérations EPCI 2025 (Nantes Métropole)', tranches: [584, 1168, 1966, 3273, 4676, 6081] }, // Rezé
+  '44162': { base: 584, source: 'DGFiP délibérations EPCI 2025 (Nantes Métropole)', tranches: [584, 1168, 1966, 3273, 4676, 6081] }, // Saint-Herblain
+  '44184': { base: 584, source: 'DGFiP délibérations EPCI 2025 (Nantes Métropole)', tranches: [584, 1168, 1966, 3273, 4676, 6081] }, // Saint-Nazaire
+
+  // Eurométropole de Strasbourg (sirepci=246700488) — 584/1167/2444/2444/4732/4732 €
+  '67482': { base: 584, source: 'DGFiP délibérations EPCI 2025 (Eurométropole Strasbourg)', tranches: [584, 1167, 2444, 2444, 4732, 4732] }, // Strasbourg
+
+  // Métropole Nice Côte d'Azur (sirepci=200030195) — 575/1150/2417/4028/5754/7481 €
+  '06004': { base: 575, source: 'DGFiP délibérations EPCI 2025 (Nice Côte d\'Azur)', tranches: [575, 1150, 2417, 4028, 5754, 7481] }, // Antibes
+  '06027': { base: 575, source: 'DGFiP délibérations EPCI 2025 (Nice Côte d\'Azur)', tranches: [575, 1150, 2417, 4028, 5754, 7481] }, // Cagnes-sur-Mer
+  '06029': { base: 575, source: 'DGFiP délibérations EPCI 2025 (Nice Côte d\'Azur)', tranches: [575, 1150, 2417, 4028, 5754, 7481] }, // Cannes
+  '06030': { base: 575, source: 'DGFiP délibérations EPCI 2025 (Nice Côte d\'Azur)', tranches: [575, 1150, 2417, 4028, 5754, 7481] }, // Carros
+  '06069': { base: 575, source: 'DGFiP délibérations EPCI 2025 (Nice Côte d\'Azur)', tranches: [575, 1150, 2417, 4028, 5754, 7481] }, // Nice
+  '06088': { base: 575, source: 'DGFiP délibérations EPCI 2025 (Nice Côte d\'Azur)', tranches: [575, 1150, 2417, 4028, 5754, 7481] }, // Saint-Laurent-du-Var
+
+  // Montpellier Méditerranée Métropole (sirepci=243400017) — 524/916/1266/2540/3492/5243 €
+  '34032': { base: 524, source: 'DGFiP délibérations EPCI 2025 (Montpellier Méditerranée Métropole)', tranches: [524, 916, 1266, 2540, 3492, 5243] }, // Castelnau-le-Lez
+  '34172': { base: 524, source: 'DGFiP délibérations EPCI 2025 (Montpellier Méditerranée Métropole)', tranches: [524, 916, 1266, 2540, 3492, 5243] }, // Montpellier
+  '34301': { base: 524, source: 'DGFiP délibérations EPCI 2025 (Montpellier Méditerranée Métropole)', tranches: [524, 916, 1266, 2540, 3492, 5243] }, // Palavas-les-Flots
+
+  // Rennes Métropole (sirepci=243500139) — 589/1179/2258/2258/2258/2258 €
+  '35238': { base: 589, source: 'DGFiP délibérations EPCI 2025 (Rennes Métropole)', tranches: [589, 1179, 2258, 2258, 2258, 2258] }, // Rennes
+  '35288': { base: 589, source: 'DGFiP délibérations EPCI 2025 (Rennes Métropole)', tranches: [589, 1179, 2258, 2258, 2258, 2258] }, // Saint-Malo
+
+  // Grenoble-Alpes Métropole (sirepci=200040715) — 505/1010/1323/3329/4458/5796 €
+  '38185': { base: 505, source: 'DGFiP délibérations EPCI 2025 (Grenoble-Alpes Métropole)', tranches: [505, 1010, 1323, 3329, 4458, 5796] }, // Grenoble
+  '38364': { base: 505, source: 'DGFiP délibérations EPCI 2025 (Grenoble-Alpes Métropole)', tranches: [505, 1010, 1323, 3329, 4458, 5796] }, // Saint-Martin-d'Hères
+  '38421': { base: 505, source: 'DGFiP délibérations EPCI 2025 (Grenoble-Alpes Métropole)', tranches: [505, 1010, 1323, 3329, 4458, 5796] }, // Échirolles
+
+  // Clermont Auvergne Métropole (sirepci=246300701) — null/1179/1717/3248/4423/5752 €
+  '63113': { base: 1179, source: 'DGFiP délibérations EPCI 2025 (Clermont Auvergne Métropole)', tranches: [null, 1179, 1717, 3248, 4423, 5752] }, // Clermont-Ferrand
+  '63124': { base: 1179, source: 'DGFiP délibérations EPCI 2025 (Clermont Auvergne Métropole)', tranches: [null, 1179, 1717, 3248, 4423, 5752] }, // Cournon-d'Auvergne
 }
 export const TAUX_CONNUS: Record<string, { taux: number; nom: string }> = {
   // ══════════════════════════════════════════════════════════════════════════════
