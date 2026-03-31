@@ -112,14 +112,15 @@ const STATUTS = [
   { id: 'ei',   name: 'Entreprise Individuelle (EI)' },
 ]
 
-const CA_PRESETS: { label: string; value: number | null }[] = [
-  { label: 'Pas de CA N-2', value: null },    // nouvelle société ou CA inconnu
-  { label: '5 000 €',       value: 5000 },
-  { label: '20 000 €',      value: 20000 },
-  { label: '50 000 €',      value: 50000 },
-  { label: '100 000 €',     value: 100000 },
-  { label: '250 000 €',     value: 250000 },
-  { label: '500 000 €',     value: 500000 },
+// Tranches CFE art. 1647 D — seuils légaux 2025
+const CA_TRANCHES: { label: string; sublabel: string; value: number | null; tranche: number }[] = [
+  { label: 'Créé en 2025 ou après', sublabel: '→ t3',  value: null,   tranche: -2 },
+  { label: '≤ 10 000 €',            sublabel: 't1',    value: 5000,   tranche: 0  },
+  { label: '10k – 32 600 €',        sublabel: 't2',    value: 20000,  tranche: 1  },
+  { label: '32 600 – 100k',         sublabel: 't3',    value: 50000,  tranche: 2  },
+  { label: '100k – 250k',           sublabel: 't4',    value: 150000, tranche: 3  },
+  { label: '250k – 500k',           sublabel: 't5',    value: 350000, tranche: 4  },
+  { label: '> 500 000 €',           sublabel: 't6',    value: 750000, tranche: 5  },
 ]
 
 // ─── API functions ────────────────────────────────────────────────────────────
@@ -464,12 +465,6 @@ export default function SimulateurCFE() {
     if (!isNaN(n) && n >= 0) setCa(Math.min(n, 10_000_000))
   }
 
-  const sliderPct = useMemo(() => {
-    if (ca === null) return 0
-    const log = (v: number) => Math.log10(Math.max(v, 1))
-    return ((log(ca) - log(1)) / (log(10_000_000) - log(1))) * 100
-  }, [ca])
-
   const canCalculate = commune && communeTaux && parisTaux && !loadingTaux
 
   // ─── Render ─────────────────────────────────────────────────────────────
@@ -665,7 +660,7 @@ export default function SimulateurCFE() {
             <div>
               <label style={{
                 display: 'flex', justifyContent: 'space-between', alignItems: 'center',
-                fontSize: '14px', fontWeight: 600, color: '#374151', marginBottom: '8px',
+                fontSize: '14px', fontWeight: 600, color: '#374151', marginBottom: '4px',
               }}>
                 <span>Chiffre d&apos;affaires N-2</span>
                 <span style={{
@@ -673,58 +668,56 @@ export default function SimulateurCFE() {
                   WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent',
                   fontWeight: 800, fontSize: '16px',
                 }}>
-                  {ca === null ? 'Inconnu / N-A' : fmtCA(ca)}
+                  {ca === null ? 'Base t3 (créateur)' : fmtCA(ca)}
                 </span>
               </label>
-              {ca !== null && (
-                <input
-                  type="range" min={0} max={100}
-                  value={sliderPct}
-                  style={{ width: '100%', marginBottom: '12px', '--range-percent': `${sliderPct}%` } as React.CSSProperties}
-                  onChange={e => {
-                    const pct = parseFloat(e.target.value) / 100
-                    const log = (v: number) => Math.log10(Math.max(v, 1))
-                    const val = Math.round(Math.pow(10, log(1) + pct * (log(10_000_000) - log(1))))
-                    setCa(val); setCaInput(String(val))
-                  }}
-                />
-              )}
-              <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px', marginBottom: '10px' }}>
-                {CA_PRESETS.map(p => (
-                  <button
-                    key={p.value ?? 'null'}
-                    onClick={() => {
-                      setCa(p.value)
-                      setCaInput(p.value === null ? '' : String(p.value))
-                    }}
-                    style={{
-                      padding: '4px 12px', borderRadius: '6px', fontSize: '12px', fontWeight: 500,
-                      cursor: 'pointer', transition: 'all 0.15s',
-                      border: ca === p.value ? '1.5px solid #6C3BFF' : '1.5px solid #E5E7EB',
-                      background: ca === p.value ? '#EDE9FF' : '#F9FAFB',
-                      color: ca === p.value ? '#5B21B6' : '#6B7280',
-                    }}>
-                    {p.label}
-                  </button>
-                ))}
+              <p style={{ fontSize: '11px', color: '#9CA3AF', margin: '0 0 10px 0' }}>
+                La CFE est calculée sur le CA de l&apos;avant-dernière année (N-2). Si vous avez créé en 2025 ou après, vous n&apos;avez pas de CA N-2 → la base t3 s&apos;applique automatiquement.
+              </p>
+              {/* Tranche buttons */}
+              <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px', marginBottom: '12px' }}>
+                {CA_TRANCHES.map(t => {
+                  const isActive = t.tranche === -2 ? ca === null : (ca !== null && getTranche(ca) === t.tranche)
+                  return (
+                    <button
+                      key={t.tranche}
+                      onClick={() => {
+                        setCa(t.value)
+                        setCaInput(t.value === null ? '' : String(t.value))
+                      }}
+                      style={{
+                        padding: '5px 11px', borderRadius: '7px', cursor: 'pointer', transition: 'all 0.15s',
+                        border: isActive ? '1.5px solid #6C3BFF' : '1.5px solid #E5E7EB',
+                        background: isActive ? '#EDE9FF' : '#F9FAFB',
+                        color: isActive ? '#5B21B6' : '#6B7280',
+                        display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '1px',
+                      }}>
+                      <span style={{ fontSize: '12px', fontWeight: 600 }}>{t.label}</span>
+                      <span style={{ fontSize: '10px', opacity: 0.7 }}>{t.sublabel}</span>
+                    </button>
+                  )
+                })}
               </div>
-              {ca === null ? (
-                <p style={{ fontSize: '12px', color: '#6B7280', margin: 0 }}>
-                  <Info size={11} style={{ display: 'inline', marginRight: '4px' }} />
-                  Société nouvelle ou CA N-2 non disponible — la tranche &lt; 100 000 € est utilisée par défaut.
-                </p>
-              ) : (
+              {/* Exact CA input — hidden when "Créé en 2025+" is selected */}
+              {ca !== null && (
                 <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                  <span style={{ fontSize: '13px', color: '#6B7280' }}>Saisir :</span>
+                  <span style={{ fontSize: '13px', color: '#6B7280', whiteSpace: 'nowrap' }}>CA exact N-2 :</span>
                   <div style={{ display: 'flex', alignItems: 'center', border: '1.5px solid #D1D5DB', borderRadius: '8px', overflow: 'hidden' }}>
                     <input
                       type="text" value={caInput}
                       onChange={e => handleCAChange(e.target.value)}
-                      style={{ padding: '6px 10px', border: 'none', outline: 'none', fontSize: '14px', width: '100px', color: '#1A1A2E' }}
+                      placeholder="ex : 45000"
+                      style={{ padding: '6px 10px', border: 'none', outline: 'none', fontSize: '14px', width: '110px', color: '#1A1A2E' }}
                     />
                     <span style={{ padding: '0 10px', background: '#F9FAFB', fontSize: '13px', color: '#6B7280', borderLeft: '1px solid #E5E7EB', alignSelf: 'stretch', display: 'flex', alignItems: 'center' }}>€</span>
                   </div>
                 </div>
+              )}
+              {ca === null && (
+                <p style={{ fontSize: '12px', color: '#6B7280', margin: '4px 0 0 0' }}>
+                  <Info size={11} style={{ display: 'inline', marginRight: '4px' }} />
+                  La base minimale de la tranche t3 (32 600 – 100 000 €) est appliquée.
+                </p>
               )}
             </div>
 
