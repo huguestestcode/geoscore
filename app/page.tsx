@@ -426,11 +426,18 @@ export default function SimulateurCFE() {
       ? { min: Math.round(userBaseReal * communeTaux.taux / 100), max: Math.round(userBaseReal * communeTaux.taux / 100), exact: true }
       : { min: 0, max: 0, exact: false }  // exact: false → données incomplètes
 
-    // CFE Paris — utilise la base réelle si disponible
-    const parisBaseReal = parisBase?.base ?? PARIS_BASE_MINIMALE
-    const parisUsesReal = caVal < PARIS_BASE_MINIMALE_CA_MAX
-    const parisCFE = parisUsesReal
-      ? { min: Math.round(parisBaseReal * parisTaux.taux / 100), max: Math.round(parisBaseReal * parisTaux.taux / 100), exact: true }
+    // CFE Paris — même logique que la commune : tranches en priorité
+    let parisBaseForTranche: number | null = null
+    if (parisBase?.tranches) {
+      parisBaseForTranche = parisBase.tranches[t] ?? null
+    } else if (parisBase?.base != null) {
+      const caMaxOk = parisBase.caMax === undefined || caVal <= parisBase.caMax
+      parisBaseForTranche = caMaxOk ? parisBase.base : null
+    } else if (caVal < PARIS_BASE_MINIMALE_CA_MAX) {
+      parisBaseForTranche = PARIS_BASE_MINIMALE
+    }
+    const parisCFE = parisBaseForTranche !== null
+      ? { min: Math.round(parisBaseForTranche * parisTaux.taux / 100), max: Math.round(parisBaseForTranche * parisTaux.taux / 100), exact: true }
       : { min: Math.round(LEGAL_MIN * parisTaux.taux / 100), max: Math.round(LEGAL_CEILING[t] * parisTaux.taux / 100), exact: false }
 
     return {
@@ -443,7 +450,7 @@ export default function SimulateurCFE() {
       parisMin: parisCFE.min,
       parisMax: parisCFE.max,
       parisExact: parisCFE.exact,
-      parisBase: parisBaseReal,
+      parisBase: parisBaseForTranche,
       savingsMax: userCFE.max - parisCFE.max,
       savingsMin: userCFE.min - parisCFE.min,
       isCheaper: userCFE.max > parisCFE.max,
@@ -658,26 +665,42 @@ export default function SimulateurCFE() {
 
             {/* CA */}
             <div>
-              <label style={{
-                display: 'flex', justifyContent: 'space-between', alignItems: 'center',
-                fontSize: '14px', fontWeight: 600, color: '#374151', marginBottom: '4px',
-              }}>
-                <span>Chiffre d&apos;affaires N-2</span>
-                <span style={{
-                  background: 'linear-gradient(135deg, #6C3BFF, #A78BFA)',
-                  WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent',
-                  fontWeight: 800, fontSize: '16px',
-                }}>
-                  {ca === null ? 'Base t3 (créateur)' : fmtCA(ca)}
-                </span>
+              <label style={{ fontSize: '14px', fontWeight: 600, color: '#374151', display: 'block', marginBottom: '10px' }}>
+                Chiffre d&apos;affaires N-2
               </label>
-              <p style={{ fontSize: '11px', color: '#9CA3AF', margin: '0 0 10px 0' }}>
-                La CFE est calculée sur le CA de l&apos;avant-dernière année (N-2). Si vous avez créé en 2025 ou après, vous n&apos;avez pas de CA N-2 → la base t3 s&apos;applique automatiquement.
-              </p>
-              {/* Tranche buttons */}
-              <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px', marginBottom: '12px' }}>
-                {CA_TRANCHES.map(t => {
-                  const isActive = t.tranche === -2 ? ca === null : (ca !== null && getTranche(ca) === t.tranche)
+
+              {/* Cas créateur — bouton distinct */}
+              <button
+                onClick={() => { setCa(null); setCaInput('') }}
+                style={{
+                  width: '100%', padding: '10px 14px', borderRadius: '10px', cursor: 'pointer',
+                  border: ca === null ? '2px solid #6C3BFF' : '1.5px solid #E5E7EB',
+                  background: ca === null ? '#EDE9FF' : '#F9FAFB',
+                  color: ca === null ? '#5B21B6' : '#6B7280',
+                  display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+                  marginBottom: '10px', transition: 'all 0.15s',
+                }}>
+                <span style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                  <span style={{ fontSize: '18px', lineHeight: 1 }}>🚀</span>
+                  <span>
+                    <span style={{ fontSize: '13px', fontWeight: 700, display: 'block' }}>Créé en 2025 ou après</span>
+                    <span style={{ fontSize: '11px', opacity: 0.75 }}>Pas de CA N-2 — la base t3 (32 600 – 100 000 €) s&apos;applique</span>
+                  </span>
+                </span>
+                {ca === null && <span style={{ fontSize: '18px' }}>✓</span>}
+              </button>
+
+              {/* Séparateur */}
+              <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '10px' }}>
+                <div style={{ flex: 1, height: '1px', background: '#E5E7EB' }} />
+                <span style={{ fontSize: '11px', color: '#9CA3AF', whiteSpace: 'nowrap' }}>ou saisissez votre CA N-2</span>
+                <div style={{ flex: 1, height: '1px', background: '#E5E7EB' }} />
+              </div>
+
+              {/* Tranche buttons t1–t6 */}
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '6px', marginBottom: '10px' }}>
+                {CA_TRANCHES.filter(t => t.tranche >= 0).map(t => {
+                  const isActive = ca !== null && getTranche(ca) === t.tranche
                   return (
                     <button
                       key={t.tranche}
@@ -686,38 +709,33 @@ export default function SimulateurCFE() {
                         setCaInput(t.value === null ? '' : String(t.value))
                       }}
                       style={{
-                        padding: '5px 11px', borderRadius: '7px', cursor: 'pointer', transition: 'all 0.15s',
+                        padding: '6px 8px', borderRadius: '8px', cursor: 'pointer', transition: 'all 0.15s',
                         border: isActive ? '1.5px solid #6C3BFF' : '1.5px solid #E5E7EB',
                         background: isActive ? '#EDE9FF' : '#F9FAFB',
                         color: isActive ? '#5B21B6' : '#6B7280',
-                        display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '1px',
+                        textAlign: 'center',
                       }}>
-                      <span style={{ fontSize: '12px', fontWeight: 600 }}>{t.label}</span>
-                      <span style={{ fontSize: '10px', opacity: 0.7 }}>{t.sublabel}</span>
+                      <div style={{ fontSize: '10px', fontWeight: 700, color: isActive ? '#6C3BFF' : '#9CA3AF' }}>{t.sublabel}</div>
+                      <div style={{ fontSize: '11px', fontWeight: 600 }}>{t.label}</div>
                     </button>
                   )
                 })}
               </div>
-              {/* Exact CA input — hidden when "Créé en 2025+" is selected */}
+
+              {/* Saisie exacte */}
               {ca !== null && (
                 <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                  <span style={{ fontSize: '13px', color: '#6B7280', whiteSpace: 'nowrap' }}>CA exact N-2 :</span>
-                  <div style={{ display: 'flex', alignItems: 'center', border: '1.5px solid #D1D5DB', borderRadius: '8px', overflow: 'hidden' }}>
+                  <span style={{ fontSize: '12px', color: '#6B7280', whiteSpace: 'nowrap' }}>CA exact :</span>
+                  <div style={{ display: 'flex', alignItems: 'center', border: '1.5px solid #D1D5DB', borderRadius: '8px', overflow: 'hidden', flex: 1 }}>
                     <input
                       type="text" value={caInput}
                       onChange={e => handleCAChange(e.target.value)}
-                      placeholder="ex : 45000"
-                      style={{ padding: '6px 10px', border: 'none', outline: 'none', fontSize: '14px', width: '110px', color: '#1A1A2E' }}
+                      placeholder="ex : 45 000"
+                      style={{ padding: '6px 10px', border: 'none', outline: 'none', fontSize: '14px', width: '100%', color: '#1A1A2E' }}
                     />
                     <span style={{ padding: '0 10px', background: '#F9FAFB', fontSize: '13px', color: '#6B7280', borderLeft: '1px solid #E5E7EB', alignSelf: 'stretch', display: 'flex', alignItems: 'center' }}>€</span>
                   </div>
                 </div>
-              )}
-              {ca === null && (
-                <p style={{ fontSize: '12px', color: '#6B7280', margin: '4px 0 0 0' }}>
-                  <Info size={11} style={{ display: 'inline', marginRight: '4px' }} />
-                  La base minimale de la tranche t3 (32 600 – 100 000 €) est appliquée.
-                </p>
               )}
             </div>
 
@@ -811,7 +829,7 @@ export default function SimulateurCFE() {
                           {fmt(results.userMax)}
                         </div>
                         <div style={{ fontSize: '12px', color: '#6B7280', marginTop: '4px' }}>
-                          Base min. officielle {results.userBase} € × {communeTaux!.taux.toFixed(2)}% — {results.userBaseSource}
+                          {results.caIsDefault ? 'Base créateur (t3)' : `Tranche ${['t1','t2','t3','t4','t5','t6'][getTranche(ca ?? 50000)]}`} · taux {communeTaux!.taux.toFixed(2)} %
                         </div>
                       </div>
 
@@ -842,9 +860,8 @@ export default function SimulateurCFE() {
                             : `${fmt(results.parisMin)} – ${fmt(results.parisMax)}`}
                         </div>
                         <div style={{ fontSize: '12px', color: '#7C3AED', marginTop: '4px' }}>
-                          {results.parisExact
-                            ? `CFE Paris officielle — base min. ${PARIS_BASE_MINIMALE} € × ${parisTaux!.taux.toFixed(2)}%`
-                            : `Fourchette CFE estimée — Art. 1647 D × ${parisTaux!.taux.toFixed(2)}%`}
+                          {results.caIsDefault ? 'Base créateur (t3)' : `Tranche ${['t1','t2','t3','t4','t5','t6'][getTranche(ca ?? 50000)]}`} · taux {parisTaux!.taux.toFixed(2)} %
+                          {!results.parisExact && ' · estimation'}
                         </div>
                       </div>
                     </div>
@@ -911,11 +928,9 @@ export default function SimulateurCFE() {
                   borderRadius: '12px', padding: '16px', marginBottom: '16px',
                   fontSize: '12px', color: '#92400E', lineHeight: 1.6,
                 }}>
-                  <strong>Méthodologie :</strong> Taux CFE officiel voté par la commune (données ouvertes DGFiP 2025).
-                  {results.userExact
-                    ? <> Base minimale officielle de <strong>{results.userBase} €</strong> votée par la commune (source : {results.userBaseSource}).</>
-                    : <> Base minimale non disponible — taux confirmé mais montant CFE non calculable.</>}
-                  {' '}Paris : base officielle <strong>399 €</strong> pour CA &lt; 100 000 € (vérifiée 2025).
+                  <strong>Méthodologie :</strong> Taux et base minimale CFE officiels — données ouvertes DGFiP 2025, délibérations des communes et EPCI.
+                  {results.caIsDefault && <> CA N-2 inconnu : <strong>tranche t3</strong> (32 600 – 100 000 €) appliquée par défaut (art. 1647 D CGI).</>}
+                  {!results.userExact && <> Base minimale non disponible pour {commune!.nom} — taux confirmé mais montant CFE non calculable.</>}
                 </div>
 
                 {/* CTA */}
