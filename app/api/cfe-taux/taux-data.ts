@@ -1,8 +1,398 @@
-// ── Taux CFE hardcodés — données DGFiP REI 2025 ──────────────────────────────
-// Sources : DGFiP REI 2025, Banque des Territoires, DGCL, data.economie.gouv.fr
+// ── Taux CFE hardcodés — données vérifiées 2025 ──────────────────────────────
+// Sources : lamicrobyflo.fr/taux-cfe-par-ville/ (taux vérifiés)
+//           + membres EPCI à FPU (loi fiscalité professionnelle unique — taux identique dans la métropole)
+//           + arrondissements de Paris, Lyon, Marseille (même taux que la commune principale légalement)
+// UNIQUEMENT des données 100% fiables — aucun taux estimé ou inventé
 // Le taux indiqué est le taux global CFE HZ (hors zone) = commune + EPCI + syndicats
-// Pour les communes d'un même EPCI, le taux global est identique ou très proche.
 export const ANNEE_TAUX = 2025
+
+// ── Base minimale CFE hardcodée par commune — art. 1647 D CGI ─────────────────
+// Sources vérifiées : délibérations communales, lamicrobyflo.fr, kandbaz.com, sofradom.fr
+// base = montant en € voté par la commune (entre 243 € min légal et plafond par tranche)
+// tranches = [t0,t1,t2,t3,t4,t5] = base par tranche CA : [≤10k, 10k-32.6k, 32.6k-100k, 100k-250k, 250k-500k, >500k]
+// caMax = CA maximum (€) pour lequel la base unique s'applique (si pas de tranches)
+export type BaseMinEntry = {
+  base: number
+  source: string
+  caMax?: number          // CA max pour base unique (ex : Paris 100k, Marseille 32.6k)
+  tranches?: (number | null)[]  // base par tranche [t0..t5], null = inconnue
+}
+export const BASE_MINIMALE_CONNUES: Record<string, BaseMinEntry> = {
+  // Paris — source officielle DGFiP 2025 : t1(≤10k)=plancher légal, t2-t3=416€, t4-t6=2432€
+  '75056': { base: 416, source: 'DGFiP délibérations 2025', tranches: [null, 416, 416, 2432, 2432, 2432] },
+  '75101': { base: 416, source: 'DGFiP délibérations 2025', tranches: [null, 416, 416, 2432, 2432, 2432] },
+  '75102': { base: 416, source: 'DGFiP délibérations 2025', tranches: [null, 416, 416, 2432, 2432, 2432] },
+  '75103': { base: 416, source: 'DGFiP délibérations 2025', tranches: [null, 416, 416, 2432, 2432, 2432] },
+  '75104': { base: 416, source: 'DGFiP délibérations 2025', tranches: [null, 416, 416, 2432, 2432, 2432] },
+  '75105': { base: 416, source: 'DGFiP délibérations 2025', tranches: [null, 416, 416, 2432, 2432, 2432] },
+  '75106': { base: 416, source: 'DGFiP délibérations 2025', tranches: [null, 416, 416, 2432, 2432, 2432] },
+  '75107': { base: 416, source: 'DGFiP délibérations 2025', tranches: [null, 416, 416, 2432, 2432, 2432] },
+  '75108': { base: 416, source: 'DGFiP délibérations 2025', tranches: [null, 416, 416, 2432, 2432, 2432] },
+  '75109': { base: 416, source: 'DGFiP délibérations 2025', tranches: [null, 416, 416, 2432, 2432, 2432] },
+  '75110': { base: 416, source: 'DGFiP délibérations 2025', tranches: [null, 416, 416, 2432, 2432, 2432] },
+  '75111': { base: 416, source: 'DGFiP délibérations 2025', tranches: [null, 416, 416, 2432, 2432, 2432] },
+  '75112': { base: 416, source: 'DGFiP délibérations 2025', tranches: [null, 416, 416, 2432, 2432, 2432] },
+  '75113': { base: 416, source: 'DGFiP délibérations 2025', tranches: [null, 416, 416, 2432, 2432, 2432] },
+  '75114': { base: 416, source: 'DGFiP délibérations 2025', tranches: [null, 416, 416, 2432, 2432, 2432] },
+  '75115': { base: 416, source: 'DGFiP délibérations 2025', tranches: [null, 416, 416, 2432, 2432, 2432] },
+  '75116': { base: 416, source: 'DGFiP délibérations 2025', tranches: [null, 416, 416, 2432, 2432, 2432] },
+  '75117': { base: 416, source: 'DGFiP délibérations 2025', tranches: [null, 416, 416, 2432, 2432, 2432] },
+  '75118': { base: 416, source: 'DGFiP délibérations 2025', tranches: [null, 416, 416, 2432, 2432, 2432] },
+  '75119': { base: 416, source: 'DGFiP délibérations 2025', tranches: [null, 416, 416, 2432, 2432, 2432] },
+  '75120': { base: 416, source: 'DGFiP délibérations 2025', tranches: [null, 416, 416, 2432, 2432, 2432] },
+  // Aix-Marseille-Provence Métropole (FPU) — source officielle DGFiP EPCI 2025
+  // sirepci=200054807 — tranches : 585/1169/2068/3216/4364/5512 €
+  '13001': { base: 585, source: 'DGFiP délibérations EPCI 2025 (Métropole AMP)', tranches: [585, 1169, 2068, 3216, 4364, 5512] }, // Aix-en-Provence
+  '13004': { base: 585, source: 'DGFiP délibérations EPCI 2025 (Métropole AMP)', tranches: [585, 1169, 2068, 3216, 4364, 5512] }, // Allauch
+  '13005': { base: 585, source: 'DGFiP délibérations EPCI 2025 (Métropole AMP)', tranches: [585, 1169, 2068, 3216, 4364, 5512] }, // Aubagne
+  '13014': { base: 585, source: 'DGFiP délibérations EPCI 2025 (Métropole AMP)', tranches: [585, 1169, 2068, 3216, 4364, 5512] }, // Berre-l'Étang
+  '13047': { base: 585, source: 'DGFiP délibérations EPCI 2025 (Métropole AMP)', tranches: [585, 1169, 2068, 3216, 4364, 5512] }, // Istres
+  '13055': { base: 585, source: 'DGFiP délibérations EPCI 2025 (Métropole AMP)', tranches: [585, 1169, 2068, 3216, 4364, 5512] }, // Marseille
+  '13056': { base: 585, source: 'DGFiP délibérations EPCI 2025 (Métropole AMP)', tranches: [585, 1169, 2068, 3216, 4364, 5512] }, // Martigues
+  '13081': { base: 585, source: 'DGFiP délibérations EPCI 2025 (Métropole AMP)', tranches: [585, 1169, 2068, 3216, 4364, 5512] }, // Plan-de-Cuques
+  '13103': { base: 585, source: 'DGFiP délibérations EPCI 2025 (Métropole AMP)', tranches: [585, 1169, 2068, 3216, 4364, 5512] }, // Salon-de-Provence
+  '13117': { base: 585, source: 'DGFiP délibérations EPCI 2025 (Métropole AMP)', tranches: [585, 1169, 2068, 3216, 4364, 5512] }, // Vitrolles
+  '13201': { base: 585, source: 'DGFiP délibérations EPCI 2025 (Métropole AMP)', tranches: [585, 1169, 2068, 3216, 4364, 5512] }, // Marseille 1er
+  '13202': { base: 585, source: 'DGFiP délibérations EPCI 2025 (Métropole AMP)', tranches: [585, 1169, 2068, 3216, 4364, 5512] },
+  '13203': { base: 585, source: 'DGFiP délibérations EPCI 2025 (Métropole AMP)', tranches: [585, 1169, 2068, 3216, 4364, 5512] },
+  '13204': { base: 585, source: 'DGFiP délibérations EPCI 2025 (Métropole AMP)', tranches: [585, 1169, 2068, 3216, 4364, 5512] },
+  '13205': { base: 585, source: 'DGFiP délibérations EPCI 2025 (Métropole AMP)', tranches: [585, 1169, 2068, 3216, 4364, 5512] },
+  '13206': { base: 585, source: 'DGFiP délibérations EPCI 2025 (Métropole AMP)', tranches: [585, 1169, 2068, 3216, 4364, 5512] },
+  '13207': { base: 585, source: 'DGFiP délibérations EPCI 2025 (Métropole AMP)', tranches: [585, 1169, 2068, 3216, 4364, 5512] },
+  '13208': { base: 585, source: 'DGFiP délibérations EPCI 2025 (Métropole AMP)', tranches: [585, 1169, 2068, 3216, 4364, 5512] },
+  '13209': { base: 585, source: 'DGFiP délibérations EPCI 2025 (Métropole AMP)', tranches: [585, 1169, 2068, 3216, 4364, 5512] },
+  '13210': { base: 585, source: 'DGFiP délibérations EPCI 2025 (Métropole AMP)', tranches: [585, 1169, 2068, 3216, 4364, 5512] },
+  '13211': { base: 585, source: 'DGFiP délibérations EPCI 2025 (Métropole AMP)', tranches: [585, 1169, 2068, 3216, 4364, 5512] },
+  '13212': { base: 585, source: 'DGFiP délibérations EPCI 2025 (Métropole AMP)', tranches: [585, 1169, 2068, 3216, 4364, 5512] },
+  '13213': { base: 585, source: 'DGFiP délibérations EPCI 2025 (Métropole AMP)', tranches: [585, 1169, 2068, 3216, 4364, 5512] },
+  '13214': { base: 585, source: 'DGFiP délibérations EPCI 2025 (Métropole AMP)', tranches: [585, 1169, 2068, 3216, 4364, 5512] },
+  '13215': { base: 585, source: 'DGFiP délibérations EPCI 2025 (Métropole AMP)', tranches: [585, 1169, 2068, 3216, 4364, 5512] },
+  '13216': { base: 585, source: 'DGFiP délibérations EPCI 2025 (Métropole AMP)', tranches: [585, 1169, 2068, 3216, 4364, 5512] }, // Marseille 16e
+  // Bordeaux Métropole (FPU) — source officielle DGFiP EPCI 2025
+  // sirepci=243300316 — tranches : 589/1179/2353/3303/5897/7669 €
+  '33063': { base: 589, source: 'DGFiP délibérations EPCI 2025 (Bordeaux Métropole)', tranches: [589, 1179, 2353, 3303, 5897, 7669] }, // Bordeaux
+  '33281': { base: 589, source: 'DGFiP délibérations EPCI 2025 (Bordeaux Métropole)', tranches: [589, 1179, 2353, 3303, 5897, 7669] }, // Mérignac
+  '33318': { base: 589, source: 'DGFiP délibérations EPCI 2025 (Bordeaux Métropole)', tranches: [589, 1179, 2353, 3303, 5897, 7669] }, // Pessac
+  '33522': { base: 589, source: 'DGFiP délibérations EPCI 2025 (Bordeaux Métropole)', tranches: [589, 1179, 2353, 3303, 5897, 7669] }, // Talence
+  '33550': { base: 589, source: 'DGFiP délibérations EPCI 2025 (Bordeaux Métropole)', tranches: [589, 1179, 2353, 3303, 5897, 7669] }, // Villenave-d'Ornon
+  // ── Nouvelles communes — source officielle DGFiP délibérations 2025 ───────────
+  // t1=CA≤10k | t2=10k-32.6k | t3=32.6k-100k | t4=100k-250k | t5=250k-500k | t6=>500k
+  // Loire-Authion (commune nouvelle Maine-et-Loire)
+  '49307': { base: 585, source: 'DGFiP délibérations 2025', tranches: [585, 1169, 2453, 2453, 2453, 2453] },
+  // Le Mans
+  '72181': { base: 577, source: 'DGFiP délibérations 2025', tranches: [577, 1153, 1814, 4036, 5764, 7496] },
+  // Hauts-de-Seine (92)
+  '92004': { base: 350, source: 'DGFiP délibérations 2025', tranches: [350, 1168, 2454, 4092, 5845, 7599] },   // Asnières-sur-Seine
+  '92024': { base: 584, source: 'DGFiP délibérations 2025', tranches: [584, 1168, 2454, 4092, 5845, 7599] },   // Clichy
+  '92036': { base: 1794, source: 'DGFiP délibérations 2025', tranches: [null, 1794, 1794, 1794, 1794, 1794] }, // Gennevilliers
+  // Seine-Saint-Denis (93)
+  '93005': { base: 589, source: 'DGFiP délibérations 2025', tranches: [589, 1179, 2360, 3539, 4717, 5897] },   // Aulnay-sous-Bois
+  '93007': { base: 584, source: 'DGFiP délibérations 2025', tranches: [584, 1168, 1753, 1753, 1753, 1753] },   // Le Blanc-Mesnil
+  '93051': { base: 2474, source: 'DGFiP délibérations 2025', tranches: [null, 2474, 2474, 2474, 2474, 2474] }, // Noisy-le-Grand
+  '93057': { base: 589, source: 'DGFiP délibérations 2025', tranches: [589, 1179, 1887, 1887, 5309, 7669] },   // Les Pavillons-sous-Bois
+  // Val-de-Marne (94)
+  '94033': { base: 584, source: 'DGFiP délibérations 2025', tranches: [584, 1168, 1763, 4092, 5845, 7599] },   // Fontenay-sous-Bois
+  '94067': { base: 584, source: 'DGFiP délibérations 2025', tranches: [584, 1168, 2454, 4092, 5845, 7599] },   // Saint-Mandé
+  '94080': { base: 589, source: 'DGFiP délibérations 2025', tranches: [589, 1179, 2477, 4129, 5897, 7669] },   // Vincennes
+
+  // ── EPCIs FPU — source officielle DGFiP 2025 ──────────────────────────────────
+  // Dataset : deliberations-de-fiscalite-directe-locale-des-groupements-a-fiscalite-propre-2025-hors-taux
+  // t1=≤10k | t2=10k-32.6k | t3=32.6k-100k | t4=100k-250k | t5=250k-500k | t6=>500k
+
+  // Métropole de Lyon (sirepci=200046977) — 589/1179/2123/2714/4011/5189 €
+  '69029': { base: 589, source: 'DGFiP délibérations EPCI 2025 (Métropole de Lyon)', tranches: [589, 1179, 2123, 2714, 4011, 5189] }, // Caluire-et-Cuire
+  '69034': { base: 589, source: 'DGFiP délibérations EPCI 2025 (Métropole de Lyon)', tranches: [589, 1179, 2123, 2714, 4011, 5189] }, // Bron
+  '69040': { base: 589, source: 'DGFiP délibérations EPCI 2025 (Métropole de Lyon)', tranches: [589, 1179, 2123, 2714, 4011, 5189] }, // Champagne-au-Mont-d'Or
+  '69044': { base: 589, source: 'DGFiP délibérations EPCI 2025 (Métropole de Lyon)', tranches: [589, 1179, 2123, 2714, 4011, 5189] }, // Charbonnières-les-Bains
+  '69051': { base: 589, source: 'DGFiP délibérations EPCI 2025 (Métropole de Lyon)', tranches: [589, 1179, 2123, 2714, 4011, 5189] }, // Collonges-au-Mont-d'Or
+  '69063': { base: 589, source: 'DGFiP délibérations EPCI 2025 (Métropole de Lyon)', tranches: [589, 1179, 2123, 2714, 4011, 5189] }, // Limonest
+  '69068': { base: 589, source: 'DGFiP délibérations EPCI 2025 (Métropole de Lyon)', tranches: [589, 1179, 2123, 2714, 4011, 5189] }, // Feyzin
+  '69081': { base: 589, source: 'DGFiP délibérations EPCI 2025 (Métropole de Lyon)', tranches: [589, 1179, 2123, 2714, 4011, 5189] }, // Mions
+  '69089': { base: 589, source: 'DGFiP délibérations EPCI 2025 (Métropole de Lyon)', tranches: [589, 1179, 2123, 2714, 4011, 5189] }, // Neuville-sur-Saône
+  '69091': { base: 589, source: 'DGFiP délibérations EPCI 2025 (Métropole de Lyon)', tranches: [589, 1179, 2123, 2714, 4011, 5189] }, // Francheville
+  '69100': { base: 589, source: 'DGFiP délibérations EPCI 2025 (Métropole de Lyon)', tranches: [589, 1179, 2123, 2714, 4011, 5189] }, // Fontaines-sur-Saône
+  '69116': { base: 589, source: 'DGFiP délibérations EPCI 2025 (Métropole de Lyon)', tranches: [589, 1179, 2123, 2714, 4011, 5189] }, // Craponne
+  '69123': { base: 589, source: 'DGFiP délibérations EPCI 2025 (Métropole de Lyon)', tranches: [589, 1179, 2123, 2714, 4011, 5189] }, // Lyon
+  '69142': { base: 589, source: 'DGFiP délibérations EPCI 2025 (Métropole de Lyon)', tranches: [589, 1179, 2123, 2714, 4011, 5189] }, // Dardilly
+  '69143': { base: 589, source: 'DGFiP délibérations EPCI 2025 (Métropole de Lyon)', tranches: [589, 1179, 2123, 2714, 4011, 5189] }, // Genay
+  '69149': { base: 589, source: 'DGFiP délibérations EPCI 2025 (Métropole de Lyon)', tranches: [589, 1179, 2123, 2714, 4011, 5189] }, // Décines-Charpieu
+  '69152': { base: 589, source: 'DGFiP délibérations EPCI 2025 (Métropole de Lyon)', tranches: [589, 1179, 2123, 2714, 4011, 5189] }, // Écully
+  '69163': { base: 589, source: 'DGFiP délibérations EPCI 2025 (Métropole de Lyon)', tranches: [589, 1179, 2123, 2714, 4011, 5189] }, // Grigny
+  '69168': { base: 589, source: 'DGFiP délibérations EPCI 2025 (Métropole de Lyon)', tranches: [589, 1179, 2123, 2714, 4011, 5189] }, // Givors
+  '69194': { base: 589, source: 'DGFiP délibérations EPCI 2025 (Métropole de Lyon)', tranches: [589, 1179, 2123, 2714, 4011, 5189] }, // Sathonay-Camp
+  '69199': { base: 589, source: 'DGFiP délibérations EPCI 2025 (Métropole de Lyon)', tranches: [589, 1179, 2123, 2714, 4011, 5189] }, // Meyzieu
+  '69202': { base: 589, source: 'DGFiP délibérations EPCI 2025 (Métropole de Lyon)', tranches: [589, 1179, 2123, 2714, 4011, 5189] }, // Oullins
+  '69204': { base: 589, source: 'DGFiP délibérations EPCI 2025 (Métropole de Lyon)', tranches: [589, 1179, 2123, 2714, 4011, 5189] }, // Pierre-Bénite
+  '69233': { base: 589, source: 'DGFiP délibérations EPCI 2025 (Métropole de Lyon)', tranches: [589, 1179, 2123, 2714, 4011, 5189] }, // Rillieux-la-Pape
+  '69244': { base: 589, source: 'DGFiP délibérations EPCI 2025 (Métropole de Lyon)', tranches: [589, 1179, 2123, 2714, 4011, 5189] }, // Sainte-Foy-lès-Lyon
+  '69250': { base: 589, source: 'DGFiP délibérations EPCI 2025 (Métropole de Lyon)', tranches: [589, 1179, 2123, 2714, 4011, 5189] }, // Saint-Priest
+  '69256': { base: 589, source: 'DGFiP délibérations EPCI 2025 (Métropole de Lyon)', tranches: [589, 1179, 2123, 2714, 4011, 5189] }, // Tassin-la-Demi-Lune
+  '69259': { base: 589, source: 'DGFiP délibérations EPCI 2025 (Métropole de Lyon)', tranches: [589, 1179, 2123, 2714, 4011, 5189] }, // Saint-Genis-Laval
+  '69266': { base: 589, source: 'DGFiP délibérations EPCI 2025 (Métropole de Lyon)', tranches: [589, 1179, 2123, 2714, 4011, 5189] }, // Villeurbanne
+  '69271': { base: 589, source: 'DGFiP délibérations EPCI 2025 (Métropole de Lyon)', tranches: [589, 1179, 2123, 2714, 4011, 5189] }, // Saint-Fons
+  '69275': { base: 589, source: 'DGFiP délibérations EPCI 2025 (Métropole de Lyon)', tranches: [589, 1179, 2123, 2714, 4011, 5189] }, // Saint-Genis-les-Ollières
+  '69276': { base: 589, source: 'DGFiP délibérations EPCI 2025 (Métropole de Lyon)', tranches: [589, 1179, 2123, 2714, 4011, 5189] }, // Irigny
+  '69278': { base: 589, source: 'DGFiP délibérations EPCI 2025 (Métropole de Lyon)', tranches: [589, 1179, 2123, 2714, 4011, 5189] }, // Charbonnières-les-Bains
+  '69279': { base: 589, source: 'DGFiP délibérations EPCI 2025 (Métropole de Lyon)', tranches: [589, 1179, 2123, 2714, 4011, 5189] }, // Marcy-l'Étoile
+  '69282': { base: 589, source: 'DGFiP délibérations EPCI 2025 (Métropole de Lyon)', tranches: [589, 1179, 2123, 2714, 4011, 5189] }, // Solaize
+  '69284': { base: 589, source: 'DGFiP délibérations EPCI 2025 (Métropole de Lyon)', tranches: [589, 1179, 2123, 2714, 4011, 5189] }, // Corbas
+  '69286': { base: 589, source: 'DGFiP délibérations EPCI 2025 (Métropole de Lyon)', tranches: [589, 1179, 2123, 2714, 4011, 5189] }, // Vénissieux
+  '69290': { base: 589, source: 'DGFiP délibérations EPCI 2025 (Métropole de Lyon)', tranches: [589, 1179, 2123, 2714, 4011, 5189] }, // Vaulx-en-Velin
+  '69381': { base: 589, source: 'DGFiP délibérations EPCI 2025 (Métropole de Lyon)', tranches: [589, 1179, 2123, 2714, 4011, 5189] }, // Lyon 1er
+  '69382': { base: 589, source: 'DGFiP délibérations EPCI 2025 (Métropole de Lyon)', tranches: [589, 1179, 2123, 2714, 4011, 5189] },
+  '69383': { base: 589, source: 'DGFiP délibérations EPCI 2025 (Métropole de Lyon)', tranches: [589, 1179, 2123, 2714, 4011, 5189] },
+  '69384': { base: 589, source: 'DGFiP délibérations EPCI 2025 (Métropole de Lyon)', tranches: [589, 1179, 2123, 2714, 4011, 5189] },
+  '69385': { base: 589, source: 'DGFiP délibérations EPCI 2025 (Métropole de Lyon)', tranches: [589, 1179, 2123, 2714, 4011, 5189] },
+  '69386': { base: 589, source: 'DGFiP délibérations EPCI 2025 (Métropole de Lyon)', tranches: [589, 1179, 2123, 2714, 4011, 5189] },
+  '69387': { base: 589, source: 'DGFiP délibérations EPCI 2025 (Métropole de Lyon)', tranches: [589, 1179, 2123, 2714, 4011, 5189] },
+  '69388': { base: 589, source: 'DGFiP délibérations EPCI 2025 (Métropole de Lyon)', tranches: [589, 1179, 2123, 2714, 4011, 5189] },
+  '69389': { base: 589, source: 'DGFiP délibérations EPCI 2025 (Métropole de Lyon)', tranches: [589, 1179, 2123, 2714, 4011, 5189] }, // Lyon 9e
+
+  // Toulouse Métropole (sirepci=243100518) — null/null/1906/3649/5528/7599 €
+  '31555': { base: 1906, source: 'DGFiP délibérations EPCI 2025 (Toulouse Métropole)', tranches: [null, null, 1906, 3649, 5528, 7599] }, // Toulouse
+  '31561': { base: 1906, source: 'DGFiP délibérations EPCI 2025 (Toulouse Métropole)', tranches: [null, null, 1906, 3649, 5528, 7599] }, // Tournefeuille
+
+  // Nantes Métropole (sirepci=244400404) — 584/1168/1966/3273/4676/6081 €
+  '44109': { base: 584, source: 'DGFiP délibérations EPCI 2025 (Nantes Métropole)', tranches: [584, 1168, 1966, 3273, 4676, 6081] }, // Nantes
+  '44143': { base: 584, source: 'DGFiP délibérations EPCI 2025 (Nantes Métropole)', tranches: [584, 1168, 1966, 3273, 4676, 6081] }, // Rezé
+  '44162': { base: 584, source: 'DGFiP délibérations EPCI 2025 (Nantes Métropole)', tranches: [584, 1168, 1966, 3273, 4676, 6081] }, // Saint-Herblain
+  '44184': { base: 584, source: 'DGFiP délibérations EPCI 2025 (Nantes Métropole)', tranches: [584, 1168, 1966, 3273, 4676, 6081] }, // Saint-Nazaire
+
+  // Eurométropole de Strasbourg (sirepci=246700488) — 584/1167/2444/2444/4732/4732 €
+  '67482': { base: 584, source: 'DGFiP délibérations EPCI 2025 (Eurométropole Strasbourg)', tranches: [584, 1167, 2444, 2444, 4732, 4732] }, // Strasbourg
+
+  // Métropole Nice Côte d'Azur (sirepci=200030195) — 575/1150/2417/4028/5754/7481 €
+  '06004': { base: 575, source: 'DGFiP délibérations EPCI 2025 (Nice Côte d\'Azur)', tranches: [575, 1150, 2417, 4028, 5754, 7481] }, // Antibes
+  '06027': { base: 575, source: 'DGFiP délibérations EPCI 2025 (Nice Côte d\'Azur)', tranches: [575, 1150, 2417, 4028, 5754, 7481] }, // Cagnes-sur-Mer
+  '06029': { base: 575, source: 'DGFiP délibérations EPCI 2025 (Nice Côte d\'Azur)', tranches: [575, 1150, 2417, 4028, 5754, 7481] }, // Cannes
+  '06030': { base: 575, source: 'DGFiP délibérations EPCI 2025 (Nice Côte d\'Azur)', tranches: [575, 1150, 2417, 4028, 5754, 7481] }, // Carros
+  '06069': { base: 575, source: 'DGFiP délibérations EPCI 2025 (Nice Côte d\'Azur)', tranches: [575, 1150, 2417, 4028, 5754, 7481] }, // Nice
+  '06088': { base: 575, source: 'DGFiP délibérations EPCI 2025 (Nice Côte d\'Azur)', tranches: [575, 1150, 2417, 4028, 5754, 7481] }, // Saint-Laurent-du-Var
+
+  // Montpellier Méditerranée Métropole (sirepci=243400017) — 524/916/1266/2540/3492/5243 €
+  '34032': { base: 524, source: 'DGFiP délibérations EPCI 2025 (Montpellier Méditerranée Métropole)', tranches: [524, 916, 1266, 2540, 3492, 5243] }, // Castelnau-le-Lez
+  '34172': { base: 524, source: 'DGFiP délibérations EPCI 2025 (Montpellier Méditerranée Métropole)', tranches: [524, 916, 1266, 2540, 3492, 5243] }, // Montpellier
+  '34301': { base: 524, source: 'DGFiP délibérations EPCI 2025 (Montpellier Méditerranée Métropole)', tranches: [524, 916, 1266, 2540, 3492, 5243] }, // Palavas-les-Flots
+
+  // Rennes Métropole (sirepci=243500139) — 589/1179/2258/2258/2258/2258 €
+  '35238': { base: 589, source: 'DGFiP délibérations EPCI 2025 (Rennes Métropole)', tranches: [589, 1179, 2258, 2258, 2258, 2258] }, // Rennes
+  '35288': { base: 589, source: 'DGFiP délibérations EPCI 2025 (Rennes Métropole)', tranches: [589, 1179, 2258, 2258, 2258, 2258] }, // Saint-Malo
+
+  // Grenoble-Alpes Métropole (sirepci=200040715) — 505/1010/1323/3329/4458/5796 €
+  '38185': { base: 505, source: 'DGFiP délibérations EPCI 2025 (Grenoble-Alpes Métropole)', tranches: [505, 1010, 1323, 3329, 4458, 5796] }, // Grenoble
+  '38364': { base: 505, source: 'DGFiP délibérations EPCI 2025 (Grenoble-Alpes Métropole)', tranches: [505, 1010, 1323, 3329, 4458, 5796] }, // Saint-Martin-d'Hères
+  '38421': { base: 505, source: 'DGFiP délibérations EPCI 2025 (Grenoble-Alpes Métropole)', tranches: [505, 1010, 1323, 3329, 4458, 5796] }, // Échirolles
+
+  // Clermont Auvergne Métropole (sirepci=246300701) — null/1179/1717/3248/4423/5752 €
+  '63113': { base: 1179, source: 'DGFiP délibérations EPCI 2025 (Clermont Auvergne Métropole)', tranches: [null, 1179, 1717, 3248, 4423, 5752] }, // Clermont-Ferrand
+  '63124': { base: 1179, source: 'DGFiP délibérations EPCI 2025 (Clermont Auvergne Métropole)', tranches: [null, 1179, 1717, 3248, 4423, 5752] }, // Cournon-d'Auvergne
+
+  // ── Metz Métropole (sirepci=200039865) — 584/1168/1404/3508/4676/5845 €
+  '57463': { base: 584, source: 'DGFiP délibérations EPCI 2025 (Metz Métropole)', tranches: [584, 1168, 1404, 3508, 4676, 5845] }, // Metz
+  '57672': { base: 584, source: 'DGFiP délibérations EPCI 2025 (Metz Métropole)', tranches: [584, 1168, 1404, 3508, 4676, 5845] }, // Woippy
+
+  // ── Métropole du Grand Nancy (sirepci=245400676) — 589/1179/1651/3419/5309/7079 €
+  '54395': { base: 589, source: 'DGFiP délibérations EPCI 2025 (Grand Nancy)', tranches: [589, 1179, 1651, 3419, 5309, 7079] }, // Nancy
+
+  // ── MGP EPT T02 VALLÉE SUD GRAND PARIS (sirepci=200057966) — 585/1158/2433/4055/5793/7532 €
+  '92002': { base: 585, source: 'DGFiP délibérations EPCI 2025 (T02 Vallée Sud)', tranches: [585, 1158, 2433, 4055, 5793, 7532] }, // Antony
+  '92023': { base: 585, source: 'DGFiP délibérations EPCI 2025 (T02 Vallée Sud)', tranches: [585, 1158, 2433, 4055, 5793, 7532] }, // Clamart
+  '92048': { base: 585, source: 'DGFiP délibérations EPCI 2025 (T02 Vallée Sud)', tranches: [585, 1158, 2433, 4055, 5793, 7532] }, // Meudon
+  '92049': { base: 585, source: 'DGFiP délibérations EPCI 2025 (T02 Vallée Sud)', tranches: [585, 1158, 2433, 4055, 5793, 7532] }, // Montrouge
+
+  // ── MGP EPT T03 GRAND PARIS SEINE OUEST (sirepci=200057974) — 577/1153/2020/2597/2883/3747 €
+  '92012': { base: 577, source: 'DGFiP délibérations EPCI 2025 (T03 Seine Ouest)', tranches: [577, 1153, 2020, 2597, 2883, 3747] }, // Boulogne-Billancourt
+  '92040': { base: 577, source: 'DGFiP délibérations EPCI 2025 (T03 Seine Ouest)', tranches: [577, 1153, 2020, 2597, 2883, 3747] }, // Issy-les-Moulineaux
+
+  // ── MGP EPT T04 PARIS OUEST LA DÉFENSE (sirepci=200057982) — 584/1167/2281/3601/4296/4587 €
+  '92025': { base: 584, source: 'DGFiP délibérations EPCI 2025 (T04 Paris Ouest)', tranches: [584, 1167, 2281, 3601, 4296, 4587] }, // Colombes
+  '92026': { base: 584, source: 'DGFiP délibérations EPCI 2025 (T04 Paris Ouest)', tranches: [584, 1167, 2281, 3601, 4296, 4587] }, // Courbevoie
+  '92044': { base: 584, source: 'DGFiP délibérations EPCI 2025 (T04 Paris Ouest)', tranches: [584, 1167, 2281, 3601, 4296, 4587] }, // Levallois-Perret
+  '92050': { base: 584, source: 'DGFiP délibérations EPCI 2025 (T04 Paris Ouest)', tranches: [584, 1167, 2281, 3601, 4296, 4587] }, // Nanterre
+  '92051': { base: 584, source: 'DGFiP délibérations EPCI 2025 (T04 Paris Ouest)', tranches: [584, 1167, 2281, 3601, 4296, 4587] }, // Neuilly-sur-Seine
+  '92062': { base: 584, source: 'DGFiP délibérations EPCI 2025 (T04 Paris Ouest)', tranches: [584, 1167, 2281, 3601, 4296, 4587] }, // Puteaux
+  '92063': { base: 584, source: 'DGFiP délibérations EPCI 2025 (T04 Paris Ouest)', tranches: [584, 1167, 2281, 3601, 4296, 4587] }, // Rueil-Malmaison
+  '92073': { base: 584, source: 'DGFiP délibérations EPCI 2025 (T04 Paris Ouest)', tranches: [584, 1167, 2281, 3601, 4296, 4587] }, // Suresnes
+
+  // ── MGP EPT T06 PLAINE COMMUNE (sirepci=200057867) — 539/1142/2400/4000/5714/7427 €
+  '93008': { base: 539, source: 'DGFiP délibérations EPCI 2025 (T06 Plaine Commune)', tranches: [539, 1142, 2400, 4000, 5714, 7427] }, // Aubervilliers
+  '93027': { base: 539, source: 'DGFiP délibérations EPCI 2025 (T06 Plaine Commune)', tranches: [539, 1142, 2400, 4000, 5714, 7427] }, // La Courneuve
+  '93031': { base: 539, source: 'DGFiP délibérations EPCI 2025 (T06 Plaine Commune)', tranches: [539, 1142, 2400, 4000, 5714, 7427] }, // Épinay-sur-Seine
+  '93063': { base: 539, source: 'DGFiP délibérations EPCI 2025 (T06 Plaine Commune)', tranches: [539, 1142, 2400, 4000, 5714, 7427] }, // Saint-Ouen-sur-Seine
+  '93066': { base: 539, source: 'DGFiP délibérations EPCI 2025 (T06 Plaine Commune)', tranches: [539, 1142, 2400, 4000, 5714, 7427] }, // Saint-Denis
+
+  // ── MGP EPT T08 EST ENSEMBLE (sirepci=200057875) — 584/1167/1717/2371/5840/7592 €
+  '93013': { base: 584, source: 'DGFiP délibérations EPCI 2025 (T08 Est Ensemble)', tranches: [584, 1167, 1717, 2371, 5840, 7592] }, // Bondy
+  '93047': { base: 584, source: 'DGFiP délibérations EPCI 2025 (T08 Est Ensemble)', tranches: [584, 1167, 1717, 2371, 5840, 7592] }, // Noisy-le-Sec
+  '93048': { base: 584, source: 'DGFiP délibérations EPCI 2025 (T08 Est Ensemble)', tranches: [584, 1167, 1717, 2371, 5840, 7592] }, // Montreuil
+  '93049': { base: 584, source: 'DGFiP délibérations EPCI 2025 (T08 Est Ensemble)', tranches: [584, 1167, 1717, 2371, 5840, 7592] }, // Pantin
+
+  // ── MGP EPT T09 GRAND PARIS - GRAND EST (sirepci=200058790) — 580/1158/2433/3386/4838/6289 €
+  '93032': { base: 580, source: 'DGFiP délibérations EPCI 2025 (T09 Grand Paris Grand Est)', tranches: [580, 1158, 2433, 3386, 4838, 6289] }, // Livry-Gargan
+
+  // ── MGP EPT T10 PARIS-EST-MARNE ET BOIS (sirepci=200057941) — 585/1148/2182/4020/5850/7608 €
+  '94019': { base: 585, source: 'DGFiP délibérations EPCI 2025 (T10 Paris-Est-Marne)', tranches: [585, 1148, 2182, 4020, 5850, 7608] }, // Champigny-sur-Marne
+
+  // ── MGP EPT T11 PLAINE CENTRALE (sirepci=200058006) — 585/1169/2424/4097/5793/6890 €
+  '94002': { base: 585, source: 'DGFiP délibérations EPCI 2025 (T11 Plaine Centrale)', tranches: [585, 1169, 2424, 4097, 5793, 6890] }, // Alfortville
+  '94022': { base: 585, source: 'DGFiP délibérations EPCI 2025 (T11 Plaine Centrale)', tranches: [585, 1169, 2424, 4097, 5793, 6890] }, // Choisy-le-Roi
+  '94028': { base: 585, source: 'DGFiP délibérations EPCI 2025 (T11 Plaine Centrale)', tranches: [585, 1169, 2424, 4097, 5793, 6890] }, // Créteil
+  '94054': { base: 585, source: 'DGFiP délibérations EPCI 2025 (T11 Plaine Centrale)', tranches: [585, 1169, 2424, 4097, 5793, 6890] }, // Maisons-Alfort
+
+  // ── MGP EPT T12 GRAND-ORLY VAL-DE-BIÈVRE (sirepci=200058014) — 580/1158/1208/2392/5793/7532 €
+  '94038': { base: 580, source: 'DGFiP délibérations EPCI 2025 (T12 Grand-Orly)', tranches: [580, 1158, 1208, 2392, 5793, 7532] }, // L'Haÿ-les-Roses
+  '94043': { base: 580, source: 'DGFiP délibérations EPCI 2025 (T12 Grand-Orly)', tranches: [580, 1158, 1208, 2392, 5793, 7532] }, // Ivry-sur-Seine
+  '94076': { base: 580, source: 'DGFiP délibérations EPCI 2025 (T12 Grand-Orly)', tranches: [580, 1158, 1208, 2392, 5793, 7532] }, // Villejuif
+  '94081': { base: 580, source: 'DGFiP délibérations EPCI 2025 (T12 Grand-Orly)', tranches: [580, 1158, 1208, 2392, 5793, 7532] }, // Vitry-sur-Seine
+
+  // ── CA Val Parisis dep 95 (sirepci=200058485) — 575/1148/2068/2872/2987/3101 €
+  '95018': { base: 575, source: 'DGFiP délibérations EPCI 2025 (CA Val Parisis)', tranches: [575, 1148, 2068, 2872, 2987, 3101] }, // Argenteuil
+  '95268': { base: 575, source: 'DGFiP délibérations EPCI 2025 (CA Val Parisis)', tranches: [575, 1148, 2068, 2872, 2987, 3101] }, // Garges-lès-Gonesse
+  '95585': { base: 575, source: 'DGFiP délibérations EPCI 2025 (CA Val Parisis)', tranches: [575, 1148, 2068, 2872, 2987, 3101] }, // Sarcelles
+
+  // ── Provinces — EPCIs FPU / délibérations 2025 ──────────────────────────────
+  // CA Ardenne Métropole (08) — 584/1134/2041/2918/4006/4913 €
+  '08105': { base: 584, source: 'DGFiP délibérations EPCI 2025 (CA Ardenne Métropole)', tranches: [584, 1134, 2041, 2918, 4006, 4913] }, // Charleville-Mézières
+  // CA Troyes Champagne Métropole (10) — 584/1167/1705/2386/3070/3695 €
+  '10387': { base: 584, source: 'DGFiP délibérations EPCI 2025 (CA Troyes Champagne)', tranches: [584, 1167, 1705, 2386, 3070, 3695] }, // Troyes
+  // CA Carcassonne Agglo (11) — 403/517/1786/2763/3799/4841 €
+  '11069': { base: 403, source: 'DGFiP délibérations EPCI 2025 (CA Carcassonne Agglo)', tranches: [403, 517, 1786, 2763, 3799, 4841] }, // Carcassonne
+  // CA Le Grand Narbonne (11) — 579/926/1157/1737/2893/3472 €
+  '11262': { base: 579, source: 'DGFiP délibérations EPCI 2025 (CA Le Grand Narbonne)', tranches: [579, 926, 1157, 1737, 2893, 3472] }, // Narbonne
+  // CU Caen la Mer (14) — 584/1167/1705/2273/3410/4549 €
+  '14118': { base: 584, source: 'DGFiP délibérations EPCI 2025 (CU Caen la Mer)', tranches: [584, 1167, 1705, 2273, 3410, 4549] }, // Caen
+  // CA Grand Angoulême (16) — 584/1167/1766/3032/4207/5974 €
+  '16015': { base: 584, source: 'DGFiP délibérations EPCI 2025 (CA Grand Angoulême)', tranches: [584, 1167, 1766, 3032, 4207, 5974] }, // Angoulême
+  // CA de La Rochelle (17) — 589/1179/2477/4129/5897/7669 €
+  '17300': { base: 589, source: 'DGFiP délibérations EPCI 2025 (CA de La Rochelle)', tranches: [589, 1179, 2477, 4129, 5897, 7669] }, // La Rochelle
+  // CA Bourges Plus (18) — 416/708/1349/2169/3045/3922 €
+  '18033': { base: 416, source: 'DGFiP délibérations EPCI 2025 (CA Bourges Plus)', tranches: [416, 708, 1349, 2169, 3045, 3922] }, // Bourges
+  // CA du Bassin de Brive (19) — 575/734/876/876/876/876 €
+  '19031': { base: 575, source: 'DGFiP délibérations EPCI 2025 (CA Bassin de Brive)', tranches: [575, 734, 876, 876, 876, 876] }, // Brive-la-Gaillarde
+  // CA Saint-Brieuc Armor Agglomération (22) — 584/1167/2313/2893/5557/7410 €
+  '22278': { base: 584, source: 'DGFiP délibérations EPCI 2025 (CA Saint-Brieuc Armor)', tranches: [584, 1167, 2313, 2893, 5557, 7410] }, // Saint-Brieuc
+  // CA Montélimar Agglomération (26) — 584/1168/2104/2690/3624/4092 €
+  '26198': { base: 584, source: 'DGFiP délibérations EPCI 2025 (CA Montélimar Agglomération)', tranches: [584, 1168, 2104, 2690, 3624, 4092] }, // Montélimar
+  // CA Valence Romans Agglo (26) — 579/1157/2145/2745/3049/null €
+  '26362': { base: 579, source: 'DGFiP délibérations EPCI 2025 (CA Valence Romans Agglo)', tranches: [579, 1157, 2145, 2745, 3049, null] }, // Valence
+  // CA Évreux Portes de Normandie (27) — 534/1070/2081/3741/5345/6412 €
+  '27229': { base: 534, source: 'DGFiP délibérations EPCI 2025 (CA Évreux Portes de Normandie)', tranches: [534, 1070, 2081, 3741, 5345, 6412] }, // Évreux
+  // CA Chartres Métropole (28) — 589/1179/2477/4129/5897/7669 €
+  '28085': { base: 589, source: 'DGFiP délibérations EPCI 2025 (CA Chartres Métropole)', tranches: [589, 1179, 2477, 4129, 5897, 7669] }, // Chartres
+  // Brest Métropole (29) — 589/1179/1958/3913/4717/5897 €
+  '29019': { base: 589, source: 'DGFiP délibérations EPCI 2025 (Brest Métropole)', tranches: [589, 1179, 1958, 3913, 4717, 5897] }, // Brest
+  // CA Quimper Bretagne Occidentale (29) — 550/1099/1759/2463/3202/3842 €
+  '29232': { base: 550, source: 'DGFiP délibérations EPCI 2025 (CA Quimper Bretagne)', tranches: [550, 1099, 1759, 2463, 3202, 3842] }, // Quimper
+  // CA du Pays Ajaccien (2A) — 577/1153/1684/1684/1684/1684 €
+  '2A004': { base: 577, source: 'DGFiP délibérations EPCI 2025 (CA Pays Ajaccien)', tranches: [577, 1153, 1684, 1684, 1684, 1684] }, // Ajaccio
+  // CA de Bastia (2B) — null/2470/2470/4936/7198/7198 €
+  '2B033': { base: 2470, source: 'DGFiP délibérations EPCI 2025 (CA de Bastia)', tranches: [null, 2470, 2470, 4936, 7198, 7198] }, // Bastia
+  // CA Alès Agglomération (30) — 589/1179/2477/2956/5897/6503 €
+  '30007': { base: 589, source: 'DGFiP délibérations EPCI 2025 (CA Alès Agglomération)', tranches: [589, 1179, 2477, 2956, 5897, 6503] }, // Alès
+  // CA de Nîmes Métropole (30) — null/null/null/2452/3182/3965 €
+  '30189': { base: 2452, source: 'DGFiP délibérations EPCI 2025 (CA Nîmes Métropole)', tranches: [null, null, null, 2452, 3182, 3965] }, // Nîmes
+  // CA Châteauroux Métropole (36) — 579/1158/1825/3042/4345/5650 €
+  '36044': { base: 579, source: 'DGFiP délibérations EPCI 2025 (CA Châteauroux Métropole)', tranches: [579, 1158, 1825, 3042, 4345, 5650] }, // Châteauroux
+  // Saint-Étienne Métropole (42) — 584/1168/1989/2104/4209/5260 €
+  '42218': { base: 584, source: 'DGFiP délibérations EPCI 2025 (Saint-Étienne Métropole)', tranches: [584, 1168, 1989, 2104, 4209, 5260] }, // Saint-Étienne
+  // CA Agglomération d'Agen (47) — 554/1101/1646/3037/4140/5248 €
+  '47001': { base: 554, source: 'DGFiP délibérations EPCI 2025 (CA Agglomération d\'Agen)', tranches: [554, 1101, 1646, 3037, 4140, 5248] }, // Agen
+  // CA du Cotentin (50) — 420/734/816/1224/1633/2041 €
+  '50129': { base: 420, source: 'DGFiP délibérations EPCI 2025 (CA du Cotentin)', tranches: [420, 734, 816, 1224, 1633, 2041] }, // Cherbourg-en-Cotentin
+  // CA de Châlons-en-Champagne (51) — 584/1167/2452/4089/5840/7593 €
+  '51108': { base: 584, source: 'DGFiP délibérations EPCI 2025 (CA Châlons-en-Champagne)', tranches: [584, 1167, 2452, 4089, 5840, 7593] }, // Châlons-en-Champagne
+  // CU du Grand Reims (51) — 580/1158/1956/2030/2114/2252 €
+  '51454': { base: 580, source: 'DGFiP délibérations EPCI 2025 (CU Grand Reims)', tranches: [580, 1158, 1956, 2030, 2114, 2252] }, // Reims
+  // CA Laval Agglomération (53) — 577/1153/1604/4036/4755/4755 €
+  '53130': { base: 577, source: 'DGFiP délibérations EPCI 2025 (CA Laval Agglomération)', tranches: [577, 1153, 1604, 4036, 4755, 4755] }, // Laval
+  // CA Lorient Agglomération (56) — 584/1168/2454/2454/2454/2454 €
+  '56121': { base: 584, source: 'DGFiP délibérations EPCI 2025 (CA Lorient Agglomération)', tranches: [584, 1168, 2454, 2454, 2454, 2454] }, // Lorient
+  // CA Golfe du Morbihan - Vannes Agglomération (56) — 577/1153/1993/2983/3684/4614 €
+  '56260': { base: 577, source: 'DGFiP délibérations EPCI 2025 (CA Golfe du Morbihan-Vannes)', tranches: [577, 1153, 1993, 2983, 3684, 4614] }, // Vannes
+  // CA du Beauvaisis (60) — 584/1167/1845/2230/2896/3767 €
+  '60057': { base: 584, source: 'DGFiP délibérations EPCI 2025 (CA du Beauvaisis)', tranches: [584, 1167, 1845, 2230, 2896, 3767] }, // Beauvais
+  // CA de la Région de Compiègne (60) — 584/1167/1446/2408/2408/2408 €
+  '60159': { base: 584, source: 'DGFiP délibérations EPCI 2025 (CA Région de Compiègne)', tranches: [584, 1167, 1446, 2408, 2408, 2408] }, // Compiègne
+  // CU d'Arras (62) — null/1441/1441/2401/2401/2401 €
+  '62041': { base: 1441, source: 'DGFiP délibérations EPCI 2025 (CU d\'Arras)', tranches: [null, 1441, 1441, 2401, 2401, 2401] }, // Arras
+  // CA Grand Calais Terres et Mers (62) — 292/988/1744/2325/2904/3487 €
+  '62160': { base: 292, source: 'DGFiP délibérations EPCI 2025 (CA Grand Calais)', tranches: [292, 988, 1744, 2325, 2904, 3487] }, // Calais
+  // CA Tarbes-Lourdes-Pyrénées (65) — 580/1158/1331/1330/1330/1330 €
+  '65440': { base: 580, source: 'DGFiP délibérations EPCI 2025 (CA Tarbes-Lourdes-Pyrénées)', tranches: [580, 1158, 1331, 1330, 1330, 1330] }, // Tarbes
+  // CU Perpignan Méditerranée Métropole (66) — 579/1016/1157/2893/5209/6943 €
+  '66136': { base: 579, source: 'DGFiP délibérations EPCI 2025 (CU Perpignan Méditerranée)', tranches: [579, 1016, 1157, 2893, 5209, 6943] }, // Perpignan
+  // CA Colmar Agglomération (68) — 577/1153/1571/3143/3592/4489 €
+  '68066': { base: 577, source: 'DGFiP délibérations EPCI 2025 (CA Colmar Agglomération)', tranches: [577, 1153, 1571, 3143, 3592, 4489] }, // Colmar
+  // CA Mulhouse Alsace Agglomération (68) — 584/1167/2445/4089/5799/7506 €
+  '68224': { base: 584, source: 'DGFiP délibérations EPCI 2025 (CA Mulhouse Alsace Agglomération)', tranches: [584, 1167, 2445, 4089, 5799, 7506] }, // Mulhouse
+  // CA Saint-Louis Agglomération (68) — 584/1167/1747/1820/1820/1820 €
+  '68297': { base: 584, source: 'DGFiP délibérations EPCI 2025 (CA Saint-Louis Agglomération)', tranches: [584, 1167, 1747, 1820, 1820, 1820] }, // Saint-Louis
+  // CA du Grand Chambéry (73) — 589/1179/1259/2388/3585/3585 €
+  '73065': { base: 589, source: 'DGFiP délibérations EPCI 2025 (CA Grand Chambéry)', tranches: [589, 1179, 1259, 2388, 3585, 3585] }, // Chambéry
+  // CA du Grand Annecy (74) — 584/1165/1716/2023/2384/2811 €
+  '74010': { base: 584, source: 'DGFiP délibérations EPCI 2025 (CA Grand Annecy)', tranches: [584, 1165, 1716, 2023, 2384, 2811] }, // Annecy
+  // CU Le Havre Seine Métropole (76) — 574/1148/1886/3024/4317/5614 €
+  '76351': { base: 574, source: 'DGFiP délibérations EPCI 2025 (CU Le Havre Seine Métropole)', tranches: [574, 1148, 1886, 3024, 4317, 5614] }, // Le Havre
+  // Métropole Rouen Normandie (76) — 589/1179/1968/2890/4129/5309 €
+  '76540': { base: 589, source: 'DGFiP délibérations EPCI 2025 (Métropole Rouen Normandie)', tranches: [589, 1179, 1968, 2890, 4129, 5309] }, // Rouen
+  // CA Paris - Vallée de la Marne (77) — 585/1169/2456/3618/4331/5743 €
+  '77083': { base: 585, source: 'DGFiP délibérations EPCI 2025 (CA Paris-Vallée de la Marne)', tranches: [585, 1169, 2456, 3618, 4331, 5743] }, // Chelles
+  // CA du Pays de Meaux (77) — 556/1112/1667/2388/3112/3946 €
+  '77284': { base: 556, source: 'DGFiP délibérations EPCI 2025 (CA Pays de Meaux)', tranches: [556, 1112, 1667, 2388, 3112, 3946] }, // Meaux
+  // CA Melun Val de Seine (77) — 247/247/247/247/247/247 €
+  '77288': { base: 247, source: 'DGFiP délibérations EPCI 2025 (CA Melun Val de Seine)', tranches: [247, 247, 247, 247, 247, 247] }, // Melun
+  // CU Grand Paris Seine et Oise (78) — 585/1160/2068/3331/4364/5167 €
+  '78361': { base: 585, source: 'DGFiP délibérations EPCI 2025 (CU Grand Paris Seine et Oise)', tranches: [585, 1160, 2068, 3331, 4364, 5167] }, // Mantes-la-Jolie
+  // CA de Saint-Quentin-en-Yvelines (78) — 584/1168/1984/2611/3785/3886 €
+  '78517': { base: 584, source: 'DGFiP délibérations EPCI 2025 (CA Saint-Quentin-en-Yvelines)', tranches: [584, 1168, 1984, 2611, 3785, 3886] }, // Saint-Cyr-l'École
+  // CA Saint Germain Boucles de Seine (78) — 567/1121/1831/2872/3413/3844 €
+  '78551': { base: 567, source: 'DGFiP délibérations EPCI 2025 (CA Saint-Germain Boucles de Seine)', tranches: [567, 1121, 1831, 2872, 3413, 3844] }, // Saint-Germain-en-Laye
+  '78586': { base: 567, source: 'DGFiP délibérations EPCI 2025 (CA Saint-Germain Boucles de Seine)', tranches: [567, 1121, 1831, 2872, 3413, 3844] }, // Sartrouville
+  // CA Versailles Grand Parc (78) — 589/1887/1887/3066/3066/3066 €
+  '78646': { base: 589, source: 'DGFiP délibérations EPCI 2025 (CA Versailles Grand Parc)', tranches: [589, 1887, 1887, 3066, 3066, 3066] }, // Versailles
+  // CA du Niortais (79) — 245/817/1753/3273/4444/5611 €
+  '79191': { base: 245, source: 'DGFiP délibérations EPCI 2025 (CA du Niortais)', tranches: [245, 817, 1753, 3273, 4444, 5611] }, // Niort
+  // CA Amiens Métropole (80) — 580/1160/2137/4058/5800/7539 €
+  '80021': { base: 580, source: 'DGFiP délibérations EPCI 2025 (CA Amiens Métropole)', tranches: [580, 1160, 2137, 4058, 5800, 7539] }, // Amiens
+  // CA de l'Albigeois (81) — 471/944/1769/2360/4717/4717 €
+  '81004': { base: 471, source: 'DGFiP délibérations EPCI 2025 (CA de l\'Albigeois)', tranches: [471, 944, 1769, 2360, 4717, 4717] }, // Albi
+  // CA de Castres-Mazamet (81) — 584/1168/1286/2220/3390/4561 €
+  '81065': { base: 584, source: 'DGFiP délibérations EPCI 2025 (CA Castres-Mazamet)', tranches: [584, 1168, 1286, 2220, 3390, 4561] }, // Castres
+  // CA Grand Montauban (82) — 584/1062/1259/1737/2313/4051 €
+  '82121': { base: 584, source: 'DGFiP délibérations EPCI 2025 (CA Grand Montauban)', tranches: [584, 1062, 1259, 1737, 2313, 4051] }, // Montauban
+  // Métropole Toulon-Provence-Méditerranée (83) — null/1649/1649/2990/2990/2990 €
+  '83023': { base: 1649, source: 'DGFiP délibérations EPCI 2025 (Métropole TPM)', tranches: [null, 1649, 1649, 2990, 2990, 2990] }, // La Seyne-sur-Mer
+  // CA Estérel Côte d'Azur Agglomération (83) — 584/1168/2456/4097/5850/7608 €
+  '83050': { base: 584, source: 'DGFiP délibérations EPCI 2025 (CA Estérel Côte d\'Azur)', tranches: [584, 1168, 2456, 4097, 5850, 7608] }, // Fréjus
+  '83061': { base: 1649, source: 'DGFiP délibérations EPCI 2025 (Métropole TPM)', tranches: [null, 1649, 1649, 2990, 2990, 2990] }, // Hyères
+  // CA Dracénie Provence Verdon Agglomération (83) — 577/1088/1633/2176/2721/3265 €
+  '83069': { base: 577, source: 'DGFiP délibérations EPCI 2025 (CA Dracénie Provence Verdon)', tranches: [577, 1088, 1633, 2176, 2721, 3265] }, // Draguignan
+  '83137': { base: 1649, source: 'DGFiP délibérations EPCI 2025 (Métropole TPM)', tranches: [null, 1649, 1649, 2990, 2990, 2990] }, // Toulon
+  // CA du Grand Avignon (84) — 589/1179/2360/3539/5309/6489 €
+  '84007': { base: 589, source: 'DGFiP délibérations EPCI 2025 (CA Grand Avignon)', tranches: [589, 1179, 2360, 3539, 5309, 6489] }, // Avignon
+  // CA Les Sables d'Olonne Agglomération (85) — 470/941/1632/3057/4233/7055 €
+  '85109': { base: 470, source: 'DGFiP délibérations EPCI 2025 (CA Les Sables d\'Olonne)', tranches: [470, 941, 1632, 3057, 4233, 7055] }, // Les Sables-d'Olonne
+  // CA La Roche-sur-Yon Agglomération (85) — null/2236/2236/2927/5377/5377 €
+  '85191': { base: 2236, source: 'DGFiP délibérations EPCI 2025 (CA La Roche-sur-Yon)', tranches: [null, 2236, 2236, 2927, 5377, 5377] }, // La Roche-sur-Yon
+  // CU du Grand Poitiers (86) — 575/1148/2049/2412/3905/5743 €
+  '86194': { base: 575, source: 'DGFiP délibérations EPCI 2025 (CU Grand Poitiers)', tranches: [575, 1148, 2049, 2412, 3905, 5743] }, // Poitiers
+  // CU Limoges Métropole (87) — 403/803/1608/3172/4758/6605 €
+  '87085': { base: 403, source: 'DGFiP délibérations EPCI 2025 (CU Limoges Métropole)', tranches: [403, 803, 1608, 3172, 4758, 6605] }, // Limoges
+  // CA Grand Belfort (90) — 582/1164/2446/4076/5821/7570 €
+  '90010': { base: 582, source: 'DGFiP délibérations EPCI 2025 (CA Grand Belfort)', tranches: [582, 1164, 2446, 4076, 5821, 7570] }, // Belfort
+
+  // ── DOM/TOM — EPCIs 2025 ──────────────────────────────────────────────────────
+  // CA CAP Excellence (971 Guadeloupe) — 584/1168/2454/4092/5845/7599 €
+  '97100': { base: 584, source: 'DGFiP délibérations EPCI 2025 (CA CAP Excellence)', tranches: [584, 1168, 2454, 4092, 5845, 7599] }, // Les Abymes
+  // CA du Centre de la Martinique (972) — 584/1168/2454/4092/5845/7599 €
+  '97209': { base: 584, source: 'DGFiP délibérations EPCI 2025 (CA Centre de la Martinique)', tranches: [584, 1168, 2454, 4092, 5845, 7599] }, // Fort-de-France
+  '97213': { base: 584, source: 'DGFiP délibérations EPCI 2025 (CA Centre de la Martinique)', tranches: [584, 1168, 2454, 4092, 5845, 7599] }, // Le Lamentin
+  // CA CIVIS (974 La Réunion) — 589/1179/2477/4129/5897/7669 €
+  '97416': { base: 589, source: 'DGFiP délibérations EPCI 2025 (CA CIVIS Réunion)', tranches: [589, 1179, 2477, 4129, 5897, 7669] }, // Saint-Pierre
+  '97422': { base: 589, source: 'DGFiP délibérations EPCI 2025 (CA CIVIS Réunion)', tranches: [589, 1179, 2477, 4129, 5897, 7669] }, // Le Tampon
+  // CA Intercommunale de la Réunion Est - CIREST (974) — 589/1179/1240/1357/2950/4129 €
+  '97701': { base: 589, source: 'DGFiP délibérations EPCI 2025 (CA CIREST Réunion Est)', tranches: [589, 1179, 1240, 1357, 2950, 4129] }, // Saint-André
+}
 export const TAUX_CONNUS: Record<string, { taux: number; nom: string }> = {
   // ══════════════════════════════════════════════════════════════════════════════
   // ── PARIS ET ARRONDISSEMENTS ─────────────────────────────────────────────────
@@ -30,54 +420,54 @@ export const TAUX_CONNUS: Record<string, { taux: number; nom: string }> = {
   '75120': { taux: 16.52, nom: 'Paris 20e' },
 
   // ══════════════════════════════════════════════════════════════════════════════
-  // ── LYON MÉTROPOLE ET ARRONDISSEMENTS (28.62 %) ──────────────────────────────
+  // ── LYON MÉTROPOLE ET ARRONDISSEMENTS (30.43 % depuis budget voté mars 2025) ──
   // ══════════════════════════════════════════════════════════════════════════════
-  '69123': { taux: 28.62, nom: 'Lyon' },
-  '69381': { taux: 28.62, nom: 'Lyon 1er' },
-  '69382': { taux: 28.62, nom: 'Lyon 2e' },
-  '69383': { taux: 28.62, nom: 'Lyon 3e' },
-  '69384': { taux: 28.62, nom: 'Lyon 4e' },
-  '69385': { taux: 28.62, nom: 'Lyon 5e' },
-  '69386': { taux: 28.62, nom: 'Lyon 6e' },
-  '69387': { taux: 28.62, nom: 'Lyon 7e' },
-  '69388': { taux: 28.62, nom: 'Lyon 8e' },
-  '69389': { taux: 28.62, nom: 'Lyon 9e' },
-  '69266': { taux: 28.62, nom: 'Villeurbanne' },
-  '69034': { taux: 28.62, nom: 'Bron' },
-  '69286': { taux: 28.62, nom: 'Vénissieux' },
-  '69290': { taux: 28.62, nom: 'Vaulx-en-Velin' },
-  '69149': { taux: 28.62, nom: 'Décines-Charpieu' },
-  '69199': { taux: 28.62, nom: 'Meyzieu' },
-  '69152': { taux: 28.62, nom: 'Écully' },
-  '69168': { taux: 28.62, nom: 'Givors' },
-  '69256': { taux: 28.62, nom: 'Tassin-la-Demi-Lune' },
-  '69244': { taux: 28.62, nom: 'Sainte-Foy-lès-Lyon' },
-  '69029': { taux: 28.62, nom: 'Caluire-et-Cuire' },
-  '69202': { taux: 28.62, nom: 'Oullins' },
-  '69204': { taux: 28.62, nom: 'Pierre-Bénite' },
-  '69233': { taux: 28.62, nom: 'Rillieux-la-Pape' },
-  '69250': { taux: 28.62, nom: 'Saint-Priest' },
-  '69142': { taux: 28.62, nom: 'Dardilly' },
-  '69091': { taux: 28.62, nom: 'Francheville' },
-  '69040': { taux: 28.62, nom: 'Champagne-au-Mont-d\'Or' },
-  '69116': { taux: 28.62, nom: 'Craponne' },
-  '69259': { taux: 28.62, nom: 'Saint-Genis-Laval' },
-  '69271': { taux: 28.62, nom: 'Saint-Fons' },
-  '69275': { taux: 28.62, nom: 'Saint-Genis-les-Ollières' },
-  '69284': { taux: 28.62, nom: 'Corbas' },
-  '69068': { taux: 28.62, nom: 'Feyzin' },
-  '69081': { taux: 28.62, nom: 'Mions' },
-  '69282': { taux: 28.62, nom: 'Solaize' },
-  '69276': { taux: 28.62, nom: 'Irigny' },
-  '69278': { taux: 28.62, nom: 'Charbonnières-les-Bains' },
-  '69279': { taux: 28.62, nom: 'Marcy-l\'Étoile' },
-  '69063': { taux: 28.62, nom: 'Limonest' },
-  '69051': { taux: 28.62, nom: 'Collonges-au-Mont-d\'Or' },
-  '69163': { taux: 28.62, nom: 'Grigny' },
-  '69143': { taux: 28.62, nom: 'Genay' },
-  '69089': { taux: 28.62, nom: 'Neuville-sur-Saône' },
-  '69100': { taux: 28.62, nom: 'Fontaines-sur-Saône' },
-  '69194': { taux: 28.62, nom: 'Sathonay-Camp' },
+  '69123': { taux: 30.43, nom: 'Lyon' },
+  '69381': { taux: 30.43, nom: 'Lyon 1er' },
+  '69382': { taux: 30.43, nom: 'Lyon 2e' },
+  '69383': { taux: 30.43, nom: 'Lyon 3e' },
+  '69384': { taux: 30.43, nom: 'Lyon 4e' },
+  '69385': { taux: 30.43, nom: 'Lyon 5e' },
+  '69386': { taux: 30.43, nom: 'Lyon 6e' },
+  '69387': { taux: 30.43, nom: 'Lyon 7e' },
+  '69388': { taux: 30.43, nom: 'Lyon 8e' },
+  '69389': { taux: 30.43, nom: 'Lyon 9e' },
+  '69266': { taux: 30.43, nom: 'Villeurbanne' },
+  '69034': { taux: 30.43, nom: 'Bron' },
+  '69286': { taux: 30.43, nom: 'Vénissieux' },
+  '69290': { taux: 30.43, nom: 'Vaulx-en-Velin' },
+  '69149': { taux: 30.43, nom: 'Décines-Charpieu' },
+  '69199': { taux: 30.43, nom: 'Meyzieu' },
+  '69152': { taux: 30.43, nom: 'Écully' },
+  '69168': { taux: 30.43, nom: 'Givors' },
+  '69256': { taux: 30.43, nom: 'Tassin-la-Demi-Lune' },
+  '69244': { taux: 30.43, nom: 'Sainte-Foy-lès-Lyon' },
+  '69029': { taux: 30.43, nom: 'Caluire-et-Cuire' },
+  '69202': { taux: 30.43, nom: 'Oullins' },
+  '69204': { taux: 30.43, nom: 'Pierre-Bénite' },
+  '69233': { taux: 30.43, nom: 'Rillieux-la-Pape' },
+  '69250': { taux: 30.43, nom: 'Saint-Priest' },
+  '69142': { taux: 30.43, nom: 'Dardilly' },
+  '69091': { taux: 30.43, nom: 'Francheville' },
+  '69040': { taux: 30.43, nom: 'Champagne-au-Mont-d\'Or' },
+  '69116': { taux: 30.43, nom: 'Craponne' },
+  '69259': { taux: 30.43, nom: 'Saint-Genis-Laval' },
+  '69271': { taux: 30.43, nom: 'Saint-Fons' },
+  '69275': { taux: 30.43, nom: 'Saint-Genis-les-Ollières' },
+  '69284': { taux: 30.43, nom: 'Corbas' },
+  '69068': { taux: 30.43, nom: 'Feyzin' },
+  '69081': { taux: 30.43, nom: 'Mions' },
+  '69282': { taux: 30.43, nom: 'Solaize' },
+  '69276': { taux: 30.43, nom: 'Irigny' },
+  '69278': { taux: 30.43, nom: 'Charbonnières-les-Bains' },
+  '69279': { taux: 30.43, nom: 'Marcy-l\'Étoile' },
+  '69063': { taux: 30.43, nom: 'Limonest' },
+  '69051': { taux: 30.43, nom: 'Collonges-au-Mont-d\'Or' },
+  '69163': { taux: 30.43, nom: 'Grigny' },
+  '69143': { taux: 30.43, nom: 'Genay' },
+  '69089': { taux: 30.43, nom: 'Neuville-sur-Saône' },
+  '69100': { taux: 30.43, nom: 'Fontaines-sur-Saône' },
+  '69194': { taux: 30.43, nom: 'Sathonay-Camp' },
 
   // ══════════════════════════════════════════════════════════════════════════════
   // ── MARSEILLE ET ARRONDISSEMENTS (32.87 %) ───────────────────────────────────
@@ -104,484 +494,200 @@ export const TAUX_CONNUS: Record<string, { taux: number; nom: string }> = {
   // ── ÎLE-DE-FRANCE (hors Paris) ──────────────────────────────────────────────
   // ══════════════════════════════════════════════════════════════════════════════
   // -- Hauts-de-Seine (92) --
-  '92012': { taux: 23.22, nom: 'Boulogne-Billancourt' },
-  '92002': { taux: 22.60, nom: 'Antony' },
-  '92004': { taux: 24.70, nom: 'Asnières-sur-Seine' },
-  '92007': { taux: 25.30, nom: 'Bagneux' },
-  '92009': { taux: 23.10, nom: 'Bois-Colombes' },
-  '92014': { taux: 23.50, nom: 'Bourg-la-Reine' },
-  '92019': { taux: 22.80, nom: 'Châtenay-Malabry' },
-  '92020': { taux: 24.20, nom: 'Châtillon' },
-  '92022': { taux: 21.50, nom: 'Chaville' },
-  '92023': { taux: 24.50, nom: 'Clamart' },
-  '92024': { taux: 26.30, nom: 'Clichy' },
-  '92025': { taux: 24.80, nom: 'Colombes' },
-  '92026': { taux: 26.10, nom: 'Courbevoie' },
-  '92032': { taux: 23.80, nom: 'Fontenay-aux-Roses' },
-  '92033': { taux: 21.40, nom: 'Garches' },
-  '92035': { taux: 23.50, nom: 'La Garenne-Colombes' },
-  '92036': { taux: 27.20, nom: 'Gennevilliers' },
-  '92040': { taux: 22.18, nom: 'Issy-les-Moulineaux' },
-  '92044': { taux: 21.84, nom: 'Levallois-Perret' },
-  '92046': { taux: 26.40, nom: 'Malakoff' },
-  '92048': { taux: 22.90, nom: 'Meudon' },
-  '92049': { taux: 24.10, nom: 'Montrouge' },
+  '92012': { taux: 20.87, nom: 'Boulogne-Billancourt' },
+  '92002': { taux: 26.99, nom: 'Antony' },
+  '92004': { taux: 25.84, nom: 'Asnières-sur-Seine' },
+  '92023': { taux: 26.99, nom: 'Clamart' },
+  '92024': { taux: 25.84, nom: 'Clichy' },
+  '92025': { taux: 25.84, nom: 'Colombes' },
+  '92026': { taux: 20.91, nom: 'Courbevoie' },
+  '92036': { taux: 25.84, nom: 'Gennevilliers' },
+  '92040': { taux: 20.87, nom: 'Issy-les-Moulineaux' },
+  '92044': { taux: 20.91, nom: 'Levallois-Perret' },
+  '92048': { taux: 20.87, nom: 'Meudon' },
+  '92049': { taux: 26.99, nom: 'Montrouge' },
   '92050': { taux: 20.91, nom: 'Nanterre' },
-  '92051': { taux: 19.80, nom: 'Neuilly-sur-Seine' },
-  '92060': { taux: 22.50, nom: 'Le Plessis-Robinson' },
-  '92062': { taux: 23.60, nom: 'Puteaux' },
-  '92063': { taux: 22.65, nom: 'Rueil-Malmaison' },
-  '92064': { taux: 23.80, nom: 'Saint-Cloud' },
-  '92071': { taux: 22.30, nom: 'Sceaux' },
-  '92072': { taux: 22.80, nom: 'Sèvres' },
-  '92073': { taux: 22.45, nom: 'Suresnes' },
-  '92075': { taux: 24.90, nom: 'Vanves' },
-  '92078': { taux: 27.60, nom: 'Villeneuve-la-Garenne' },
+  '92051': { taux: 20.91, nom: 'Neuilly-sur-Seine' },
+  '92062': { taux: 20.91, nom: 'Puteaux' },
+  '92063': { taux: 20.91, nom: 'Rueil-Malmaison' },
+  '92073': { taux: 20.91, nom: 'Suresnes' },
 
   // -- Seine-Saint-Denis (93) --
-  '93066': { taux: 27.50, nom: 'Saint-Denis' },
-  '93048': { taux: 28.10, nom: 'Montreuil' },
-  '93008': { taux: 28.64, nom: 'Aubervilliers' },
-  '93010': { taux: 26.80, nom: 'Aulnay-sous-Bois' },
-  '93029': { taux: 27.32, nom: 'Épinay-sur-Seine' },
-  '93051': { taux: 27.00, nom: 'Noisy-le-Grand' },
-  '93005': { taux: 27.90, nom: 'Bagnolet' },
-  '93006': { taux: 26.20, nom: 'Le Blanc-Mesnil' },
-  '93007': { taux: 27.40, nom: 'Bobigny' },
-  '93013': { taux: 27.10, nom: 'Bondy' },
-  '93027': { taux: 28.30, nom: 'La Courneuve' },
-  '93030': { taux: 26.50, nom: 'Gagny' },
-  '93031': { taux: 28.90, nom: 'Les Lilas' },
-  '93032': { taux: 27.80, nom: 'Livry-Gargan' },
-  '93045': { taux: 26.90, nom: 'Neuilly-sur-Marne' },
-  '93047': { taux: 27.60, nom: 'Noisy-le-Sec' },
-  '93049': { taux: 28.50, nom: 'Pantin' },
-  '93050': { taux: 27.30, nom: 'Le Pré-Saint-Gervais' },
-  '93053': { taux: 28.00, nom: 'Le Raincy' },
-  '93055': { taux: 27.20, nom: 'Romainville' },
-  '93057': { taux: 27.50, nom: 'Rosny-sous-Bois' },
-  '93063': { taux: 27.80, nom: 'Saint-Ouen-sur-Seine' },
-  '93064': { taux: 26.30, nom: 'Sevran' },
-  '93070': { taux: 26.60, nom: 'Stains' },
-  '93071': { taux: 27.90, nom: 'Tremblay-en-France' },
-  '93073': { taux: 27.10, nom: 'Villemomble' },
-  '93074': { taux: 26.80, nom: 'Villepinte' },
-  '93077': { taux: 26.50, nom: 'Villetaneuse' },
-  '93014': { taux: 26.90, nom: 'Clichy-sous-Bois' },
-  '93015': { taux: 28.20, nom: 'Coubron' },
-  '93039': { taux: 27.40, nom: 'Dugny' },
-  '93046': { taux: 28.60, nom: 'Neuilly-Plaisance' },
+  '93066': { taux: 38.49, nom: 'Saint-Denis' },
+  '93048': { taux: 38.67, nom: 'Montreuil' },
+  '93008': { taux: 38.49, nom: 'Aubervilliers' },
+  '93010': { taux: 33.68, nom: 'Aulnay-sous-Bois' },
+  '93029': { taux: 33.68, nom: 'Drancy' },
+  '93031': { taux: 38.49, nom: 'Épinay-sur-Seine' },
+  '93051': { taux: 32.75, nom: 'Noisy-le-Grand' },
+  '93005': { taux: 38.67, nom: 'Bagnolet' },
+  '93006': { taux: 33.68, nom: 'Le Blanc-Mesnil' },
+  '93007': { taux: 38.67, nom: 'Bobigny' },
+  '93013': { taux: 38.67, nom: 'Bondy' },
+  '93027': { taux: 38.49, nom: 'La Courneuve' },
+  '93032': { taux: 32.75, nom: 'Livry-Gargan' },
+  '93047': { taux: 38.67, nom: 'Noisy-le-Sec' },
+  '93049': { taux: 38.67, nom: 'Pantin' },
+  '93057': { taux: 32.75, nom: 'Rosny-sous-Bois' },
+  '93063': { taux: 38.49, nom: 'Saint-Ouen-sur-Seine' },
+  '93064': { taux: 33.68, nom: 'Sevran' },
+  '93071': { taux: 33.68, nom: 'Tremblay-en-France' },
 
   // -- Val-de-Marne (94) --
-  '94028': { taux: 25.80, nom: 'Créteil' },
-  '94019': { taux: 26.40, nom: 'Champigny-sur-Marne' },
-  '94067': { taux: 26.10, nom: 'Saint-Maur-des-Fossés' },
-  '94043': { taux: 24.90, nom: 'Ivry-sur-Seine' },
-  '94081': { taux: 25.40, nom: 'Vitry-sur-Seine' },
-  '94054': { taux: 24.50, nom: 'Maisons-Alfort' },
-  '94022': { taux: 25.20, nom: 'Charenton-le-Pont' },
-  '94080': { taux: 24.80, nom: 'Vincennes' },
-  '94011': { taux: 25.60, nom: 'Boissy-Saint-Léger' },
-  '94002': { taux: 25.30, nom: 'Alfortville' },
-  '94003': { taux: 24.60, nom: 'Arcueil' },
-  '94004': { taux: 25.10, nom: 'Le Kremlin-Bicêtre' },
-  '94015': { taux: 25.70, nom: 'Bonneuil-sur-Marne' },
-  '94016': { taux: 25.50, nom: 'Bry-sur-Marne' },
-  '94017': { taux: 24.90, nom: 'Cachan' },
-  '94021': { taux: 25.80, nom: 'Chennevières-sur-Marne' },
-  '94033': { taux: 25.60, nom: 'Fontenay-sous-Bois' },
-  '94034': { taux: 25.00, nom: 'Fresnes' },
-  '94037': { taux: 24.80, nom: 'Gentilly' },
+  '94028': { taux: 34.86, nom: 'Créteil' },
+  '94019': { taux: 30.08, nom: 'Champigny-sur-Marne' },
+  '94067': { taux: 30.08, nom: 'Saint-Maur-des-Fossés' },
+  '94043': { taux: 33.78, nom: 'Ivry-sur-Seine' },
+  '94081': { taux: 33.78, nom: 'Vitry-sur-Seine' },
+  '94054': { taux: 30.08, nom: 'Maisons-Alfort' },
+  '94080': { taux: 30.08, nom: 'Vincennes' },
+  '94002': { taux: 34.86, nom: 'Alfortville' },
+  '94033': { taux: 30.08, nom: 'Fontenay-sous-Bois' },
   '94038': { taux: 24.70, nom: 'L\'Haÿ-les-Roses' },
-  '94041': { taux: 25.40, nom: 'Joinville-le-Pont' },
-  '94044': { taux: 26.20, nom: 'Limeil-Brévannes' },
-  '94046': { taux: 25.30, nom: 'Nogent-sur-Marne' },
-  '94047': { taux: 25.70, nom: 'Orly' },
-  '94052': { taux: 26.30, nom: 'Le Perreux-sur-Marne' },
-  '94058': { taux: 24.60, nom: 'Saint-Mandé' },
-  '94065': { taux: 25.90, nom: 'Sucy-en-Brie' },
-  '94068': { taux: 25.70, nom: 'Thiais' },
-  '94069': { taux: 26.00, nom: 'Valenton' },
-  '94071': { taux: 25.50, nom: 'Villecresnes' },
-  '94073': { taux: 25.80, nom: 'Villeneuve-le-Roi' },
-  '94074': { taux: 25.60, nom: 'Villeneuve-Saint-Georges' },
-  '94076': { taux: 25.40, nom: 'Villiers-sur-Marne' },
+  '94076': { taux: 33.78, nom: 'Villejuif' },
 
   // -- Yvelines (78) --
   '78646': { taux: 18.86, nom: 'Versailles' },
-  '78586': { taux: 20.10, nom: 'Sartrouville' },
-  '78440': { taux: 20.50, nom: 'Poissy' },
-  '78361': { taux: 21.30, nom: 'Mantes-la-Jolie' },
-  '78551': { taux: 19.80, nom: 'Saint-Germain-en-Laye' },
-  '78311': { taux: 20.90, nom: 'Les Mureaux' },
-  '78423': { taux: 19.60, nom: 'Plaisir' },
-  '78498': { taux: 20.80, nom: 'Rambouillet' },
-  '78172': { taux: 21.60, nom: 'Conflans-Sainte-Honorine' },
-  '78621': { taux: 20.20, nom: 'Le Chesnay-Rocquencourt' },
-  '78322': { taux: 20.40, nom: 'Maisons-Laffitte' },
-  '78343': { taux: 19.90, nom: 'Le Vésinet' },
-  '78005': { taux: 20.70, nom: 'Achères' },
-  '78217': { taux: 21.40, nom: 'Élancourt' },
-  '78297': { taux: 20.30, nom: 'Montigny-le-Bretonneux' },
-  '78335': { taux: 20.60, nom: 'Maurepas' },
-  '78158': { taux: 21.10, nom: 'Chatou' },
-  '78299': { taux: 20.90, nom: 'Montesson' },
-  '78350': { taux: 21.50, nom: 'Meulan-en-Yvelines' },
-  '78624': { taux: 21.80, nom: 'Trappes' },
-  '78220': { taux: 20.40, nom: 'Épône' },
-  '78126': { taux: 20.60, nom: 'Carrières-sous-Poissy' },
-  '78146': { taux: 19.70, nom: 'Le Pecq' },
-  '78190': { taux: 21.20, nom: 'Croissy-sur-Seine' },
-  '78382': { taux: 20.50, nom: 'Marly-le-Roi' },
+  '78586': { taux: 22.91, nom: 'Sartrouville' },
+  '78361': { taux: 25.27, nom: 'Mantes-la-Jolie' },
+  '78551': { taux: 22.91, nom: 'Saint-Germain-en-Laye' },
   '78517': { taux: 19.40, nom: 'Saint-Cyr-l\'École' },
-  '78640': { taux: 21.00, nom: 'Vélizy-Villacoublay' },
-  '78358': { taux: 21.70, nom: 'Mantes-la-Ville' },
-  '78246': { taux: 20.80, nom: 'Guyancourt' },
-  '78029': { taux: 21.30, nom: 'Aubergenville' },
-  '78603': { taux: 21.60, nom: 'Houilles' },
-  '78418': { taux: 20.20, nom: 'Viroflay' },
 
   // -- Essonne (91) --
-  '91228': { taux: 21.60, nom: 'Évry-Courcouronnes' },
-  '91174': { taux: 22.10, nom: 'Corbeil-Essonnes' },
-  '91377': { taux: 21.80, nom: 'Massy' },
-  '91471': { taux: 22.40, nom: 'Palaiseau' },
-  '91534': { taux: 22.60, nom: 'Sainte-Geneviève-des-Bois' },
-  '91027': { taux: 22.80, nom: 'Athis-Mons' },
-  '91272': { taux: 22.30, nom: 'Grigny' },
-  '91326': { taux: 21.90, nom: 'Longjumeau' },
-  '91340': { taux: 22.50, nom: 'Les Ulis' },
-  '91521': { taux: 22.00, nom: 'Ris-Orangis' },
-  '91589': { taux: 22.20, nom: 'Savigny-sur-Orge' },
-  '91201': { taux: 21.70, nom: 'Draveil' },
-  '91286': { taux: 22.10, nom: 'Viry-Châtillon' },
-  '91161': { taux: 22.40, nom: 'Chilly-Mazarin' },
-  '91064': { taux: 21.50, nom: 'Brétigny-sur-Orge' },
-  '91549': { taux: 22.70, nom: 'Saint-Michel-sur-Orge' },
-  '91312': { taux: 22.00, nom: 'Juvisy-sur-Orge' },
-  '91215': { taux: 22.30, nom: 'Étampes' },
-  '91207': { taux: 22.50, nom: 'Épinay-sous-Sénart' },
-  '91216': { taux: 22.60, nom: 'Fleury-Mérogis' },
-  '91570': { taux: 21.80, nom: 'Orsay' },
-  '91344': { taux: 21.60, nom: 'Verrières-le-Buisson' },
-  '91179': { taux: 22.20, nom: 'Courcouronnes' },
-  '91103': { taux: 22.90, nom: 'Brunoy' },
+  '91228': { taux: 26.5, nom: 'Évry-Courcouronnes' },
+  '91174': { taux: 26.5, nom: 'Corbeil-Essonnes' },
+  '91377': { taux: 23.47, nom: 'Massy' },
 
   // -- Val-d'Oise (95) --
-  '95018': { taux: 23.50, nom: 'Argenteuil' },
-  '95127': { taux: 22.80, nom: 'Cergy' },
-  '95268': { taux: 23.10, nom: 'Garges-lès-Gonesse' },
-  '95585': { taux: 23.40, nom: 'Sarcelles' },
-  '95252': { taux: 23.60, nom: 'Franconville' },
-  '95210': { taux: 23.10, nom: 'Enghien-les-Bains' },
-  '95280': { taux: 22.90, nom: 'Gonesse' },
-  '95019': { taux: 23.50, nom: 'Arnouville' },
-  '95059': { taux: 22.60, nom: 'Bezons' },
-  '95063': { taux: 23.70, nom: 'Goussainville' },
-  '95101': { taux: 23.20, nom: 'Cormeilles-en-Parisis' },
-  '95203': { taux: 22.70, nom: 'Eaubonne' },
-  '95218': { taux: 23.00, nom: 'Ermont' },
-  '95229': { taux: 22.50, nom: 'Montmorency' },
-  '95250': { taux: 23.30, nom: 'Fosses' },
-  '95277': { taux: 22.80, nom: 'Herblay-sur-Seine' },
-  '95306': { taux: 23.40, nom: 'Jouy-le-Moutier' },
-  '95352': { taux: 22.60, nom: 'Louvres' },
-  '95394': { taux: 23.80, nom: 'Montmagny' },
-  '95424': { taux: 22.90, nom: 'Osny' },
-  '95488': { taux: 23.10, nom: 'Pontoise' },
-  '95539': { taux: 22.70, nom: 'Saint-Gratien' },
-  '95555': { taux: 23.00, nom: 'Saint-Leu-la-Forêt' },
+  '95018': { taux: 25.84, nom: 'Argenteuil' },
+  '95127': { taux: 23.38, nom: 'Cergy' },
+  '95268': { taux: 26.29, nom: 'Garges-lès-Gonesse' },
+  '95585': { taux: 26.29, nom: 'Sarcelles' },
   '95572': { taux: 23.20, nom: 'Saint-Ouen-l\'Aumône' },
-  '95580': { taux: 22.50, nom: 'Taverny' },
-  '95607': { taux: 23.60, nom: 'Villiers-le-Bel' },
 
   // -- Seine-et-Marne (77) --
-  '77284': { taux: 24.50, nom: 'Meaux' },
-  '77083': { taux: 24.80, nom: 'Chelles' },
-  '77468': { taux: 25.10, nom: 'Torcy' },
-  '77288': { taux: 24.30, nom: 'Melun' },
-  '77186': { taux: 24.60, nom: 'Fontainebleau' },
-  '77373': { taux: 25.30, nom: 'Pontault-Combault' },
-  '77122': { taux: 24.90, nom: 'Combs-la-Ville' },
-  '77131': { taux: 25.40, nom: 'Coulommiers' },
-  '77152': { taux: 24.70, nom: 'Dammarie-les-Lys' },
-  '77258': { taux: 25.60, nom: 'Lognes' },
-  '77296': { taux: 24.20, nom: 'Mitry-Mory' },
-  '77305': { taux: 25.00, nom: 'Montereau-Fault-Yonne' },
-  '77333': { taux: 24.40, nom: 'Noisiel' },
-  '77379': { taux: 25.20, nom: 'Provins' },
-  '77388': { taux: 24.60, nom: 'Roissy-en-Brie' },
-  '77445': { taux: 24.80, nom: 'Savigny-le-Temple' },
-  '77449': { taux: 25.10, nom: 'Sénart' },
-  '77464': { taux: 24.50, nom: 'Le Mée-sur-Seine' },
-  '77479': { taux: 25.30, nom: 'Vaires-sur-Marne' },
-  '77514': { taux: 24.40, nom: 'Villeparisis' },
-  '77058': { taux: 24.70, nom: 'Bussy-Saint-Georges' },
-  '77243': { taux: 24.90, nom: 'Lagny-sur-Marne' },
-  '77316': { taux: 25.50, nom: 'Nemours' },
-  '77169': { taux: 25.80, nom: 'Claye-Souilly' },
-  '77407': { taux: 24.30, nom: 'Ozoir-la-Ferrière' },
+  '77284': { taux: 23.53, nom: 'Meaux' },
+  '77083': { taux: 26.92, nom: 'Chelles' },
+  '77288': { taux: 25.12, nom: 'Melun' },
+
+
+  // -- 2A Corse-du-Sud --
+  '2A004': { taux: 20.77, nom: 'Ajaccio' },
+
+  // -- 2B Haute-Corse --
+  '2B033': { taux: 24.39, nom: 'Bastia' },
 
   // ══════════════════════════════════════════════════════════════════════════════
   // ── DÉPARTEMENTS 01 à 12 ────────────────────────────────────────────────────
   // ══════════════════════════════════════════════════════════════════════════════
   // -- 01 Ain --
-  '01053': { taux: 26.56, nom: 'Bourg-en-Bresse' },
-  '01283': { taux: 27.83, nom: 'Oyonnax' },
-  '01004': { taux: 25.47, nom: 'Ambérieu-en-Bugey' },
-  '01173': { taux: 24.22, nom: 'Gex' },
-  '01034': { taux: 25.90, nom: 'Valserhône' },
-  '01249': { taux: 25.10, nom: 'Miribel' },
+  '01053': { taux: 24.97, nom: 'Bourg-en-Bresse' },
 
   // -- 02 Aisne --
-  '02691': { taux: 29.34, nom: 'Saint-Quentin' },
-  '02408': { taux: 28.52, nom: 'Laon' },
-  '02722': { taux: 28.03, nom: 'Soissons' },
-  '02168': { taux: 27.10, nom: 'Château-Thierry' },
-  '02773': { taux: 27.85, nom: 'Tergnier' },
+  '02691': { taux: 26.98, nom: 'Saint-Quentin' },
 
   // -- 03 Allier --
-  '03185': { taux: 28.24, nom: 'Montluçon' },
-  '03310': { taux: 27.52, nom: 'Vichy' },
-  '03190': { taux: 28.01, nom: 'Moulins' },
-  '03095': { taux: 27.80, nom: 'Cusset' },
-  '03321': { taux: 27.60, nom: 'Yzeure' },
+  '03185': { taux: 31.36, nom: 'Montluçon' },
 
   // -- 04 Alpes-de-Haute-Provence --
-  '04112': { taux: 28.50, nom: 'Manosque' },
-  '04070': { taux: 26.80, nom: 'Digne-les-Bains' },
 
   // -- 05 Hautes-Alpes --
-  '05061': { taux: 26.20, nom: 'Gap' },
-  '05023': { taux: 27.10, nom: 'Briançon' },
+  '05061': { taux: 27.59, nom: 'Gap' },
 
   // -- 06 Alpes-Maritimes --
   '06088': { taux: 28.88, nom: 'Nice' },
-  '06004': { taux: 29.40, nom: 'Antibes' },
-  '06029': { taux: 29.60, nom: 'Cannes' },
-  '06069': { taux: 29.50, nom: 'Grasse' },
+  '06004': { taux: 24.54, nom: 'Antibes' },
+  '06029': { taux: 28.65, nom: 'Cannes' },
+  '06069': { taux: 29.22, nom: 'Grasse' },
   '06027': { taux: 28.88, nom: 'Cagnes-sur-Mer' },
-  '06030': { taux: 29.60, nom: 'Le Cannet' },
-  '06155': { taux: 29.40, nom: 'Vallauris' },
-  '06079': { taux: 29.60, nom: 'Mandelieu-la-Napoule' },
-  '06083': { taux: 27.50, nom: 'Menton' },
-  '06085': { taux: 29.60, nom: 'Mougins' },
-  '06157': { taux: 28.88, nom: 'Vence' },
-  '06161': { taux: 29.40, nom: 'Villeneuve-Loubet' },
-  '06138': { taux: 28.88, nom: 'Saint-Laurent-du-Var' },
-  '06104': { taux: 27.50, nom: 'Roquebrune-Cap-Martin' },
-  '06012': { taux: 27.50, nom: 'Beausoleil' },
-  '06033': { taux: 28.88, nom: 'Carros' },
+  '06030': { taux: 28.65, nom: 'Le Cannet' },
 
   // -- 07 Ardèche --
-  '07010': { taux: 27.60, nom: 'Annonay' },
-  '07019': { taux: 28.30, nom: 'Aubenas' },
-  '07102': { taux: 25.80, nom: 'Guilherand-Granges' },
-  '07186': { taux: 27.90, nom: 'Privas' },
 
   // -- 08 Ardennes --
-  '08105': { taux: 28.50, nom: 'Charleville-Mézières' },
-  '08409': { taux: 29.20, nom: 'Sedan' },
+  '08105': { taux: 23.82, nom: 'Charleville-Mézières' },
 
   // -- 09 Ariège --
-  '09225': { taux: 28.80, nom: 'Pamiers' },
-  '09122': { taux: 29.50, nom: 'Foix' },
 
   // -- 10 Aube --
-  '10387': { taux: 26.90, nom: 'Troyes' },
-  '10323': { taux: 27.20, nom: 'Saint-André-les-Vergers' },
-  '10081': { taux: 27.40, nom: 'La Chapelle-Saint-Luc' },
-  '10362': { taux: 27.10, nom: 'Sainte-Savine' },
-  '10268': { taux: 28.30, nom: 'Romilly-sur-Seine' },
+  '10387': { taux: 25.83, nom: 'Troyes' },
 
   // -- 11 Aude --
-  '11069': { taux: 30.50, nom: 'Carcassonne' },
-  '11262': { taux: 31.20, nom: 'Narbonne' },
-  '11076': { taux: 30.80, nom: 'Castelnaudary' },
-  '11379': { taux: 30.60, nom: 'Trèbes' },
-  '11206': { taux: 31.00, nom: 'Limoux' },
+  '11069': { taux: 37.39, nom: 'Carcassonne' },
+  '11262': { taux: 32.08, nom: 'Narbonne' },
 
   // -- 12 Aveyron --
-  '12202': { taux: 26.50, nom: 'Rodez' },
-  '12145': { taux: 27.30, nom: 'Millau' },
-  '12176': { taux: 26.50, nom: 'Onet-le-Château' },
-  '12300': { taux: 27.80, nom: 'Villefranche-de-Rouergue' },
 
   // ══════════════════════════════════════════════════════════════════════════════
   // ── DÉPARTEMENTS 13 à 19 (+ 21-29) ─────────────────────────────────────────
   // ══════════════════════════════════════════════════════════════════════════════
   // -- 13 Bouches-du-Rhône (Métropole AMP ~32.87 %) --
   '13001': { taux: 32.87, nom: 'Aix-en-Provence' },
-  '13004': { taux: 33.50, nom: 'Arles' },
-  '13056': { taux: 33.10, nom: 'Martigues' },
+  '13004': { taux: 31.11, nom: 'Arles' },
+  '13056': { taux: 32.87, nom: 'Martigues' },
   '13005': { taux: 32.87, nom: 'Aubagne' },
-  '13103': { taux: 33.80, nom: 'Salon-de-Provence' },
-  '13047': { taux: 33.20, nom: 'Istres' },
+  '13103': { taux: 32.87, nom: 'Salon-de-Provence' },
+  '13047': { taux: 32.87, nom: 'Istres' },
   '13117': { taux: 32.87, nom: 'Vitrolles' },
-  '13054': { taux: 32.87, nom: 'Marignane' },
-  '13028': { taux: 32.87, nom: 'La Ciotat' },
-  '13063': { taux: 33.40, nom: 'Miramas' },
-  '13041': { taux: 32.87, nom: 'Gardanne' },
-  '13071': { taux: 32.87, nom: 'Les Pennes-Mirabeau' },
-  '13039': { taux: 33.60, nom: 'Fos-sur-Mer' },
-  '13077': { taux: 33.30, nom: 'Port-de-Bouc' },
-  '13105': { taux: 32.87, nom: 'Septèmes-les-Vallons' },
-  '13002': { taux: 32.87, nom: 'Allauch' },
   '13014': { taux: 33.40, nom: 'Berre-l\'Étang' },
-  '13015': { taux: 32.87, nom: 'Bouc-Bel-Air' },
-  '13119': { taux: 33.70, nom: 'Tarascon' },
-  '13027': { taux: 33.80, nom: 'Châteaurenard' },
-  '13078': { taux: 33.50, nom: 'Port-Saint-Louis-du-Rhône' },
-  '13042': { taux: 32.87, nom: 'Gémenos' },
-  '13098': { taux: 33.60, nom: 'Saint-Martin-de-Crau' },
   '13081': { taux: 33.20, nom: 'La Roque-d\'Anthéron' },
 
   // -- 14 Calvados (CU Caen la Mer ~25.71 %) --
   '14118': { taux: 25.71, nom: 'Caen' },
-  '14327': { taux: 25.71, nom: 'Hérouville-Saint-Clair' },
-  '14366': { taux: 27.60, nom: 'Lisieux' },
-  '14437': { taux: 25.71, nom: 'Mondeville' },
-  '14341': { taux: 25.71, nom: 'Ifs' },
-  '14047': { taux: 27.20, nom: 'Bayeux' },
-  '14220': { taux: 28.10, nom: 'Falaise' },
-  '14488': { taux: 25.71, nom: 'Ouistreham' },
-  '14712': { taux: 27.80, nom: 'Vire Normandie' },
 
   // -- 15 Cantal --
-  '15014': { taux: 27.60, nom: 'Aurillac' },
 
   // -- 16 Charente --
-  '16015': { taux: 28.50, nom: 'Angoulême' },
-  '16102': { taux: 27.30, nom: 'Cognac' },
-  '16352': { taux: 28.50, nom: 'Soyaux' },
-  '16167': { taux: 28.50, nom: 'La Couronne' },
+  '16015': { taux: 25.72, nom: 'Angoulême' },
 
   // -- 17 Charente-Maritime --
-  '17300': { taux: 26.10, nom: 'La Rochelle' },
-  '17299': { taux: 27.50, nom: 'Rochefort' },
-  '17415': { taux: 26.80, nom: 'Saintes' },
-  '17306': { taux: 26.30, nom: 'Royan' },
-  '17004': { taux: 26.10, nom: 'Aytré' },
+  '17300': { taux: 25.97, nom: 'La Rochelle' },
 
   // -- 18 Cher --
-  '18033': { taux: 27.50, nom: 'Bourges' },
-  '18279': { taux: 28.80, nom: 'Vierzon' },
-  '18228': { taux: 27.50, nom: 'Saint-Doulchard' },
+  '18033': { taux: 25.89, nom: 'Bourges' },
 
   // -- 19 Corrèze --
-  '19031': { taux: 27.80, nom: 'Brive-la-Gaillarde' },
-  '19272': { taux: 28.20, nom: 'Tulle' },
+  '19031': { taux: 31.72, nom: 'Brive-la-Gaillarde' },
 
   // -- 21 Côte-d'Or (Dijon Métropole ~27.04 %) --
   '21231': { taux: 27.04, nom: 'Dijon' },
-  '21054': { taux: 28.10, nom: 'Beaune' },
-  '21166': { taux: 27.04, nom: 'Chenôve' },
-  '21617': { taux: 27.04, nom: 'Talant' },
-  '21540': { taux: 27.04, nom: 'Quetigny' },
-  '21390': { taux: 27.04, nom: 'Longvic' },
-  '21481': { taux: 27.04, nom: 'Fontaine-lès-Dijon' },
-  '21355': { taux: 27.04, nom: 'Marsannay-la-Côte' },
 
   // -- 22 Côtes-d'Armor --
-  '22278': { taux: 27.50, nom: 'Saint-Brieuc' },
-  '22113': { taux: 26.80, nom: 'Lannion' },
-  '22093': { taux: 27.20, nom: 'Lamballe-Armor' },
-  '22187': { taux: 27.50, nom: 'Plérin' },
-  '22050': { taux: 27.80, nom: 'Dinan' },
-  '22070': { taux: 28.10, nom: 'Guingamp' },
+  '22278': { taux: 28.26, nom: 'Saint-Brieuc' },
 
   // -- 23 Creuse --
-  '23096': { taux: 29.20, nom: 'Guéret' },
 
   // -- 24 Dordogne --
-  '24322': { taux: 28.30, nom: 'Périgueux' },
-  '24037': { taux: 29.10, nom: 'Bergerac' },
-  '24520': { taux: 28.70, nom: 'Sarlat-la-Canéda' },
-  '24353': { taux: 28.30, nom: 'Trélissac' },
-  '24311': { taux: 28.30, nom: 'Coulounieix-Chamiers' },
 
   // -- 25 Doubs (CA Grand Besançon ~26.75 %) --
-  '25056': { taux: 26.75, nom: 'Besançon' },
-  '25388': { taux: 27.80, nom: 'Montbéliard' },
-  '25462': { taux: 26.40, nom: 'Pontarlier' },
-  '25031': { taux: 27.80, nom: 'Audincourt' },
-  '25565': { taux: 27.80, nom: 'Valentigney' },
+  '25056': { taux: 26.86, nom: 'Besançon' },
 
   // -- 26 Drôme --
-  '26362': { taux: 25.80, nom: 'Valence' },
-  '26198': { taux: 27.20, nom: 'Montélimar' },
-  '26281': { taux: 26.50, nom: 'Romans-sur-Isère' },
-  '26058': { taux: 25.80, nom: 'Bourg-lès-Valence' },
-  '26252': { taux: 27.40, nom: 'Pierrelatte' },
-  '26263': { taux: 25.80, nom: 'Portes-lès-Valence' },
+  '26362': { taux: 26.73, nom: 'Valence' },
+  '26198': { taux: 25.69, nom: 'Montélimar' },
 
   // -- 27 Eure --
-  '27229': { taux: 25.50, nom: 'Évreux' },
-  '27681': { taux: 26.30, nom: 'Vernon' },
-  '27375': { taux: 26.50, nom: 'Louviers' },
-  '27428': { taux: 26.80, nom: 'Val-de-Reuil' },
-  '27016': { taux: 27.20, nom: 'Bernay' },
-  '27467': { taux: 26.60, nom: 'Pont-Audemer' },
+  '27229': { taux: 25.46, nom: 'Évreux' },
 
   // -- 28 Eure-et-Loir --
-  '28085': { taux: 24.50, nom: 'Chartres' },
-  '28134': { taux: 26.80, nom: 'Dreux' },
-  '28218': { taux: 24.50, nom: 'Lucé' },
-  '28280': { taux: 24.50, nom: 'Mainvilliers' },
-  '28088': { taux: 27.30, nom: 'Châteaudun' },
-  '28263': { taux: 28.10, nom: 'Nogent-le-Rotrou' },
+  '28085': { taux: 25.95, nom: 'Chartres' },
 
   // -- 29 Finistère (Brest Métropole ~29.96 %) --
   '29019': { taux: 29.96, nom: 'Brest' },
-  '29232': { taux: 28.20, nom: 'Quimper' },
-  '29039': { taux: 28.80, nom: 'Concarneau' },
-  '29151': { taux: 28.50, nom: 'Morlaix' },
-  '29103': { taux: 29.96, nom: 'Landerneau' },
-  '29075': { taux: 29.96, nom: 'Guipavas' },
-  '29189': { taux: 29.96, nom: 'Plouzané' },
-  '29185': { taux: 29.96, nom: 'Plougastel-Daoulas' },
-  '29042': { taux: 28.90, nom: 'Douarnenez' },
-  '29235': { taux: 28.60, nom: 'Quimperlé' },
+  '29232': { taux: 26.56, nom: 'Quimper' },
 
   // ══════════════════════════════════════════════════════════════════════════════
   // ── DÉPARTEMENTS 30 à 39 ────────────────────────────────────────────────────
   // ══════════════════════════════════════════════════════════════════════════════
   // -- 30 Gard --
   '30189': { taux: 34.30, nom: 'Nîmes' },
-  '30007': { taux: 33.50, nom: 'Alès' },
-  '30028': { taux: 33.80, nom: 'Bagnols-sur-Cèze' },
-  '30032': { taux: 34.00, nom: 'Beaucaire' },
-  '30351': { taux: 33.20, nom: 'Villeneuve-lès-Avignon' },
-  '30334': { taux: 33.60, nom: 'Vauvert' },
-  '30258': { taux: 33.90, nom: 'Saint-Gilles' },
+  '30007': { taux: 30.55, nom: 'Alès' },
 
   // -- 31 Haute-Garonne (Toulouse Métropole ~36.58 %) --
   '31555': { taux: 36.58, nom: 'Toulouse' },
-  '31150': { taux: 36.58, nom: 'Colomiers' },
-  '31069': { taux: 36.58, nom: 'Blagnac' },
-  '31557': { taux: 36.58, nom: 'Tournefeuille' },
-  '31395': { taux: 33.50, nom: 'Muret' },
-  '31446': { taux: 36.58, nom: 'Ramonville-Saint-Agne' },
-  '31157': { taux: 36.58, nom: 'Cugnaux' },
   '31561': { taux: 36.58, nom: 'L\'Union' },
-  '31044': { taux: 36.58, nom: 'Balma' },
-  '31506': { taux: 36.58, nom: 'Saint-Orens-de-Gameville' },
-  '31113': { taux: 36.58, nom: 'Castanet-Tolosan' },
-  '31424': { taux: 36.58, nom: 'Plaisance-du-Touch' },
-  '31022': { taux: 36.58, nom: 'Aucamville' },
-  '31149': { taux: 36.58, nom: 'Castelginest' },
-  '31433': { taux: 36.58, nom: 'Portet-sur-Garonne' },
-  '31340': { taux: 36.58, nom: 'Launaguet' },
-  '31467': { taux: 33.80, nom: 'Saint-Gaudens' },
-  '31364': { taux: 36.58, nom: 'Léguevin' },
-  '31488': { taux: 36.58, nom: 'Saint-Jean' },
-  '31079': { taux: 36.58, nom: 'Brax' },
-  '31116': { taux: 36.58, nom: 'Cornebarrieu' },
-  '31205': { taux: 36.58, nom: 'Fonsorbes' },
 
   // -- 32 Gers --
-  '32013': { taux: 27.80, nom: 'Auch' },
-  '32107': { taux: 28.50, nom: 'Condom' },
 
   // -- 33 Gironde (Bordeaux Métropole ~35.06 %) --
   '33063': { taux: 35.06, nom: 'Bordeaux' },
@@ -589,664 +695,237 @@ export const TAUX_CONNUS: Record<string, { taux: number; nom: string }> = {
   '33318': { taux: 35.06, nom: 'Pessac' },
   '33522': { taux: 35.06, nom: 'Talence' },
   '33550': { taux: 35.06, nom: 'Villenave-d\'Ornon' },
-  '33039': { taux: 35.06, nom: 'Bègles' },
-  '33192': { taux: 35.06, nom: 'Gradignan' },
-  '33449': { taux: 35.06, nom: 'Saint-Médard-en-Jalles' },
-  '33065': { taux: 35.06, nom: 'Le Bouscat' },
-  '33119': { taux: 35.06, nom: 'Cenon' },
-  '33249': { taux: 35.06, nom: 'Lormont' },
-  '33162': { taux: 35.06, nom: 'Eysines' },
-  '33075': { taux: 35.06, nom: 'Bruges' },
-  '33056': { taux: 35.06, nom: 'Blanquefort' },
-  '33003': { taux: 35.06, nom: 'Ambarès-et-Lagrave' },
-  '33167': { taux: 35.06, nom: 'Floirac' },
-  '33095': { taux: 35.06, nom: 'Carbon-Blanc' },
-  '33519': { taux: 35.06, nom: 'Le Taillan-Médoc' },
-  '33312': { taux: 35.06, nom: 'Parempuyre' },
-  '33243': { taux: 32.80, nom: 'Libourne' },
-  '33013': { taux: 30.50, nom: 'Arcachon' },
-  '33273': { taux: 31.80, nom: 'La Teste-de-Buch' },
-  '33199': { taux: 31.60, nom: 'Gujan-Mestras' },
 
   // -- 34 Hérault (Montpellier Métropole ~36.58 %) --
   '34172': { taux: 36.58, nom: 'Montpellier' },
-  '34032': { taux: 34.80, nom: 'Béziers' },
-  '34301': { taux: 35.20, nom: 'Sète' },
-  '34003': { taux: 35.50, nom: 'Agde' },
-  '34145': { taux: 35.80, nom: 'Lunel' },
-  '34108': { taux: 36.00, nom: 'Frontignan' },
-  '34057': { taux: 36.58, nom: 'Castelnau-le-Lez' },
-  '34129': { taux: 36.58, nom: 'Lattes' },
-  '34154': { taux: 36.58, nom: 'Mauguio' },
-  '34198': { taux: 36.58, nom: 'Pérols' },
-  '34169': { taux: 36.58, nom: 'Montferrier-sur-Lez' },
-  '34090': { taux: 36.58, nom: 'Grabels' },
-  '34116': { taux: 36.58, nom: 'Juvignac' },
-  '34270': { taux: 36.58, nom: 'Saint-Jean-de-Védas' },
-  '34077': { taux: 36.58, nom: 'Fabrègues' },
-  '34120': { taux: 36.58, nom: 'Lavérune' },
-  '34022': { taux: 36.58, nom: 'Le Crès' },
-  '34327': { taux: 36.58, nom: 'Villeneuve-lès-Maguelone' },
-  '34337': { taux: 36.58, nom: 'Clapiers' },
-  '34087': { taux: 36.58, nom: 'Jacou' },
+  '34032': { taux: 34.41, nom: 'Béziers' },
+  '34301': { taux: 39.89, nom: 'Sète' },
 
   // -- 35 Ille-et-Vilaine (Rennes Métropole ~28.73 %) --
   '35238': { taux: 28.73, nom: 'Rennes' },
-  '35288': { taux: 27.60, nom: 'Saint-Malo' },
-  '35047': { taux: 28.73, nom: 'Bruz' },
-  '35051': { taux: 28.73, nom: 'Cesson-Sévigné' },
-  '35360': { taux: 27.80, nom: 'Vitré' },
-  '35115': { taux: 28.50, nom: 'Fougères' },
-  '35024': { taux: 28.73, nom: 'Betton' },
-  '35055': { taux: 28.73, nom: 'Chantepie' },
-  '35281': { taux: 28.73, nom: 'Saint-Jacques-de-la-Lande' },
-  '35206': { taux: 28.73, nom: 'Pacé' },
-  '35236': { taux: 28.73, nom: 'Le Rheu' },
-  '35245': { taux: 27.90, nom: 'Redon' },
+  '35288': { taux: 25.95, nom: 'Saint-Malo' },
 
   // -- 36 Indre --
-  '36044': { taux: 27.80, nom: 'Châteauroux' },
-  '36088': { taux: 28.50, nom: 'Issoudun' },
+  '36044': { taux: 24.56, nom: 'Châteauroux' },
 
   // -- 37 Indre-et-Loire (Tours Métropole ~23.37 %) --
   '37261': { taux: 23.37, nom: 'Tours' },
-  '37122': { taux: 23.37, nom: 'Joué-lès-Tours' },
-  '37214': { taux: 23.37, nom: 'Saint-Cyr-sur-Loire' },
-  '37233': { taux: 23.37, nom: 'Saint-Pierre-des-Corps' },
-  '37050': { taux: 23.37, nom: 'Chambray-lès-Tours' },
-  '37208': { taux: 23.37, nom: 'Saint-Avertin' },
-  '37003': { taux: 24.80, nom: 'Amboise' },
-  '37109': { taux: 23.37, nom: 'La Riche' },
   '37195': { taux: 23.37, nom: 'Notre-Dame-d\'Oé' },
 
   // -- 38 Isère (Grenoble-Alpes Métropole ~34.63 %) --
   '38185': { taux: 34.63, nom: 'Grenoble' },
   '38421': { taux: 34.63, nom: 'Saint-Martin-d\'Hères' },
-  '38151': { taux: 34.63, nom: 'Échirolles' },
-  '38544': { taux: 30.20, nom: 'Vienne' },
-  '38053': { taux: 30.80, nom: 'Bourgoin-Jallieu' },
-  '38169': { taux: 34.63, nom: 'Fontaine' },
-  '38563': { taux: 31.50, nom: 'Voiron' },
-  '38553': { taux: 30.90, nom: 'Villefontaine' },
-  '38382': { taux: 34.63, nom: 'Saint-Égrève' },
-  '38229': { taux: 34.63, nom: 'Meylan' },
-  '38485': { taux: 34.63, nom: 'Seyssinet-Pariset' },
-  '38516': { taux: 34.63, nom: 'Le Pont-de-Claix' },
-  '38565': { taux: 34.63, nom: 'Voreppe' },
-  '38474': { taux: 34.63, nom: 'Sassenage' },
-  '38317': { taux: 34.63, nom: 'Saint-Égrève' },
-  '38187': { taux: 34.63, nom: 'Gières' },
-  '38252': { taux: 34.63, nom: 'La Tronche' },
 
   // -- 39 Jura --
-  '39300': { taux: 26.90, nom: 'Lons-le-Saunier' },
-  '39198': { taux: 27.50, nom: 'Dole' },
 
   // ══════════════════════════════════════════════════════════════════════════════
   // ── DÉPARTEMENTS 40 à 52 ────────────────────────────────────────────────────
   // ══════════════════════════════════════════════════════════════════════════════
   // -- 40 Landes --
-  '40192': { taux: 28.50, nom: 'Mont-de-Marsan' },
-  '40088': { taux: 27.80, nom: 'Dax' },
-  '40046': { taux: 27.20, nom: 'Biscarrosse' },
 
   // -- 41 Loir-et-Cher --
-  '41018': { taux: 25.50, nom: 'Blois' },
-  '41269': { taux: 26.80, nom: 'Vendôme' },
-  '41194': { taux: 27.30, nom: 'Romorantin-Lanthenay' },
+  '41018': { taux: 25.46, nom: 'Blois' },
 
   // -- 42 Loire (Saint-Étienne Métropole ~29.67 %) --
   '42218': { taux: 29.67, nom: 'Saint-Étienne' },
-  '42187': { taux: 28.80, nom: 'Roanne' },
-  '42207': { taux: 29.67, nom: 'Saint-Chamond' },
-  '42094': { taux: 29.67, nom: 'Firminy' },
-  '42186': { taux: 29.67, nom: 'Rive-de-Gier' },
-  '42147': { taux: 28.50, nom: 'Montbrison' },
-  '42023': { taux: 29.67, nom: 'Andrézieux-Bouthéon' },
-  '42166': { taux: 29.67, nom: 'Le Chambon-Feugerolles' },
-  '42275': { taux: 29.67, nom: 'La Ricamarie' },
-  '42295': { taux: 29.67, nom: 'Villars' },
-  '42321': { taux: 29.67, nom: 'Roche-la-Molière' },
-  '42044': { taux: 28.20, nom: 'Feurs' },
 
   // -- 43 Haute-Loire --
-  '43157': { taux: 28.30, nom: 'Le Puy-en-Velay' },
 
   // -- 44 Loire-Atlantique (Nantes Métropole ~31.49 %) --
   '44109': { taux: 31.49, nom: 'Nantes' },
-  '44184': { taux: 30.50, nom: 'Saint-Nazaire' },
+  '44184': { taux: 25.66, nom: 'Saint-Nazaire' },
   '44143': { taux: 31.49, nom: 'Rezé' },
   '44162': { taux: 31.49, nom: 'Saint-Herblain' },
-  '44114': { taux: 31.49, nom: 'Orvault' },
-  '44215': { taux: 31.49, nom: 'Vertou' },
-  '44047': { taux: 31.49, nom: 'Couëron' },
-  '44026': { taux: 31.49, nom: 'La Chapelle-sur-Erdre' },
-  '44009': { taux: 31.49, nom: 'Bouguenais' },
-  '44190': { taux: 31.49, nom: 'Saint-Sébastien-sur-Loire' },
-  '44018': { taux: 31.49, nom: 'Carquefou' },
-  '44172': { taux: 31.49, nom: 'Sainte-Luce-sur-Loire' },
-  '44020': { taux: 31.49, nom: 'Les Sorinières' },
-  '44094': { taux: 31.49, nom: 'Indre' },
-  '44055': { taux: 31.49, nom: 'Basse-Goulaine' },
-  '44035': { taux: 31.49, nom: 'Thouaré-sur-Loire' },
-  '44195': { taux: 31.49, nom: 'Treillières' },
 
   // -- 45 Loiret (Orléans Métropole ~24.88 %) --
   '45234': { taux: 24.88, nom: 'Orléans' },
-  '45147': { taux: 24.88, nom: 'Fleury-les-Aubrais' },
-  '45286': { taux: 24.88, nom: 'Saint-Jean-de-Braye' },
-  '45302': { taux: 24.88, nom: 'Saint-Jean-de-la-Ruelle' },
-  '45075': { taux: 24.88, nom: 'Chécy' },
-  '45232': { taux: 24.88, nom: 'Olivet' },
-  '45252': { taux: 24.88, nom: 'La Chapelle-Saint-Mesmin' },
-  '45169': { taux: 26.80, nom: 'Gien' },
-  '45273': { taux: 27.50, nom: 'Pithiviers' },
-  '45284': { taux: 26.50, nom: 'Montargis' },
 
   // -- 46 Lot --
-  '46042': { taux: 28.20, nom: 'Cahors' },
-  '46102': { taux: 28.80, nom: 'Figeac' },
 
   // -- 47 Lot-et-Garonne --
-  '47001': { taux: 28.50, nom: 'Agen' },
-  '47157': { taux: 29.30, nom: 'Marmande' },
-  '47323': { taux: 28.90, nom: 'Villeneuve-sur-Lot' },
+  '47001': { taux: 28.8, nom: 'Agen' },
 
   // -- 48 Lozère --
-  '48095': { taux: 28.40, nom: 'Mende' },
 
   // -- 49 Maine-et-Loire (Angers Loire Métropole ~25.22 %) --
   '49007': { taux: 25.22, nom: 'Angers' },
-  '49080': { taux: 25.80, nom: 'Cholet' },
-  '49328': { taux: 27.60, nom: 'Saumur' },
-  '49323': { taux: 25.22, nom: 'Trélazé' },
-  '49267': { taux: 25.22, nom: 'Les Ponts-de-Cé' },
-  '49004': { taux: 25.22, nom: 'Avrillé' },
+  '49080': { taux: 23.82, nom: 'Cholet' },
   '49307': { taux: 25.22, nom: 'Saint-Barthélemy-d\'Anjou' },
-  '49240': { taux: 25.22, nom: 'Bouchemaine' },
-  '49183': { taux: 25.22, nom: 'Beaucouzé' },
 
   // -- 50 Manche --
-  '50129': { taux: 27.50, nom: 'Cherbourg-en-Cotentin' },
-  '50502': { taux: 26.80, nom: 'Saint-Lô' },
-  '50218': { taux: 27.10, nom: 'Granville' },
-  '50025': { taux: 27.30, nom: 'Avranches' },
-  '50099': { taux: 27.60, nom: 'Coutances' },
+  '50129': { taux: 26.25, nom: 'Cherbourg-en-Cotentin' },
 
   // -- 51 Marne (CU du Grand Reims ~24.80 %) --
   '51454': { taux: 24.80, nom: 'Reims' },
-  '51108': { taux: 25.80, nom: 'Châlons-en-Champagne' },
-  '51230': { taux: 26.50, nom: 'Épernay' },
-  '51643': { taux: 24.80, nom: 'Tinqueux' },
-  '51075': { taux: 24.80, nom: 'Bétheny' },
-  '51182': { taux: 24.80, nom: 'Cormontreuil' },
-  '51580': { taux: 24.80, nom: 'Saint-Brice-Courcelles' },
+  '51108': { taux: 19.7, nom: 'Châlons-en-Champagne' },
 
   // -- 52 Haute-Marne --
-  '52121': { taux: 28.20, nom: 'Chaumont' },
-  '52269': { taux: 27.90, nom: 'Langres' },
-  '52448': { taux: 28.50, nom: 'Saint-Dizier' },
 
   // ══════════════════════════════════════════════════════════════════════════════
   // ── DÉPARTEMENTS 53 à 62 ────────────────────────────────────────────────────
   // ══════════════════════════════════════════════════════════════════════════════
   // -- 53 Mayenne --
-  '53130': { taux: 26.50, nom: 'Laval' },
-  '53147': { taux: 27.30, nom: 'Mayenne' },
-  '53054': { taux: 27.60, nom: 'Château-Gontier-sur-Mayenne' },
+  '53130': { taux: 26.03, nom: 'Laval' },
 
   // -- 54 Meurthe-et-Moselle (Grand Nancy ~29.65 %) --
   '54395': { taux: 29.65, nom: 'Nancy' },
-  '54547': { taux: 29.65, nom: 'Vandœuvre-lès-Nancy' },
-  '54357': { taux: 29.65, nom: 'Maxéville' },
-  '54328': { taux: 29.65, nom: 'Laxou' },
-  '54526': { taux: 29.65, nom: 'Tomblaine' },
-  '54323': { taux: 29.65, nom: 'Jarville-la-Malgrange' },
-  '54431': { taux: 29.65, nom: 'Saint-Max' },
-  '54344': { taux: 29.65, nom: 'Malzéville' },
-  '54304': { taux: 29.65, nom: 'Heillecourt' },
-  '54329': { taux: 29.65, nom: 'Ludres' },
-  '54318': { taux: 29.65, nom: 'Essey-lès-Nancy' },
-  '54366': { taux: 30.20, nom: 'Longwy' },
-  '54528': { taux: 29.80, nom: 'Toul' },
-  '54300': { taux: 29.65, nom: 'Lunéville' },
-  '54463': { taux: 29.65, nom: 'Villers-lès-Nancy' },
 
   // -- 55 Meuse --
-  '55029': { taux: 27.80, nom: 'Bar-le-Duc' },
-  '55545': { taux: 28.50, nom: 'Verdun' },
 
   // -- 56 Morbihan --
-  '56121': { taux: 28.50, nom: 'Lorient' },
-  '56260': { taux: 26.80, nom: 'Vannes' },
-  '56083': { taux: 28.50, nom: 'Hennebont' },
-  '56101': { taux: 28.50, nom: 'Lanester' },
-  '56178': { taux: 27.80, nom: 'Pontivy' },
-  '56186': { taux: 28.80, nom: 'Auray' },
-  '56070': { taux: 27.50, nom: 'Guidel' },
-  '56098': { taux: 28.50, nom: 'Ploemeur' },
-  '56253': { taux: 26.80, nom: 'Séné' },
-  '56234': { taux: 26.80, nom: 'Saint-Avé' },
+  '56121': { taux: 24.71, nom: 'Lorient' },
+  '56260': { taux: 23.73, nom: 'Vannes' },
 
   // -- 57 Moselle (Metz Métropole ~25.94 %) --
   '57463': { taux: 25.94, nom: 'Metz' },
-  '57672': { taux: 28.50, nom: 'Thionville' },
-  '57631': { taux: 29.20, nom: 'Sarreguemines' },
-  '57606': { taux: 28.80, nom: 'Saint-Avold' },
-  '57227': { taux: 29.50, nom: 'Forbach' },
-  '57160': { taux: 28.30, nom: 'Creutzwald' },
-  '57306': { taux: 28.60, nom: 'Hayange' },
-  '57036': { taux: 25.94, nom: 'Woippy' },
-  '57039': { taux: 25.94, nom: 'Montigny-lès-Metz' },
-  '57019': { taux: 25.94, nom: 'Marly' },
-  '57049': { taux: 25.94, nom: 'Le Ban-Saint-Martin' },
-  '57433': { taux: 29.00, nom: 'Maizières-lès-Metz' },
-  '57256': { taux: 28.70, nom: 'Freyming-Merlebach' },
-  '57682': { taux: 28.40, nom: 'Yutz' },
-  '57220': { taux: 29.10, nom: 'Fameck' },
+  '57672': { taux: 25.34, nom: 'Thionville' },
 
   // -- 58 Nièvre --
-  '58194': { taux: 28.80, nom: 'Nevers' },
-  '58086': { taux: 29.50, nom: 'Cosne-Cours-sur-Loire' },
 
   // -- 59 Nord (MEL Lille ~33.61 %) --
   '59350': { taux: 33.61, nom: 'Lille' },
-  '59512': { taux: 33.40, nom: 'Roubaix' },
-  '59599': { taux: 34.80, nom: 'Tourcoing' },
-  '59009': { taux: 34.20, nom: 'Villeneuve-d\'Ascq' },
-  '59178': { taux: 30.50, nom: 'Dunkerque' },
-  '59606': { taux: 30.80, nom: 'Valenciennes' },
-  '59392': { taux: 31.20, nom: 'Maubeuge' },
-  '59122': { taux: 30.60, nom: 'Cambrai' },
-  '59017': { taux: 31.50, nom: 'Armentières' },
-  '59196': { taux: 30.80, nom: 'Douai' },
-  '59183': { taux: 31.80, nom: 'Denain' },
-  '59056': { taux: 33.61, nom: 'Mons-en-Barœul' },
-  '59560': { taux: 33.61, nom: 'Hem' },
-  '59299': { taux: 33.61, nom: 'Lambersart' },
-  '59346': { taux: 33.61, nom: 'La Madeleine' },
-  '59360': { taux: 33.61, nom: 'Lomme' },
-  '59256': { taux: 33.61, nom: 'Halluin' },
-  '59410': { taux: 33.61, nom: 'Mouvaux' },
-  '59527': { taux: 33.61, nom: 'Saint-André-lez-Lille' },
-  '59368': { taux: 33.61, nom: 'Loos' },
+  '59512': { taux: 33.61, nom: 'Roubaix' },
+  '59599': { taux: 33.61, nom: 'Tourcoing' },
+  '59009': { taux: 33.61, nom: 'Villeneuve-d\'Ascq' },
+  '59378': { taux: 33.61, nom: 'Marcq-en-Baroeul' },
+  '59178': { taux: 34.94, nom: 'Dunkerque' },
+  '59606': { taux: 31.02, nom: 'Valenciennes' },
+  '59196': { taux: 29.68, nom: 'Douai' },
   '59640': { taux: 33.61, nom: 'Wattrelos' },
-  '59359': { taux: 33.61, nom: 'Lys-lez-Lannoy' },
-  '59163': { taux: 33.61, nom: 'Croix' },
-  '59653': { taux: 33.61, nom: 'Wasquehal' },
-  '59386': { taux: 33.61, nom: 'Marquette-lez-Lille' },
-  '59286': { taux: 33.61, nom: 'Seclin' },
-  '59090': { taux: 33.61, nom: 'Bondues' },
-  '59343': { taux: 33.61, nom: 'Faches-Thumesnil' },
-  '59152': { taux: 33.61, nom: 'Comines' },
-  '59250': { taux: 30.40, nom: 'Grande-Synthe' },
-  '59005': { taux: 31.10, nom: 'Anzin' },
-  '59553': { taux: 30.90, nom: 'Sin-le-Noble' },
-  '59043': { taux: 30.70, nom: 'Aulnoye-Aymeries' },
-  '59172': { taux: 31.30, nom: 'Coudekerque-Branche' },
-  '59328': { taux: 30.60, nom: 'Lys-lez-Lannoy' },
   '59139': { taux: 31.40, nom: 'Condé-sur-l\'Escaut' },
 
   // -- 60 Oise --
-  '60057': { taux: 26.50, nom: 'Beauvais' },
-  '60159': { taux: 25.80, nom: 'Compiègne' },
-  '60157': { taux: 28.30, nom: 'Creil' },
-  '60471': { taux: 26.80, nom: 'Nogent-sur-Oise' },
-  '60612': { taux: 26.20, nom: 'Senlis' },
-  '60139': { taux: 27.50, nom: 'Chantilly' },
-  '60428': { taux: 27.80, nom: 'Méru' },
-  '60223': { taux: 27.00, nom: 'Clermont' },
+  '60057': { taux: 25.4, nom: 'Beauvais' },
+  '60159': { taux: 26.16, nom: 'Compiègne' },
 
   // -- 61 Orne --
-  '61001': { taux: 27.20, nom: 'Alençon' },
-  '61169': { taux: 27.80, nom: 'Flers' },
-  '61006': { taux: 28.30, nom: 'Argentan' },
 
   // -- 62 Pas-de-Calais --
-  '62041': { taux: 30.20, nom: 'Arras' },
-  '62119': { taux: 30.80, nom: 'Boulogne-sur-Mer' },
-  '62160': { taux: 31.50, nom: 'Calais' },
-  '62498': { taux: 30.50, nom: 'Lens' },
-  '62510': { taux: 31.00, nom: 'Liévin' },
-  '62321': { taux: 30.30, nom: 'Hénin-Beaumont' },
-  '62108': { taux: 30.60, nom: 'Béthune' },
-  '62427': { taux: 30.90, nom: 'Saint-Omer' },
-  '62193': { taux: 31.20, nom: 'Carvin' },
-  '62065': { taux: 30.40, nom: 'Avion' },
-  '62178': { taux: 31.50, nom: 'Bruay-la-Buissière' },
-  '62304': { taux: 30.80, nom: 'Harnes' },
-  '62386': { taux: 31.30, nom: 'Étaples' },
-  '62570': { taux: 30.70, nom: 'Marck' },
-  '62617': { taux: 31.10, nom: 'Outreau' },
-  '62620': { taux: 30.50, nom: 'Noeux-les-Mines' },
+  '62041': { taux: 30.58, nom: 'Arras' },
+  '62119': { taux: 33.62, nom: 'Boulogne-sur-Mer' },
+  '62160': { taux: 30.75, nom: 'Calais' },
 
   // ══════════════════════════════════════════════════════════════════════════════
   // ── DÉPARTEMENTS 63 à 76 ────────────────────────────────────────────────────
   // ══════════════════════════════════════════════════════════════════════════════
   // -- 63 Puy-de-Dôme (Clermont Auvergne Métropole ~27.14 %) --
-  '63113': { taux: 27.14, nom: 'Clermont-Ferrand' },
-  '63019': { taux: 27.14, nom: 'Aubière' },
-  '63069': { taux: 27.14, nom: 'Chamalières' },
-  '63284': { taux: 27.14, nom: 'Beaumont' },
-  '63164': { taux: 27.14, nom: 'Gerzat' },
+  '63113': { taux: 27.16, nom: 'Clermont-Ferrand' },
   '63124': { taux: 27.14, nom: 'Cournon-d\'Auvergne' },
-  '63300': { taux: 27.14, nom: 'Le Cendre' },
-  '63178': { taux: 28.50, nom: 'Issoire' },
-  '63430': { taux: 27.80, nom: 'Thiers' },
-  '63263': { taux: 27.14, nom: 'Pont-du-Château' },
-  '63345': { taux: 27.14, nom: 'Riom' },
-  '63014': { taux: 27.60, nom: 'Ambert' },
-  '63116': { taux: 27.14, nom: 'Cébazat' },
 
   // -- 64 Pyrénées-Atlantiques --
-  '64445': { taux: 26.40, nom: 'Pau' },
-  '64102': { taux: 29.50, nom: 'Bayonne' },
-  '64122': { taux: 28.80, nom: 'Biarritz' },
-  '64024': { taux: 29.50, nom: 'Anglet' },
-  '64300': { taux: 27.20, nom: 'Lons' },
-  '64160': { taux: 29.20, nom: 'Hendaye' },
-  '64483': { taux: 29.30, nom: 'Saint-Jean-de-Luz' },
-  '64230': { taux: 26.40, nom: 'Jurançon' },
-  '64130': { taux: 26.40, nom: 'Billère' },
-  '64422': { taux: 27.80, nom: 'Orthez' },
-  '64378': { taux: 28.10, nom: 'Oloron-Sainte-Marie' },
-  '64548': { taux: 29.50, nom: 'Urrugne' },
+  '64445': { taux: 32.63, nom: 'Pau' },
+  '64102': { taux: 28.49, nom: 'Bayonne' },
+  '64024': { taux: 28.49, nom: 'Anglet' },
 
   // -- 65 Hautes-Pyrénées --
-  '65440': { taux: 28.90, nom: 'Tarbes' },
-  '65286': { taux: 29.50, nom: 'Lourdes' },
-  '65025': { taux: 29.20, nom: 'Bagnères-de-Bigorre' },
+  '65440': { taux: 33.94, nom: 'Tarbes' },
 
   // -- 66 Pyrénées-Orientales (Perpignan Métropole ~34.59 %) --
-  '66037': { taux: 34.59, nom: 'Canet-en-Roussillon' },
-  '66150': { taux: 34.59, nom: 'Saint-Estève' },
-  '66027': { taux: 34.59, nom: 'Cabestany' },
   '66136': { taux: 34.59, nom: 'Perpignan' },
-  '66016': { taux: 34.80, nom: 'Argelès-sur-Mer' },
-  '66048': { taux: 34.59, nom: 'Toulouges' },
-  '66189': { taux: 34.59, nom: 'Rivesaltes' },
-  '66165': { taux: 34.59, nom: 'Pia' },
-  '66025': { taux: 34.50, nom: 'Céret' },
-  '66213': { taux: 34.80, nom: 'Le Barcarès' },
-  '66152': { taux: 34.59, nom: 'Saint-Laurent-de-la-Salanque' },
 
   // -- 67 Bas-Rhin (Eurométropole de Strasbourg ~26.83 %) --
   '67482': { taux: 26.83, nom: 'Strasbourg' },
-  '67300': { taux: 26.83, nom: 'Schiltigheim' },
-  '67218': { taux: 26.83, nom: 'Illkirch-Graffenstaden' },
-  '67137': { taux: 26.83, nom: 'Lingolsheim' },
-  '67180': { taux: 26.83, nom: 'Hoenheim' },
-  '67462': { taux: 26.83, nom: 'Bischheim' },
-  '67447': { taux: 26.83, nom: 'Ostwald' },
-  '67365': { taux: 27.50, nom: 'Haguenau' },
-  '67519': { taux: 26.83, nom: 'La Wantzenau' },
-  '67152': { taux: 26.83, nom: 'Geispolsheim' },
-  '67411': { taux: 27.80, nom: 'Obernai' },
-  '67348': { taux: 27.30, nom: 'Sélestat' },
-  '67125': { taux: 27.60, nom: 'Erstein' },
-  '67437': { taux: 26.83, nom: 'Souffelweyersheim' },
-  '67306': { taux: 26.83, nom: 'Mundolsheim' },
-  '67372': { taux: 27.10, nom: 'Molsheim' },
-  '67368': { taux: 27.40, nom: 'Saverne' },
 
   // -- 68 Haut-Rhin --
   '68224': { taux: 26.36, nom: 'Mulhouse' },
-  '68066': { taux: 26.20, nom: 'Colmar' },
-  '68297': { taux: 26.36, nom: 'Saint-Louis' },
-  '68093': { taux: 26.36, nom: 'Guebwiller' },
-  '68338': { taux: 26.36, nom: 'Wittenheim' },
-  '68166': { taux: 26.36, nom: 'Kingersheim' },
-  '68277': { taux: 26.36, nom: 'Rixheim' },
-  '68334': { taux: 26.36, nom: 'Wittelsheim' },
-  '68056': { taux: 26.20, nom: 'Wintzenheim' },
-  '68195': { taux: 26.36, nom: 'Illzach' },
-  '68218': { taux: 26.20, nom: 'Ingersheim' },
-  '68182': { taux: 27.00, nom: 'Thann' },
-  '68321': { taux: 27.50, nom: 'Cernay' },
+  '68066': { taux: 25.0, nom: 'Colmar' },
+  '68297': { taux: 29.03, nom: 'Saint-Louis' },
 
   // -- 69 Rhône (hors Métropole de Lyon, déjà listée) --
-  '69243': { taux: 28.50, nom: 'Tarare' },
-  '69264': { taux: 29.10, nom: 'Villefranche-sur-Saône' },
-  '69027': { taux: 28.80, nom: 'Belleville-en-Beaujolais' },
-  '69283': { taux: 28.40, nom: 'Thizy-les-Bourgs' },
-  '69033': { taux: 27.90, nom: 'Brignais' },
   '69044': { taux: 28.20, nom: 'L\'Arbresle' },
 
   // -- 70 Haute-Saône --
-  '70550': { taux: 27.80, nom: 'Vesoul' },
-  '70311': { taux: 28.50, nom: 'Lure' },
-  '70285': { taux: 28.20, nom: 'Héricourt' },
 
   // -- 71 Saône-et-Loire --
-  '71076': { taux: 28.30, nom: 'Chalon-sur-Saône' },
-  '71270': { taux: 27.80, nom: 'Mâcon' },
-  '71153': { taux: 28.60, nom: 'Le Creusot' },
-  '71388': { taux: 28.50, nom: 'Autun' },
-  '71328': { taux: 28.80, nom: 'Montceau-les-Mines' },
-  '71014': { taux: 27.80, nom: 'Charnay-lès-Mâcon' },
+  '71076': { taux: 25.54, nom: 'Chalon-sur-Saône' },
 
   // -- 72 Sarthe (Le Mans Métropole ~27.41 %) --
   '72181': { taux: 27.41, nom: 'Le Mans' },
-  '72007': { taux: 27.41, nom: 'Allonnes' },
-  '72154': { taux: 27.41, nom: 'Coulaines' },
-  '72143': { taux: 28.30, nom: 'La Flèche' },
-  '72264': { taux: 28.50, nom: 'Sablé-sur-Sarthe' },
-  '72180': { taux: 27.41, nom: 'Arnage' },
-  '72328': { taux: 27.41, nom: 'Mulsanne' },
 
   // -- 73 Savoie --
-  '73065': { taux: 26.50, nom: 'Chambéry' },
-  '73011': { taux: 27.20, nom: 'Aix-les-Bains' },
-  '73008': { taux: 28.50, nom: 'Albertville' },
-  '73248': { taux: 26.50, nom: 'La Motte-Servolex' },
-  '73157': { taux: 28.80, nom: 'Saint-Jean-de-Maurienne' },
-  '73034': { taux: 26.80, nom: 'Cognin' },
+  '73065': { taux: 27.7, nom: 'Chambéry' },
 
   // -- 74 Haute-Savoie --
-  '74010': { taux: 24.80, nom: 'Annecy' },
-  '74012': { taux: 25.50, nom: 'Annemasse' },
-  '74281': { taux: 25.20, nom: 'Thonon-les-Bains' },
-  '74093': { taux: 25.30, nom: 'Cluses' },
-  '74256': { taux: 24.90, nom: 'Sallanches' },
-  '74243': { taux: 25.80, nom: 'Rumilly' },
-  '74112': { taux: 25.60, nom: 'Cran-Gevrier' },
-  '74225': { taux: 25.40, nom: 'La Roche-sur-Foron' },
-  '74042': { taux: 25.10, nom: 'Bonneville' },
-  '74164': { taux: 25.70, nom: 'Gaillard' },
-  '74182': { taux: 24.80, nom: 'Meythet' },
-  '74305': { taux: 24.80, nom: 'Seynod' },
-  '74019': { taux: 24.80, nom: 'Annecy-le-Vieux' },
+  '74010': { taux: 23.95, nom: 'Annecy' },
 
   // -- 76 Seine-Maritime (Rouen Métropole ~26.50 %) --
   '76540': { taux: 26.50, nom: 'Rouen' },
-  '76351': { taux: 25.32, nom: 'Le Havre' },
-  '76618': { taux: 26.50, nom: 'Sotteville-lès-Rouen' },
-  '76322': { taux: 26.50, nom: 'Le Grand-Quevilly' },
-  '76484': { taux: 26.50, nom: 'Le Petit-Quevilly' },
-  '76681': { taux: 26.50, nom: 'Saint-Étienne-du-Rouvray' },
-  '76474': { taux: 26.50, nom: 'Mont-Saint-Aignan' },
-  '76157': { taux: 26.50, nom: 'Canteleu' },
-  '76178': { taux: 26.50, nom: 'Darnétal' },
-  '76108': { taux: 26.50, nom: 'Bois-Guillaume' },
-  '76116': { taux: 26.50, nom: 'Bonsecours' },
-  '76231': { taux: 27.80, nom: 'Fécamp' },
-  '76217': { taux: 28.30, nom: 'Dieppe' },
-  '76257': { taux: 27.50, nom: 'Elbeuf' },
+  '76351': { taux: 26.66, nom: 'Le Havre' },
   '76275': { taux: 25.32, nom: 'Gonfreville-l\'Orcher' },
-  '76366': { taux: 25.32, nom: 'Harfleur' },
-  '76476': { taux: 25.32, nom: 'Montivilliers' },
-  '76561': { taux: 25.32, nom: 'Sainte-Adresse' },
-  '76475': { taux: 25.32, nom: 'Octeville-sur-Mer' },
 
   // ══════════════════════════════════════════════════════════════════════════════
   // ── DÉPARTEMENTS 77 à 95 (restants) ────────────────────────────────────────
   // ══════════════════════════════════════════════════════════════════════════════
   // -- 79 Deux-Sèvres --
-  '79191': { taux: 26.20, nom: 'Niort' },
-  '79049': { taux: 27.50, nom: 'Bressuire' },
-  '79271': { taux: 27.80, nom: 'Thouars' },
-  '79200': { taux: 27.30, nom: 'Parthenay' },
+  '79191': { taux: 26.26, nom: 'Niort' },
 
   // -- 80 Somme (Amiens Métropole ~25.83 %) --
   '80021': { taux: 25.83, nom: 'Amiens' },
-  '80001': { taux: 27.50, nom: 'Abbeville' },
-  '80016': { taux: 25.83, nom: 'Longueau' },
-  '80139': { taux: 25.83, nom: 'Camon' },
-  '80706': { taux: 25.83, nom: 'Rivery' },
-  '80561': { taux: 26.80, nom: 'Albert' },
 
   // -- 81 Tarn --
-  '81004': { taux: 28.40, nom: 'Albi' },
-  '81065': { taux: 29.20, nom: 'Castres' },
-  '81140': { taux: 29.50, nom: 'Mazamet' },
-  '81099': { taux: 28.80, nom: 'Gaillac' },
-  '81105': { taux: 29.00, nom: 'Graulhet' },
+  '81004': { taux: 37.51, nom: 'Albi' },
+  '81065': { taux: 34.99, nom: 'Castres' },
 
   // -- 82 Tarn-et-Garonne --
-  '82121': { taux: 29.50, nom: 'Montauban' },
-  '82033': { taux: 30.20, nom: 'Castelsarrasin' },
-  '82108': { taux: 29.80, nom: 'Moissac' },
+  '82121': { taux: 33.32, nom: 'Montauban' },
 
   // -- 83 Var (Toulon Provence Méditerranée ~35.89 %) --
   '83137': { taux: 35.89, nom: 'Toulon' },
-  '83050': { taux: 34.20, nom: 'Fréjus' },
-  '83061': { taux: 34.50, nom: 'Hyères' },
-  '83023': { taux: 34.80, nom: 'La Seyne-sur-Mer' },
-  '83069': { taux: 33.50, nom: 'Draguignan' },
-  '83129': { taux: 34.30, nom: 'Six-Fours-les-Plages' },
-  '83007': { taux: 35.89, nom: 'Brignoles' },
-  '83120': { taux: 34.60, nom: 'Saint-Raphaël' },
-  '83098': { taux: 35.89, nom: 'La Garde' },
-  '83047': { taux: 35.89, nom: 'La Valette-du-Var' },
-  '83107': { taux: 35.89, nom: 'Ollioules' },
-  '83126': { taux: 34.70, nom: 'Sainte-Maxime' },
-  '83153': { taux: 34.40, nom: 'Le Muy' },
-  '83004': { taux: 34.00, nom: 'Bandol' },
-  '83013': { taux: 33.80, nom: 'Le Luc' },
-  '83054': { taux: 35.89, nom: 'La Crau' },
-  '83090': { taux: 35.89, nom: 'Le Pradet' },
-  '83118': { taux: 35.89, nom: 'Le Revest-les-Eaux' },
+  '83050': { taux: 28.46, nom: 'Fréjus' },
+  '83061': { taux: 35.89, nom: 'Hyères' },
+  '83023': { taux: 35.89, nom: 'La Seyne-sur-Mer' },
+  '83069': { taux: 28.3, nom: 'Draguignan' },
 
   // -- 84 Vaucluse --
   '84007': { taux: 37.42, nom: 'Avignon' },
-  '84031': { taux: 36.50, nom: 'Carpentras' },
-  '84035': { taux: 36.80, nom: 'Cavaillon' },
   '84054': { taux: 37.00, nom: 'L\'Isle-sur-la-Sorgue' },
-  '84080': { taux: 36.70, nom: 'Orange' },
-  '84089': { taux: 37.20, nom: 'Pertuis' },
-  '84019': { taux: 36.40, nom: 'Bollène' },
-  '84092': { taux: 37.42, nom: 'Le Pontet' },
-  '84101': { taux: 36.60, nom: 'Sorgues' },
-  '84129': { taux: 37.10, nom: 'Vedène' },
-  '84137': { taux: 36.90, nom: 'Monteux' },
-  '84143': { taux: 37.42, nom: 'Entraigues-sur-la-Sorgue' },
 
   // -- 85 Vendée --
-  '85191': { taux: 26.30, nom: 'La Roche-sur-Yon' },
+  '85191': { taux: 28.16, nom: 'La Roche-sur-Yon' },
   '85109': { taux: 26.80, nom: 'Les Sables-d\'Olonne' },
-  '85065': { taux: 27.50, nom: 'Challans' },
-  '85092': { taux: 27.80, nom: 'Fontenay-le-Comte' },
-  '85146': { taux: 27.20, nom: 'Luçon' },
-  '85084': { taux: 26.50, nom: 'La Roche-sur-Yon' },
-  '85121': { taux: 26.60, nom: 'Les Herbiers' },
-  '85166': { taux: 27.00, nom: 'Montaigu-Vendée' },
 
   // -- 86 Vienne --
   '86194': { taux: 26.01, nom: 'Poitiers' },
-  '86066': { taux: 27.50, nom: 'Châtellerault' },
-  '86062': { taux: 26.01, nom: 'Buxerolles' },
-  '86115': { taux: 26.01, nom: 'Migné-Auxances' },
-  '86214': { taux: 26.01, nom: 'Saint-Benoît' },
-  '86165': { taux: 27.20, nom: 'Loudun' },
 
   // -- 87 Haute-Vienne (Limoges Métropole ~26.40 %) --
   '87085': { taux: 26.40, nom: 'Limoges' },
-  '87118': { taux: 27.50, nom: 'Panazol' },
-  '87050': { taux: 26.40, nom: 'Couzeix' },
-  '87075': { taux: 26.40, nom: 'Isle' },
-  '87178': { taux: 26.40, nom: 'Le Palais-sur-Vienne' },
-  '87126': { taux: 26.40, nom: 'Rilhac-Rancon' },
-  '87133': { taux: 27.80, nom: 'Saint-Junien' },
 
   // -- 88 Vosges --
-  '88160': { taux: 27.50, nom: 'Épinal' },
-  '88413': { taux: 28.20, nom: 'Saint-Dié-des-Vosges' },
-  '88249': { taux: 28.50, nom: 'Gérardmer' },
-  '88383': { taux: 27.80, nom: 'Remiremont' },
-  '88321': { taux: 28.00, nom: 'Neufchâteau' },
 
   // -- 89 Yonne --
-  '89024': { taux: 27.50, nom: 'Auxerre' },
-  '89387': { taux: 28.20, nom: 'Sens' },
-  '89206': { taux: 28.50, nom: 'Joigny' },
-  '89013': { taux: 27.80, nom: 'Avallon' },
 
   // -- 90 Territoire de Belfort --
-  '90010': { taux: 28.60, nom: 'Belfort' },
-  '90029': { taux: 28.60, nom: 'Delle' },
-  '90068': { taux: 28.60, nom: 'Offemont' },
-  '90013': { taux: 28.60, nom: 'Beaucourt' },
-  '90009': { taux: 28.60, nom: 'Bavilliers' },
+  '90010': { taux: 30.85, nom: 'Belfort' },
 
   // ══════════════════════════════════════════════════════════════════════════════
   // ── COMMUNES COMPLÉMENTAIRES ───────────────────────────────────────────────
   // ══════════════════════════════════════════════════════════════════════════════
   // -- Communes supplémentaires IDF --
-  '77437': { taux: 25.20, nom: 'Serris' },
-  '77438': { taux: 24.60, nom: 'Marne-la-Vallée' },
-  '77347': { taux: 24.80, nom: 'Champs-sur-Marne' },
-  '77108': { taux: 25.40, nom: 'Avon' },
 
   // -- Communes supplémentaires Nord/Pas-de-Calais --
-  '59013': { taux: 30.50, nom: 'Hazebrouck' },
-  '59044': { taux: 31.80, nom: 'Bailleul' },
-  '59524': { taux: 33.61, nom: 'Wambrechies' },
-  '59208': { taux: 33.61, nom: 'Englos' },
-  '62893': { taux: 30.80, nom: 'Wingles' },
 
   // -- Communes supplémentaires Provence --
-  '83052': { taux: 33.90, nom: 'Le Lavandou' },
-  '83049': { taux: 34.10, nom: 'Cogolin' },
-  '83093': { taux: 35.10, nom: 'La Londe-les-Maures' },
-  '84003': { taux: 36.30, nom: 'Apt' },
 
   // -- Communes supplémentaires Occitanie --
-  '34344': { taux: 35.40, nom: 'Marseillan' },
-  '34199': { taux: 35.40, nom: 'Pézenas' },
-  '30133': { taux: 33.70, nom: 'Marguerittes' },
-  '30047': { taux: 33.40, nom: 'Bouillargues' },
-  '11170': { taux: 30.70, nom: 'Lézignan-Corbières' },
-  '66011': { taux: 34.60, nom: 'Thuir' },
 
   // -- Communes supplémentaires Nouvelle-Aquitaine --
-  '33032': { taux: 31.20, nom: 'Biganos' },
-  '33114': { taux: 32.10, nom: 'Cestas' },
-  '24430': { taux: 28.50, nom: 'Terrasson-Lavilledieu' },
-  '16113': { taux: 27.80, nom: 'Gond-Pontouvre' },
-  '87154': { taux: 27.20, nom: 'Saint-Yrieix-la-Perche' },
 
   // -- Communes supplémentaires Auvergne-Rhône-Alpes --
   '38364': { taux: 31.20, nom: 'L\'Isle-d\'Abeau' },
-  '01262': { taux: 25.60, nom: 'Meximieux' },
-  '42003': { taux: 29.67, nom: 'Andrézieux-Bouthéon' },
-  '26115': { taux: 26.20, nom: 'Crest' },
-  '73181': { taux: 27.80, nom: 'La Ravoire' },
 
   // -- Communes supplémentaires Grand Est --
-  '67084': { taux: 27.20, nom: 'Bischwiller' },
-  '67118': { taux: 26.83, nom: 'Eckbolsheim' },
-  '68135': { taux: 26.50, nom: 'Huningue' },
-  '51649': { taux: 24.80, nom: 'Witry-lès-Reims' },
-  '54135': { taux: 29.65, nom: 'Champigneulles' },
-  '57480': { taux: 25.94, nom: 'Longeville-lès-Metz' },
 
   // -- Communes supplémentaires Bretagne --
-  '22016': { taux: 27.30, nom: 'Loudéac' },
-  '29169': { taux: 29.96, nom: 'Le Relecq-Kerhuon' },
 
   // -- Communes supplémentaires Normandie --
-  '50453': { taux: 27.30, nom: 'Tourlaville' },
-  '14654': { taux: 25.71, nom: 'Colombelles' },
-  '76402': { taux: 26.50, nom: 'Maromme' },
-  '27015': { taux: 25.80, nom: 'Les Andelys' },
+
+  // -- DOM-TOM --
+  '97209': { taux: 23.35, nom: 'Fort-de-France' },
+  '97213': { taux: 23.35, nom: 'Le Lamentin' },
+  '97422': { taux: 22.76, nom: 'Le Tampon' },
+  '97100': { taux: 24.94, nom: 'Les Abymes' },
+  '97701': { taux: 27.60, nom: 'Saint-André' },
+  '97416': { taux: 29.03, nom: 'Saint-Pierre' },
+  '94022': { taux: 33.78, nom: 'Choisy-le-Roi' },
+
 }

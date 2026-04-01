@@ -1,0 +1,297 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8">
+  <title>DGFiP — Extract CFE Base Minimale 2025</title>
+  <style>
+    body { font-family: monospace; margin: 20px; background: #1e1e1e; color: #d4d4d4; }
+    h1 { color: #4fc3f7; }
+    .info { color: #81c784; margin: 10px 0; }
+    .warn { color: #ffb74d; margin: 10px 0; }
+    .err { color: #ef5350; margin: 10px 0; }
+    button { padding: 10px 20px; font-size: 16px; cursor: pointer; background: #0d47a1; color: white; border: none; border-radius: 4px; margin: 5px; }
+    button:hover { background: #1565c0; }
+    button:disabled { background: #555; cursor: not-allowed; }
+    #output { background: #2d2d2d; border: 1px solid #555; padding: 15px; min-height: 100px; white-space: pre-wrap; font-size: 12px; max-height: 70vh; overflow-y: auto; }
+    #progress { color: #4fc3f7; margin: 10px 0; font-size: 14px; }
+    .copy-btn { background: #2e7d32; }
+    .copy-btn:hover { background: #388e3c; }
+  </style>
+</head>
+<body>
+<h1>🔍 DGFiP — CFE Base Minimale 2025 Extractor</h1>
+<p class="info">Cet outil interroge directement l'API DGFiP pour récupérer les bases minimales CFE (TFB-CFE-14) pour toutes les communes du simulateur geoscore.</p>
+<p class="warn">⚠️ Ouvre ce fichier directement dans ton navigateur (file://...) — aucun serveur requis.</p>
+
+<button onclick="startFetch()" id="fetchBtn">🚀 Lancer l'extraction</button>
+<button onclick="copyOutput()" class="copy-btn" id="copyBtn" disabled>📋 Copier le résultat TypeScript</button>
+
+<div id="progress"></div>
+<pre id="output">Clique sur "Lancer l'extraction" pour démarrer...</pre>
+
+<script>
+// Tous les codes INSEE présents dans TAUX_CONNUS
+const ALL_CODES = [
+  '01053','02691','03185','05061','06004','06027','06029','06030','06069','06088',
+  '08105','10387','11069','11262','13001','13004','13005','13014','13047','13055',
+  '13056','13081','13103','13117','13201','13202','13203','13204','13205','13206',
+  '13207','13208','13209','13210','13211','13212','13213','13214','13215','13216',
+  '14118','16015','17300','18033','19031','21231','22278','25056','26198','26362',
+  '27229','28085','29019','29232','2A004','2B033','30007','30189','31555','31561',
+  '33063','33281','33318','33522','33550','34032','34172','34301','35238','35288',
+  '36044','37195','37261','38185','38364','38421','41018','42218','44109','44143',
+  '44162','44184','45234','47001','49007','49080','49307','50129','51108','51454',
+  '53130','54395','56121','56260','57463','57672','59009','59139','59178','59196',
+  '59350','59378','59512','59599','59606','59640','60057','60159','62041','62119',
+  '62160','63113','63124','64024','64102','64445','65440','66136','67482','68066',
+  '68224','68297','69029','69034','69040','69044','69051','69063','69068','69081',
+  '69089','69091','69100','69116','69123','69142','69143','69149','69152','69163',
+  '69168','69194','69199','69202','69204','69233','69244','69250','69256','69259',
+  '69266','69271','69275','69276','69278','69279','69282','69284','69286','69290',
+  '69381','69382','69383','69384','69385','69386','69387','69388','69389','71076',
+  '72181','73065','74010','75056','75101','75102','75103','75104','75105','75106',
+  '75107','75108','75109','75110','75111','75112','75113','75114','75115','75116',
+  '75117','75118','75119','75120','76275','76351','76540','77083','77284','77288',
+  '78361','78517','78551','78586','78646','79191','80021','81004','81065','82121',
+  '83023','83050','83061','83069','83137','84007','84054','85109','85191','86194',
+  '87085','90010','91174','91228','91377','92002','92004','92012','92023','92024',
+  '92025','92026','92036','92040','92044','92048','92049','92050','92051','92062',
+  '92063','92073','93005','93006','93007','93008','93010','93013','93027','93029',
+  '93031','93032','93047','93048','93049','93051','93057','93063','93064','93066',
+  '93071','94002','94019','94022','94028','94033','94038','94043','94054','94067',
+  '94076','94080','94081','95018','95127','95268','95572','95585','97100','97209',
+  '97213','97416','97422','97701'
+];
+
+const BASE_URL = 'https://data.economie.gouv.fr/api/explore/v2.1/catalog/datasets/deliberations-de-fiscalite-directe-locale-des-communes-2025-hors-taux/records';
+
+// Codes de tranche CFE: t0=CA 5k-10k, t1=10k-32.6k, t2=32.6k-100k, t3=100k-250k, t4=250k-500k, t5=>500k
+const TRANCHE_MAP = {
+  '1': 0,  // CA ≤ 10 000
+  '2': 1,  // CA 10 000 - 32 600
+  '3': 2,  // CA 32 600 - 100 000
+  '4': 3,  // CA 100 000 - 250 000
+  '5': 4,  // CA 250 000 - 500 000
+  '6': 5,  // CA > 500 000
+};
+
+// Codes déjà confirmés — on les skip pour éviter d'écraser
+const ALREADY_CONFIRMED = new Set([
+  '75056','75101','75102','75103','75104','75105','75106','75107','75108','75109',
+  '75110','75111','75112','75113','75114','75115','75116','75117','75118','75119','75120',
+  '13055','13201','13202','13203','13204','13205','13206','13207','13208','13209',
+  '13210','13211','13212','13213','13214','13215','13216',
+  '13001','13005','13047','13056','13103','13117',
+  '33063','33281','33318','33522','33550',
+]);
+
+let rawData = null;
+
+function log(msg, cls='info') {
+  const p = document.getElementById('progress');
+  p.innerHTML = `<span class="${cls}">${msg}</span>`;
+}
+
+async function fetchPage(offset, limit = 100) {
+  const params = new URLSearchParams({
+    where: `code_dispositif="TFB-CFE-14"`,
+    select: 'codgeo,libgeo,montant,tranche_nb,tranche,libelle_tranche,annee_deliberation',
+    limit: String(limit),
+    offset: String(offset),
+    order_by: 'codgeo',
+  });
+  const res = await fetch(`${BASE_URL}?${params}`);
+  if (!res.ok) throw new Error(`HTTP ${res.status}: ${res.statusText}`);
+  return res.json();
+}
+
+async function startFetch() {
+  const btn = document.getElementById('fetchBtn');
+  const copyBtn = document.getElementById('copyBtn');
+  btn.disabled = true;
+  copyBtn.disabled = true;
+  document.getElementById('output').textContent = '';
+
+  try {
+    // Étape 1 : explorer le schéma
+    log('📡 Connexion à l\'API DGFiP...');
+    const sample = await fetchPage(0, 3);
+    console.log('Sample record:', JSON.stringify(sample.results?.[0], null, 2));
+
+    const totalCount = sample.total_count;
+    log(`✅ API accessible — ${totalCount} délibérations TFB-CFE-14 trouvées`);
+    document.getElementById('output').textContent += `// Total délibérations TFB-CFE-14: ${totalCount}\n`;
+    document.getElementById('output').textContent += `// Sample: ${JSON.stringify(sample.results?.[0], null, 2)}\n\n`;
+
+    // Étape 2 : récupérer toutes les données (pagination)
+    const allRecords = [...(sample.results || [])];
+    let offset = 3;
+
+    while (allRecords.length < totalCount) {
+      log(`📥 Chargement... ${allRecords.length}/${totalCount}`);
+      const page = await fetchPage(offset, 100);
+      if (!page.results || page.results.length === 0) break;
+      allRecords.push(...page.results);
+      offset += page.results.length;
+      if (page.results.length < 100) break;
+      // Petit délai pour ne pas throttler l'API
+      await new Promise(r => setTimeout(r, 200));
+    }
+
+    log(`✅ ${allRecords.length} enregistrements récupérés — filtrage pour nos ${ALL_CODES.length} communes...`);
+    rawData = allRecords;
+
+    // Étape 3 : filtrer et grouper par commune
+    const ourCodesSet = new Set(ALL_CODES);
+    const byCommune = {};
+
+    for (const r of allRecords) {
+      const code = r.codgeo;
+      if (!ourCodesSet.has(code)) continue;
+      if (!byCommune[code]) byCommune[code] = { nom: r.libgeo, records: [] };
+      byCommune[code].records.push(r);
+    }
+
+    log(`✅ ${Object.keys(byCommune).length} communes trouvées dans l'API — génération du TypeScript...`);
+
+    // Étape 4 : générer le TypeScript
+    const lines = generateTS(byCommune);
+    document.getElementById('output').textContent = lines;
+    copyBtn.disabled = false;
+    log(`🎉 Terminé ! ${Object.keys(byCommune).length} communes avec données. Copie le TypeScript et colle-le dans taux-data.ts.`, 'info');
+
+  } catch (e) {
+    log(`❌ Erreur: ${e.message}`, 'err');
+    console.error(e);
+    document.getElementById('output').textContent = `Erreur: ${e.message}\n\nStack: ${e.stack}`;
+  }
+
+  btn.disabled = false;
+}
+
+function generateTS(byCommune) {
+  const lines = [];
+  lines.push('// ══════════════════════════════════════════════════════════════════════════════');
+  lines.push('// AUTO-GÉNÉRÉ depuis l\'API DGFiP le ' + new Date().toISOString().slice(0, 10));
+  lines.push('// Dataset: deliberations-de-fiscalite-directe-locale-des-communes-2025-hors-taux');
+  lines.push('// Code dispositif: TFB-CFE-14 (base minimale CFE art. 1647 D CGI)');
+  lines.push('// ══════════════════════════════════════════════════════════════════════════════');
+  lines.push('');
+
+  const entries = Object.entries(byCommune).sort(([a], [b]) => a.localeCompare(b));
+
+  const newEntries = [];
+  const existingEntries = [];
+
+  for (const [code, { nom, records }] of entries) {
+    const isConfirmed = ALREADY_CONFIRMED.has(code);
+
+    // Détecter la structure des données
+    const entry = buildEntry(code, nom, records);
+
+    if (entry) {
+      if (isConfirmed) {
+        existingEntries.push(`  // ${code} ${nom} (déjà confirmé — ignoré)`);
+      } else {
+        newEntries.push({ code, nom, entry });
+      }
+    }
+  }
+
+  lines.push(`// NOUVELLES ENTRÉES (${newEntries.length} communes avec données dans l'API):`);
+  lines.push('// Colle ce bloc dans BASE_MINIMALE_CONNUES dans taux-data.ts');
+  lines.push('');
+
+  for (const { code, nom, entry } of newEntries) {
+    lines.push(`  // ${nom}`);
+    lines.push(`  '${code}': ${JSON.stringify(entry)},`);
+  }
+
+  if (existingEntries.length > 0) {
+    lines.push('');
+    lines.push('// DÉJÀ CONFIRMÉS (non modifiés):');
+    lines.push(...existingEntries);
+  }
+
+  // Communes NOT found
+  const allCodesSet = new Set(ALL_CODES);
+  const foundCodes = new Set(Object.keys(byCommune));
+  const notFound = ALL_CODES.filter(c => !foundCodes.has(c) && !ALREADY_CONFIRMED.has(c));
+
+  if (notFound.length > 0) {
+    lines.push('');
+    lines.push(`// INTROUVABLES dans l'API (${notFound.length} communes sans délibération TFB-CFE-14):`);
+    lines.push('// ' + notFound.join(', '));
+  }
+
+  return lines.join('\n');
+}
+
+function buildEntry(code, nom, records) {
+  if (!records || records.length === 0) return null;
+
+  // Inspecter les champs disponibles
+  const firstRecord = records[0];
+  const availableFields = Object.keys(firstRecord);
+  console.log(`${code} fields:`, availableFields, 'values:', firstRecord);
+
+  // Chercher le champ montant
+  const montantField = availableFields.find(f => f.includes('montant') || f === 'base_minimum' || f === 'valeur');
+  const trancheField = availableFields.find(f => f.includes('tranche'));
+
+  if (!montantField) {
+    return { base: 0, source: 'DGFiP 2025 — champ montant introuvable', _raw: firstRecord };
+  }
+
+  const source = 'DGFiP — délibérations fiscalité directe locale 2025';
+
+  // Si plusieurs enregistrements (un par tranche)
+  if (records.length > 1 && trancheField) {
+    const tranches = [null, null, null, null, null, null];
+    let allSame = true;
+    let firstVal = null;
+
+    for (const r of records) {
+      const trancheNum = r[trancheField];
+      const idx = TRANCHE_MAP[String(trancheNum)];
+      const montant = parseFloat(r[montantField]);
+
+      if (!isNaN(montant) && idx !== undefined) {
+        tranches[idx] = montant;
+        if (firstVal === null) firstVal = montant;
+        else if (montant !== firstVal) allSame = false;
+      }
+    }
+
+    // Si tous les montants sont identiques, utiliser base+caMax
+    if (allSame && firstVal !== null) {
+      return { base: firstVal, source };
+    }
+
+    // Sinon, utiliser tranches
+    if (tranches.some(t => t !== null)) {
+      return { base: tranches[0] ?? tranches.find(t => t !== null), source, tranches };
+    }
+  }
+
+  // Un seul enregistrement ou pas de tranche
+  const montant = parseFloat(firstRecord[montantField]);
+  if (!isNaN(montant)) {
+    return { base: montant, source };
+  }
+
+  // Fallback: retourner le raw pour debug
+  return { base: 0, source: 'DGFiP 2025 — parsing failed', _raw: firstRecord };
+}
+
+function copyOutput() {
+  const text = document.getElementById('output').textContent;
+  navigator.clipboard.writeText(text).then(() => {
+    log('✅ Copié dans le presse-papiers !');
+  }).catch(e => {
+    log(`❌ Erreur copie: ${e.message}`, 'err');
+  });
+}
+</script>
+</body>
+</html>

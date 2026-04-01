@@ -23,29 +23,70 @@ type CFETaux = {
   source: string
 }
 
-// ─── Legal constants — Article 1647 D CGI (barème 2026) ──────────────────────
-// Plafonds de la base minimum de CFE par tranche de CA (N-2)
-const LEGAL_CEILING = [589, 1179, 2477, 4129, 5897, 7669]
-const LEGAL_FLOOR   = [247,  247,  247,  247,  247,  247]
-const CA_THRESHOLDS = [10000, 32600, 100000, 250000, 500000]
+type CFEBaseMin = {
+  base: number | null        // base minimale votée en € (null = non disponible)
+  source: string
+  caMax?: number             // CA max (€) pour lequel la base unique s'applique
+  tranches?: (number | null)[] // base par tranche [t0..t5], prioritaire sur base+caMax
+}
 
-function getTranche(ca: number): number {
+// ─── Legal constants — Article 1647 D CGI ────────────────────────────────────
+// Plafonds légaux de la base minimum de CFE par tranche de CA (N-2)
+// Source : Art. 1647 D CGI — barème 2025 (le décret n°2025-547 du 17/06/2025 fixe le barème 2026)
+// Tranches : [5k-10k, 10k-32.6k, 32.6k-100k, 100k-250k, 250k-500k, >500k]
+const LEGAL_CEILING = [579, 1158, 2433, 4056, 5793, 7533]
+const LEGAL_MIN = 243  // minimum légal que la commune peut voter (toutes tranches)
+
+// ─── Paris base minimale réelle (art. 1647 D CGI — délibération Conseil de Paris)
+// Sources : lamicrobyflo.fr, kandbaz.com, sofradom.fr (3 sources concordantes)
+// Paris vote une base UNIQUE de 399 € pour TOUT CA < 100 000 € (tranches 0, 1, 2)
+const PARIS_BASE_MINIMALE = 399  // base unique pour CA ≤ 100 000 €
+const PARIS_BASE_MINIMALE_CA_MAX = 100000  // au-delà, base inconnue → plafond légal
+const CA_THRESHOLDS = [10000, 32600, 100000, 250000, 500000]
+const CA_EXEMPT_MAX = 5000  // ≤ 5 000 € → pas de base minimum (Art. 1647 D)
+const CA_DEFAULT_TRANCHE = 2  // tranche utilisée si CA N-2 inconnu (< 100k)
+
+// Retourne l'index de tranche, -1 si exonéré de base minimum, ou le défaut si ca=null
+function getTranche(ca: number | null): number {
+  if (ca === null) return CA_DEFAULT_TRANCHE  // CA inconnu → tranche < 100K
+  if (ca <= CA_EXEMPT_MAX) return -1          // ≤ 5 000 € → pas de base minimum
   for (let i = 0; i < CA_THRESHOLDS.length; i++) {
     if (ca <= CA_THRESHOLDS[i]) return i
   }
   return 5
 }
 
-function estimateCFE(taux: number, ca: number): { min: number; max: number } {
+// Retourne null si exonéré de base minimum (CA ≤ 5 000 € ou statut exempté)
+function estimateCFE(taux: number, ca: number | null): { min: number; max: number } | null {
   const t = getTranche(ca)
+  if (t === -1) return null
   return {
-    min: Math.round(LEGAL_FLOOR[t] * taux / 100),
+    min: Math.round(LEGAL_MIN * taux / 100),
     max: Math.round(LEGAL_CEILING[t] * taux / 100),
   }
 }
 
-function isExempt(statut: string, ca: number): boolean {
-  return statut === 'ae' && ca <= 5000
+// CFE Paris : base minimale réelle de 399 € pour CA < 100 000 € (3 sources confirmées)
+// Pour CA ≥ 100 000 € : base inconnue → plafond légal (estimation conservatrice)
+function estimateParisCFE(taux: number, ca: number | null): { min: number; max: number; exact: boolean } | null {
+  const t = getTranche(ca)
+  if (t === -1) return null
+  const caVal = ca ?? 50000  // CA inconnu → on suppose < 100K
+  if (caVal < PARIS_BASE_MINIMALE_CA_MAX) {
+    const amount = Math.round(PARIS_BASE_MINIMALE * taux / 100)
+    return { min: amount, max: amount, exact: true }
+  }
+  return {
+    min: Math.round(LEGAL_MIN * taux / 100),
+    max: Math.round(LEGAL_CEILING[t] * taux / 100),
+    exact: false,
+  }
+}
+
+function isExempt(statut: string, ca: number | null): boolean {
+  // AE exonéré totalement (Art. 1447-0 CGI) ; tous statuts : pas de base min si CA ≤ 5 000 €
+  if (ca !== null && ca <= CA_EXEMPT_MAX) return true
+  return statut === 'ae' && ca !== null && ca <= CA_EXEMPT_MAX
 }
 
 function fmt(n: number): string {
@@ -71,13 +112,15 @@ const STATUTS = [
   { id: 'ei',   name: 'Entreprise Individuelle (EI)' },
 ]
 
-const CA_PRESETS = [
-  { label: '5 000 €',    value: 5000 },
-  { label: '20 000 €',   value: 20000 },
-  { label: '50 000 €',   value: 50000 },
-  { label: '100 000 €',  value: 100000 },
-  { label: '250 000 €',  value: 250000 },
-  { label: '500 000 €',  value: 500000 },
+// Tranches CFE art. 1647 D — seuils légaux 2025
+const CA_TRANCHES: { label: string; sublabel: string; value: number | null; tranche: number }[] = [
+  { label: 'Créé en 2025 ou après', sublabel: '→ t3',  value: null,   tranche: -2 },
+  { label: '≤ 10 000 €',            sublabel: 't1',    value: 5000,   tranche: 0  },
+  { label: '10k – 32 600 €',        sublabel: 't2',    value: 20000,  tranche: 1  },
+  { label: '32 600 – 100k',         sublabel: 't3',    value: 50000,  tranche: 2  },
+  { label: '100k – 250k',           sublabel: 't4',    value: 150000, tranche: 3  },
+  { label: '250k – 500k',           sublabel: 't5',    value: 350000, tranche: 4  },
+  { label: '> 500 000 €',           sublabel: 't6',    value: 750000, tranche: 5  },
 ]
 
 // ─── API functions ────────────────────────────────────────────────────────────
@@ -102,6 +145,14 @@ async function fetchCFETaux(codeInsee: string): Promise<CFETaux | null> {
   const data = await res.json()
   if (data.error) return null
   return data as CFETaux
+}
+
+async function fetchCFEBaseMin(codeInsee: string): Promise<CFEBaseMin | null> {
+  try {
+    const res = await fetch(`/api/cfe-base-min?code=${codeInsee}`)
+    if (!res.ok) return null
+    return await res.json() as CFEBaseMin
+  } catch { return null }
 }
 
 // ─── Sub-components ───────────────────────────────────────────────────────────
@@ -298,31 +349,33 @@ function FAQItem({ question, answer }: { question: string; answer: string }) {
 export default function SimulateurCFE() {
   // Form state
   const [statut, setStatut]       = useState('sas')
-  const [ca, setCa]               = useState(50000)
+  const [ca, setCa]               = useState<number | null>(50000)
   const [caInput, setCaInput]     = useState('50000')
   const [commune, setCommune]     = useState<Commune | null>(null)
 
   // CFE data state
-  const [communeTaux, setCommuneTaux] = useState<CFETaux | null>(null)
-  const [parisTaux, setParisTaux]     = useState<CFETaux | null>(null)
-  const [loadingTaux, setLoadingTaux] = useState(false)
-  const [tauxError, setTauxError]     = useState<string | null>(null)
+  const [communeTaux, setCommuneTaux]   = useState<CFETaux | null>(null)
+  const [communeBase, setCommuneBase]   = useState<CFEBaseMin | null>(null)
+  const [parisBase, setParisBase]       = useState<CFEBaseMin | null>(null)
+  const [parisTaux, setParisTaux]       = useState<CFETaux | null>(null)
+  const [loadingTaux, setLoadingTaux]   = useState(false)
+  const [tauxError, setTauxError]       = useState<string | null>(null)
 
   // UI state
   const [step, setStep] = useState<'form' | 'results'>('form')
   const resultsRef      = useRef<HTMLDivElement>(null)
 
-  // Pre-fetch Paris taux on mount
+  // Pre-fetch Paris taux + base minimale on mount
   useEffect(() => {
-    fetchCFETaux(PARIS_CODE).then(t => {
-      if (t) setParisTaux(t)
-    })
+    fetchCFETaux(PARIS_CODE).then(t => { if (t) setParisTaux(t) })
+    fetchCFEBaseMin(PARIS_CODE).then(b => { if (b) setParisBase(b) })
   }, [])
 
-  // Fetch commune taux when commune is selected
+  // Fetch commune taux + base minimale when commune is selected
   const handleCommuneSelect = useCallback(async (c: Commune | null) => {
     setCommune(c)
     setCommuneTaux(null)
+    setCommuneBase(null)
     setTauxError(null)
     setStep('form')
 
@@ -330,12 +383,16 @@ export default function SimulateurCFE() {
 
     setLoadingTaux(true)
     try {
-      const taux = await fetchCFETaux(c.code)
+      const [taux, base] = await Promise.all([
+        fetchCFETaux(c.code),
+        fetchCFEBaseMin(c.code),
+      ])
       if (taux) {
         setCommuneTaux(taux)
       } else {
         setTauxError(`Taux CFE non trouvé pour ${c.nom}. La commune n'est peut-être pas encore dans la base open data.`)
       }
+      if (base) setCommuneBase(base)
     } catch {
       setTauxError('Erreur lors de la récupération du taux CFE. Veuillez réessayer.')
     } finally {
@@ -350,22 +407,51 @@ export default function SimulateurCFE() {
     const exempt = isExempt(statut, ca)
     if (exempt) return { exempt: true as const }
 
-    const userCFE  = estimateCFE(communeTaux.taux, ca)
-    const parisCFE = estimateCFE(parisTaux.taux, ca)
+    const t = getTranche(ca)
+    if (t === -1) return { exempt: true as const }
+
+    const caVal = ca ?? 50000
+
+    // CFE commune actuelle — base exacte seulement si connue pour cette tranche de CA
+    let userBaseReal: number | null = null
+    if (communeBase?.tranches) {
+      // Données par tranche disponibles (ex : Bordeaux applique le max légal par tranche)
+      userBaseReal = communeBase.tranches[t] ?? null
+    } else if (communeBase?.base != null) {
+      // Base unique avec plafond CA (ex : Paris 399 € pour CA ≤ 100k)
+      const caMaxOk = communeBase.caMax === undefined || caVal <= communeBase.caMax
+      userBaseReal = caMaxOk ? communeBase.base : null
+    }
+    const userCFE = userBaseReal !== null
+      ? { min: Math.round(userBaseReal * communeTaux.taux / 100), max: Math.round(userBaseReal * communeTaux.taux / 100), exact: true }
+      : { min: 0, max: 0, exact: false }  // exact: false → données incomplètes
+
+    // CFE Paris — utilise la base réelle si disponible
+    const parisBaseReal = parisBase?.base ?? PARIS_BASE_MINIMALE
+    const parisUsesReal = caVal < PARIS_BASE_MINIMALE_CA_MAX
+    const parisCFE = parisUsesReal
+      ? { min: Math.round(parisBaseReal * parisTaux.taux / 100), max: Math.round(parisBaseReal * parisTaux.taux / 100), exact: true }
+      : { min: Math.round(LEGAL_MIN * parisTaux.taux / 100), max: Math.round(LEGAL_CEILING[t] * parisTaux.taux / 100), exact: false }
 
     return {
       exempt: false as const,
-      userMax: userCFE.max,
       userMin: userCFE.min,
-      parisMax: parisCFE.max,
+      userMax: userCFE.max,
+      userExact: userCFE.exact,
+      userBase: userBaseReal,
+      userBaseSource: communeBase?.source ?? null,
       parisMin: parisCFE.min,
+      parisMax: parisCFE.max,
+      parisExact: parisCFE.exact,
+      parisBase: parisBaseReal,
       savingsMax: userCFE.max - parisCFE.max,
       savingsMin: userCFE.min - parisCFE.min,
       isCheaper: userCFE.max > parisCFE.max,
       userTaux: communeTaux.taux,
       parisTaux: parisTaux.taux,
+      caIsDefault: ca === null,
     }
-  }, [commune, communeTaux, parisTaux, statut, ca])
+  }, [commune, communeTaux, communeBase, parisTaux, parisBase, statut, ca])
 
   function handleCalculate() {
     if (!results) return
@@ -378,11 +464,6 @@ export default function SimulateurCFE() {
     const n = parseInt(val.replace(/\s/g, ''), 10)
     if (!isNaN(n) && n >= 0) setCa(Math.min(n, 10_000_000))
   }
-
-  const sliderPct = useMemo(() => {
-    const log = (v: number) => Math.log10(Math.max(v, 1))
-    return ((log(ca) - log(1)) / (log(10_000_000) - log(1))) * 100
-  }, [ca])
 
   const canCalculate = commune && communeTaux && parisTaux && !loadingTaux
 
@@ -579,55 +660,65 @@ export default function SimulateurCFE() {
             <div>
               <label style={{
                 display: 'flex', justifyContent: 'space-between', alignItems: 'center',
-                fontSize: '14px', fontWeight: 600, color: '#374151', marginBottom: '8px',
+                fontSize: '14px', fontWeight: 600, color: '#374151', marginBottom: '4px',
               }}>
-                <span>Chiffre d&apos;affaires annuel</span>
+                <span>Chiffre d&apos;affaires N-2</span>
                 <span style={{
                   background: 'linear-gradient(135deg, #6C3BFF, #A78BFA)',
                   WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent',
                   fontWeight: 800, fontSize: '16px',
                 }}>
-                  {fmtCA(ca)}
+                  {ca === null ? 'Base t3 (créateur)' : fmtCA(ca)}
                 </span>
               </label>
-              <input
-                type="range" min={0} max={100}
-                value={sliderPct}
-                style={{ width: '100%', marginBottom: '12px', '--range-percent': `${sliderPct}%` } as React.CSSProperties}
-                onChange={e => {
-                  const pct = parseFloat(e.target.value) / 100
-                  const log = (v: number) => Math.log10(Math.max(v, 1))
-                  const val = Math.round(Math.pow(10, log(1) + pct * (log(10_000_000) - log(1))))
-                  setCa(val); setCaInput(String(val))
-                }}
-              />
-              <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px', marginBottom: '10px' }}>
-                {CA_PRESETS.map(p => (
-                  <button
-                    key={p.value}
-                    onClick={() => { setCa(p.value); setCaInput(String(p.value)) }}
-                    style={{
-                      padding: '4px 12px', borderRadius: '6px', fontSize: '12px', fontWeight: 500,
-                      cursor: 'pointer', transition: 'all 0.15s',
-                      border: ca === p.value ? '1.5px solid #6C3BFF' : '1.5px solid #E5E7EB',
-                      background: ca === p.value ? '#EDE9FF' : '#F9FAFB',
-                      color: ca === p.value ? '#5B21B6' : '#6B7280',
-                    }}>
-                    {p.label}
-                  </button>
-                ))}
+              <p style={{ fontSize: '11px', color: '#9CA3AF', margin: '0 0 10px 0' }}>
+                La CFE est calculée sur le CA de l&apos;avant-dernière année (N-2). Si vous avez créé en 2025 ou après, vous n&apos;avez pas de CA N-2 → la base t3 s&apos;applique automatiquement.
+              </p>
+              {/* Tranche buttons */}
+              <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px', marginBottom: '12px' }}>
+                {CA_TRANCHES.map(t => {
+                  const isActive = t.tranche === -2 ? ca === null : (ca !== null && getTranche(ca) === t.tranche)
+                  return (
+                    <button
+                      key={t.tranche}
+                      onClick={() => {
+                        setCa(t.value)
+                        setCaInput(t.value === null ? '' : String(t.value))
+                      }}
+                      style={{
+                        padding: '5px 11px', borderRadius: '7px', cursor: 'pointer', transition: 'all 0.15s',
+                        border: isActive ? '1.5px solid #6C3BFF' : '1.5px solid #E5E7EB',
+                        background: isActive ? '#EDE9FF' : '#F9FAFB',
+                        color: isActive ? '#5B21B6' : '#6B7280',
+                        display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '1px',
+                      }}>
+                      <span style={{ fontSize: '12px', fontWeight: 600 }}>{t.label}</span>
+                      <span style={{ fontSize: '10px', opacity: 0.7 }}>{t.sublabel}</span>
+                    </button>
+                  )
+                })}
               </div>
-              <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                <span style={{ fontSize: '13px', color: '#6B7280' }}>Saisir :</span>
-                <div style={{ display: 'flex', alignItems: 'center', border: '1.5px solid #D1D5DB', borderRadius: '8px', overflow: 'hidden' }}>
-                  <input
-                    type="text" value={caInput}
-                    onChange={e => handleCAChange(e.target.value)}
-                    style={{ padding: '6px 10px', border: 'none', outline: 'none', fontSize: '14px', width: '100px', color: '#1A1A2E' }}
-                  />
-                  <span style={{ padding: '0 10px', background: '#F9FAFB', fontSize: '13px', color: '#6B7280', borderLeft: '1px solid #E5E7EB', alignSelf: 'stretch', display: 'flex', alignItems: 'center' }}>€</span>
+              {/* Exact CA input — hidden when "Créé en 2025+" is selected */}
+              {ca !== null && (
+                <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                  <span style={{ fontSize: '13px', color: '#6B7280', whiteSpace: 'nowrap' }}>CA exact N-2 :</span>
+                  <div style={{ display: 'flex', alignItems: 'center', border: '1.5px solid #D1D5DB', borderRadius: '8px', overflow: 'hidden' }}>
+                    <input
+                      type="text" value={caInput}
+                      onChange={e => handleCAChange(e.target.value)}
+                      placeholder="ex : 45000"
+                      style={{ padding: '6px 10px', border: 'none', outline: 'none', fontSize: '14px', width: '110px', color: '#1A1A2E' }}
+                    />
+                    <span style={{ padding: '0 10px', background: '#F9FAFB', fontSize: '13px', color: '#6B7280', borderLeft: '1px solid #E5E7EB', alignSelf: 'stretch', display: 'flex', alignItems: 'center' }}>€</span>
+                  </div>
                 </div>
-              </div>
+              )}
+              {ca === null && (
+                <p style={{ fontSize: '12px', color: '#6B7280', margin: '4px 0 0 0' }}>
+                  <Info size={11} style={{ display: 'inline', marginRight: '4px' }} />
+                  La base minimale de la tranche t3 (32 600 – 100 000 €) est appliquée.
+                </p>
+              )}
             </div>
 
           </div>
@@ -667,8 +758,9 @@ export default function SimulateurCFE() {
                   Vous êtes exonéré de CFE !
                 </h3>
                 <p style={{ color: '#166534', fontSize: '14px', margin: 0 }}>
-                  En tant qu&apos;auto-entrepreneur avec un CA ≤ 5 000 €, vous bénéficiez d&apos;une
-                  exonération totale de CFE (article 1447-0 du CGI).
+                  {statut === 'ae'
+                    ? "En tant qu'auto-entrepreneur avec un CA ≤ 5 000 €, vous bénéficiez d'une exonération totale de CFE (art. 1447-0 CGI)."
+                    : "Avec un CA ≤ 5 000 €, aucune base minimum de CFE ne peut être fixée par la commune (art. 1647 D CGI). En l'absence de locaux propres, votre CFE est nulle."}
                 </p>
               </div>
             ) : !results.exempt && (
@@ -696,90 +788,120 @@ export default function SimulateurCFE() {
                   </div>
                 </div>
 
-                {/* Current vs Paris */}
-                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px', marginBottom: '16px' }}>
-                  <div style={{
-                    background: commune.code === PARIS_CODE ? '#F0FDF4' : '#FEF9F0',
-                    border: `1px solid ${commune.code === PARIS_CODE ? '#86EFAC' : '#FDE68A'}`,
-                    borderRadius: '16px', padding: '24px',
-                  }}>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '12px' }}>
-                      <MapPin size={16} color="#6B7280" />
-                      <span style={{ fontSize: '13px', color: '#6B7280', fontWeight: 500 }}>Votre situation actuelle</span>
-                    </div>
-                    <div style={{ fontSize: '13px', color: '#374151', marginBottom: '4px', fontWeight: 600 }}>
-                      {commune.nom} ({commune.codeDepartement})
-                    </div>
-                    <div className="animate-countUp" style={{
-                      fontSize: 'clamp(24px, 4vw, 36px)', fontWeight: 800,
-                      color: commune.code === PARIS_CODE ? '#15803D' : '#92400E', lineHeight: 1.1,
-                    }}>
-                      {fmt(results.userMax)}
-                    </div>
-                    <div style={{ fontSize: '12px', color: '#6B7280', marginTop: '4px' }}>
-                      CFE estimée (plafond légal × {communeTaux!.taux.toFixed(2)}%)
-                    </div>
-                  </div>
+                {/* Current vs Paris — seulement si base minimale connue */}
+                {results.userExact ? (
+                  <>
+                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px', marginBottom: '16px' }}>
+                      <div style={{
+                        background: commune.code === PARIS_CODE ? '#F0FDF4' : '#FEF9F0',
+                        border: `1px solid ${commune.code === PARIS_CODE ? '#86EFAC' : '#FDE68A'}`,
+                        borderRadius: '16px', padding: '24px',
+                      }}>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '12px' }}>
+                          <MapPin size={16} color="#6B7280" />
+                          <span style={{ fontSize: '13px', color: '#6B7280', fontWeight: 500 }}>Votre situation actuelle</span>
+                        </div>
+                        <div style={{ fontSize: '13px', color: '#374151', marginBottom: '4px', fontWeight: 600 }}>
+                          {commune.nom} ({commune.codeDepartement})
+                        </div>
+                        <div className="animate-countUp" style={{
+                          fontSize: 'clamp(24px, 4vw, 36px)', fontWeight: 800,
+                          color: commune.code === PARIS_CODE ? '#15803D' : '#92400E', lineHeight: 1.1,
+                        }}>
+                          {fmt(results.userMax)}
+                        </div>
+                        <div style={{ fontSize: '12px', color: '#6B7280', marginTop: '4px' }}>
+                          Base min. officielle {results.userBase} € × {communeTaux!.taux.toFixed(2)}% — {results.userBaseSource}
+                        </div>
+                      </div>
 
-                  <div style={{
-                    background: 'linear-gradient(145deg, #F5F3FF, #EDE9FF)',
-                    border: '2px solid #7C3AED', borderRadius: '16px', padding: '24px',
-                    position: 'relative', overflow: 'hidden',
-                  }}>
-                    <div style={{
-                      position: 'absolute', top: '10px', right: '10px',
-                      background: 'linear-gradient(135deg, #6C3BFF, #A78BFA)',
-                      color: '#fff', fontSize: '10px', fontWeight: 700,
-                      padding: '2px 8px', borderRadius: '99px',
-                    }}>LegalPlace</div>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '12px' }}>
-                      <Sparkles size={16} color="#6C3BFF" />
-                      <span style={{ fontSize: '13px', color: '#5B21B6', fontWeight: 500 }}>Domiciliation Paris</span>
+                      <div style={{
+                        background: 'linear-gradient(145deg, #F5F3FF, #EDE9FF)',
+                        border: '2px solid #7C3AED', borderRadius: '16px', padding: '24px',
+                        position: 'relative', overflow: 'hidden',
+                      }}>
+                        <div style={{
+                          position: 'absolute', top: '10px', right: '10px',
+                          background: 'linear-gradient(135deg, #6C3BFF, #A78BFA)',
+                          color: '#fff', fontSize: '10px', fontWeight: 700,
+                          padding: '2px 8px', borderRadius: '99px',
+                        }}>LegalPlace</div>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '12px' }}>
+                          <Sparkles size={16} color="#6C3BFF" />
+                          <span style={{ fontSize: '13px', color: '#5B21B6', fontWeight: 500 }}>Domiciliation Paris</span>
+                        </div>
+                        <div style={{ fontSize: '13px', color: '#374151', marginBottom: '4px', fontWeight: 600 }}>
+                          Paris (75)
+                        </div>
+                        <div className="animate-countUp" style={{
+                          fontSize: 'clamp(24px, 4vw, 36px)', fontWeight: 800,
+                          color: '#5B21B6', lineHeight: 1.1,
+                        }}>
+                          {results.parisExact
+                            ? fmt(results.parisMax)
+                            : `${fmt(results.parisMin)} – ${fmt(results.parisMax)}`}
+                        </div>
+                        <div style={{ fontSize: '12px', color: '#7C3AED', marginTop: '4px' }}>
+                          {results.parisExact
+                            ? `CFE Paris officielle — base min. ${PARIS_BASE_MINIMALE} € × ${parisTaux!.taux.toFixed(2)}%`
+                            : `Fourchette CFE estimée — Art. 1647 D × ${parisTaux!.taux.toFixed(2)}%`}
+                        </div>
+                      </div>
                     </div>
-                    <div style={{ fontSize: '13px', color: '#374151', marginBottom: '4px', fontWeight: 600 }}>
-                      Paris (75)
-                    </div>
-                    <div className="animate-countUp" style={{
-                      fontSize: 'clamp(24px, 4vw, 36px)', fontWeight: 800,
-                      color: '#5B21B6', lineHeight: 1.1,
-                    }}>
-                      {fmt(results.parisMax)}
-                    </div>
-                    <div style={{ fontSize: '12px', color: '#7C3AED', marginTop: '4px' }}>
-                      CFE estimée (plafond légal × {parisTaux!.taux.toFixed(2)}%)
-                    </div>
-                  </div>
-                </div>
 
-                {/* Savings */}
-                {results.isCheaper ? (
-                  <div className="animate-countUp" style={{
-                    background: 'linear-gradient(135deg, #6C3BFF, #7C3AED)',
-                    borderRadius: '16px', padding: '28px 32px',
-                    textAlign: 'center', color: '#fff', marginBottom: '16px',
-                  }}>
-                    <TrendingDown size={28} style={{ marginBottom: '8px', opacity: 0.9 }} />
-                    <div style={{ fontSize: '14px', opacity: 0.85, marginBottom: '4px' }}>
-                      Économie annuelle estimée avec une domiciliation LegalPlace Paris
-                    </div>
-                    <div style={{ fontSize: 'clamp(32px, 6vw, 52px)', fontWeight: 800, lineHeight: 1.1 }}>
-                      {fmt(results.savingsMax)} / an
-                    </div>
-                    <div style={{ fontSize: '13px', opacity: 0.75, marginTop: '6px' }}>
-                      soit {fmt(Math.round(results.savingsMax / 12))} économisés par mois sur votre CFE
-                    </div>
-                  </div>
+                    {/* Savings */}
+                    {results.isCheaper ? (
+                      <div className="animate-countUp" style={{
+                        background: 'linear-gradient(135deg, #6C3BFF, #7C3AED)',
+                        borderRadius: '16px', padding: '28px 32px',
+                        textAlign: 'center', color: '#fff', marginBottom: '16px',
+                      }}>
+                        <TrendingDown size={28} style={{ marginBottom: '8px', opacity: 0.9 }} />
+                        <div style={{ fontSize: '14px', opacity: 0.85, marginBottom: '4px' }}>
+                          Économie annuelle avec une domiciliation LegalPlace Paris
+                        </div>
+                        <div style={{ fontSize: 'clamp(32px, 6vw, 52px)', fontWeight: 800, lineHeight: 1.1 }}>
+                          {results.savingsMin === results.savingsMax
+                            ? fmt(results.savingsMax)
+                            : `${fmt(results.savingsMin)} – ${fmt(results.savingsMax)}`} / an
+                        </div>
+                        <div style={{ fontSize: '13px', opacity: 0.75, marginTop: '6px' }}>
+                          soit {fmt(Math.round(results.savingsMax / 12))} par mois économisés sur votre CFE
+                        </div>
+                      </div>
+                    ) : (
+                      <div style={{
+                        background: '#F0FDF4', border: '1px solid #86EFAC', borderRadius: '16px',
+                        padding: '20px', textAlign: 'center', marginBottom: '16px',
+                      }}>
+                        <CheckCircle2 size={24} color="#16A34A" style={{ marginBottom: '8px' }} />
+                        <p style={{ color: '#15803D', fontWeight: 600, margin: 0 }}>
+                          {commune.code === PARIS_CODE
+                            ? 'Vous êtes déjà à Paris — vous bénéficiez déjà des taux les plus compétitifs !'
+                            : 'Votre commune a un taux compétitif. La domiciliation Paris reste avantageuse pour votre image.'}
+                        </p>
+                      </div>
+                    )}
+                  </>
                 ) : (
+                  /* Données incomplètes — base minimale non disponible pour cette commune */
                   <div style={{
-                    background: '#F0FDF4', border: '1px solid #86EFAC', borderRadius: '16px',
-                    padding: '20px', textAlign: 'center', marginBottom: '16px',
+                    background: '#FFFBEB', border: '1px solid #FDE68A',
+                    borderRadius: '16px', padding: '24px', marginBottom: '16px',
+                    display: 'flex', gap: '16px', alignItems: 'flex-start',
                   }}>
-                    <CheckCircle2 size={24} color="#16A34A" style={{ marginBottom: '8px' }} />
-                    <p style={{ color: '#15803D', fontWeight: 600, margin: 0 }}>
-                      {commune.code === PARIS_CODE
-                        ? 'Vous êtes déjà à Paris — vous bénéficiez déjà des taux les plus compétitifs !'
-                        : 'Votre commune a un taux compétitif. La domiciliation Paris reste avantageuse pour votre image.'}
-                    </p>
+                    <AlertTriangle size={20} color="#D97706" style={{ flexShrink: 0, marginTop: '2px' }} />
+                    <div>
+                      <div style={{ fontWeight: 700, color: '#92400E', marginBottom: '6px', fontSize: '14px' }}>
+                        Base minimale CFE non disponible pour {commune.nom}
+                      </div>
+                      <div style={{ fontSize: '13px', color: '#78350F', lineHeight: 1.6 }}>
+                        Le taux CFE de {communeTaux!.taux.toFixed(2)} % est confirmé, mais la base minimale officielle votée par la commune
+                        n&apos;est pas encore dans notre base de données pour cette tranche de CA.
+                        <br />
+                        Pour connaître votre CFE exacte, consultez votre <strong>avis CFE sur impots.gouv.fr</strong> ou contactez votre SIE (Service des Impôts des Entreprises).
+                      </div>
+                    </div>
                   </div>
                 )}
 
@@ -789,11 +911,11 @@ export default function SimulateurCFE() {
                   borderRadius: '12px', padding: '16px', marginBottom: '16px',
                   fontSize: '12px', color: '#92400E', lineHeight: 1.6,
                 }}>
-                  <strong>Méthodologie :</strong> Le taux CFE est le taux officiel voté par la commune,
-                  récupéré depuis les données ouvertes DGFiP. L&apos;estimation de la CFE minimum est calculée
-                  en appliquant ce taux au <strong>plafond légal de la base minimum</strong> fixé par
-                  l&apos;article 1647 D du CGI (barème 2026). Le montant réel peut être inférieur si votre
-                  commune a voté une base en dessous du plafond légal.
+                  <strong>Méthodologie :</strong> Taux CFE officiel voté par la commune (données ouvertes DGFiP 2025).
+                  {results.userExact
+                    ? <> Base minimale officielle de <strong>{results.userBase} €</strong> votée par la commune (source : {results.userBaseSource}).</>
+                    : <> Base minimale non disponible — taux confirmé mais montant CFE non calculable.</>}
+                  {' '}Paris : base officielle <strong>399 €</strong> pour CA &lt; 100 000 € (vérifiée 2025).
                 </div>
 
                 {/* CTA */}
@@ -812,7 +934,7 @@ export default function SimulateurCFE() {
                   </span>
                   <h3 style={{ fontSize: '22px', fontWeight: 800, color: '#1A1A2E', marginBottom: '8px' }}>
                     Domiciliez votre entreprise à Paris
-                    {results.isCheaper ? ` et économisez ${fmt(results.savingsMax)}/an` : ''}
+                    {results.isCheaper ? ` et économisez jusqu'à ${fmt(results.savingsMax)}/an` : ''}
                   </h3>
                   <p style={{ fontSize: '14px', color: '#6B7280', marginBottom: '24px', lineHeight: 1.6 }}>
                     Dès <strong>17 € HT/mois</strong>, bénéficiez d&apos;une adresse prestigieuse,
@@ -943,8 +1065,8 @@ export default function SimulateurCFE() {
         <p style={{ maxWidth: '700px', margin: '0 auto 8px' }}>
           <strong>Sources des données :</strong> Taux CFE officiels — DGFiP via data.economie.gouv.fr et data.ofgl.fr.
           Barème de la base minimum — Article 1647 D du CGI. Communes — API Découpage Administratif (geo.api.gouv.fr).
-          Les montants affichés sont des estimations calculées à partir du plafond légal de la base minimum et du taux
-          officiel voté. Le montant réel de votre CFE peut varier selon la base effectivement votée par votre commune.
+          Les montants affichés sont des estimations maximales calculées à partir du plafond légal de la base minimum (Art. 1647 D CGI)
+          et du taux officiel voté. Le montant réel de votre CFE peut être inférieur selon la base effectivement votée par votre commune.
           Ce simulateur ne constitue pas un conseil fiscal.
         </p>
         <p style={{ margin: 0 }}>© {new Date().getFullYear()} LegalPlace. Tous droits réservés.</p>
