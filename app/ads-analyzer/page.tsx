@@ -107,7 +107,9 @@ export default function AdsAnalyzerPage() {
       }
 
       setCreatives(results)
-      if (results.length === 0) setError('Aucune creative trouvee. Essayez un autre mot-cle ou modifiez les filtres.')
+      if (results.length === 0) {
+        setError('Aucune creative trouvee. Pour des resultats reels, ajoutez un META_ADS_LIBRARY_TOKEN (gratuit, sans CB) dans le fichier .env — instructions sur developers.facebook.com/tools/explorer/')
+      }
     } catch {
       setError('Erreur de connexion aux APIs.')
     } finally {
