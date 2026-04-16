@@ -52,10 +52,10 @@ function metaAdToCreative(ad: MetaAd): Creative {
 export async function GET(request: NextRequest) {
   const token = process.env.META_ADS_LIBRARY_TOKEN
   if (!token) {
-    return NextResponse.json(
-      { error: 'META_ADS_LIBRARY_TOKEN non configuré' },
-      { status: 500 }
-    )
+    return NextResponse.json({
+      creatives: [],
+      error: 'META_ADS_LIBRARY_TOKEN non configure. Ajoutez-le dans .env pour activer la recherche Meta.',
+    })
   }
 
   const { searchParams } = new URL(request.url)

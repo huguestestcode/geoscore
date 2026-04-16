@@ -246,5 +246,4 @@ export const COUNTRIES: Record<string, string> = {
   PT: 'Portugal',
   JP: 'Japon',
   KR: 'Corée du Sud',
-  ALL: 'Tous pays',
 }

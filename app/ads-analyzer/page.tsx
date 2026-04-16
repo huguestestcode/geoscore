@@ -94,21 +94,20 @@ export default function AdsAnalyzerPage() {
       if (f.platform === 'all' || f.platform === 'tiktok') {
         const params = new URLSearchParams()
         if (f.query) params.set('q', f.query)
-        params.set('country', f.country || 'FR')
+        const tiktokCountry = f.country === 'ALL' ? 'FR' : (f.country || 'FR')
+        params.set('country', tiktokCountry)
         params.set('period', String(f.period || 30))
         params.set('sort_by', f.sort_by === 'likes' ? 'like' : f.sort_by === 'ctr' ? 'ctr' : 'like')
         params.set('limit', String(f.limit || 20))
         if (f.industry) params.set('industry', f.industry)
 
         const res = await fetch(`/api/ads/tiktok/top-ads?${params}`)
-        if (res.ok) {
-          const data = await res.json()
-          results.push(...(data.creatives || []))
-        }
+        const data = await res.json()
+        results.push(...(data.creatives || []))
       }
 
       setCreatives(results)
-      if (results.length === 0) setError('Aucune creative trouvee. Verifiez vos cles API ou modifiez vos filtres.')
+      if (results.length === 0) setError('Aucune creative trouvee. Essayez un autre mot-cle ou modifiez les filtres.')
     } catch {
       setError('Erreur de connexion aux APIs.')
     } finally {
@@ -195,15 +194,13 @@ export default function AdsAnalyzerPage() {
     try {
       const params = new URLSearchParams({
         period: '30',
-        country: 'ALL',
+        country: 'FR',
         sort_by: sort,
         limit: '20',
       })
       const res = await fetch(`/api/ads/tiktok/top-ads?${params}`)
-      if (res.ok) {
-        const data = await res.json()
-        setTrendCreatives(data.creatives || [])
-      }
+      const data = await res.json()
+      setTrendCreatives(data.creatives || [])
     } catch { /* ignore */ }
     setLoading(false)
   }, [trendSort])

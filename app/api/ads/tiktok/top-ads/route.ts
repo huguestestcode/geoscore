@@ -4,6 +4,15 @@ import type { TikTokAd, Creative } from '@/app/ads-analyzer/types'
 const TIKTOK_CREATIVE_CENTER_URL =
   'https://ads.tiktok.com/creative_radar_api/v1/top_ads/list'
 
+// Valid country codes for TikTok Creative Center
+const VALID_TIKTOK_COUNTRIES = new Set([
+  'FR', 'US', 'GB', 'DE', 'ES', 'IT', 'BR', 'CA', 'AU', 'NL',
+  'BE', 'CH', 'PT', 'JP', 'KR', 'ID', 'TH', 'VN', 'MY', 'PH',
+  'SG', 'TW', 'MX', 'AR', 'CO', 'CL', 'PL', 'SE', 'NO', 'DK',
+  'FI', 'AT', 'IE', 'CZ', 'RO', 'HU', 'GR', 'TR', 'SA', 'AE',
+  'EG', 'ZA', 'NG', 'KE', 'IL', 'UA', 'RU', 'IN',
+])
+
 function tiktokAdToCreative(ad: TikTokAd): Creative {
   return {
     id: `tiktok_${ad.id}`,
@@ -18,7 +27,7 @@ function tiktokAdToCreative(ad: TikTokAd): Creative {
     views: ad.view_cnt,
     ctr: ad.ctr,
     landing_page_url: ad.landing_page_url,
-    start_date: new Date().toISOString(), // TikTok top ads don't expose exact start date
+    start_date: new Date().toISOString(),
     is_active: true,
     tags: ad.tag_list,
     country: ad.country_code,
@@ -29,9 +38,10 @@ export async function GET(request: NextRequest) {
   const { searchParams } = new URL(request.url)
 
   const period = searchParams.get('period') || '30'
-  const country = searchParams.get('country') || 'FR'
+  const rawCountry = searchParams.get('country') || 'FR'
+  const country = VALID_TIKTOK_COUNTRIES.has(rawCountry) ? rawCountry : 'FR'
   const industry = searchParams.get('industry') || ''
-  const sortBy = searchParams.get('sort_by') || 'like' // like, ctr, impression, cost
+  const sortBy = searchParams.get('sort_by') || 'like'
   const page = searchParams.get('page') || '1'
   const limit = Math.min(parseInt(searchParams.get('limit') || '20'), 50)
   const keyword = searchParams.get('q') || ''
@@ -40,7 +50,7 @@ export async function GET(request: NextRequest) {
     period,
     country_code: country,
     sort_by: sortBy,
-    page: page,
+    page,
     limit: String(limit),
   }
 
@@ -53,15 +63,18 @@ export async function GET(request: NextRequest) {
     const res = await fetch(`${TIKTOK_CREATIVE_CENTER_URL}?${queryString}`, {
       headers: {
         'User-Agent':
-          'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36',
-        Accept: 'application/json',
+          'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
+        'Accept': 'application/json',
+        'Accept-Language': 'fr-FR,fr;q=0.9,en;q=0.8',
+        'Referer': 'https://ads.tiktok.com/business/creativecenter/inspiration/topads/pc/en',
       },
-      next: { revalidate: 600 }, // cache 10 min
+      next: { revalidate: 600 },
     })
 
     if (!res.ok) {
+      console.error('TikTok API HTTP error:', res.status, res.statusText)
       return NextResponse.json(
-        { error: 'Erreur TikTok Creative Center', status: res.status },
+        { error: `TikTok API erreur HTTP ${res.status}`, creatives: [] },
         { status: res.status }
       )
     }
@@ -69,8 +82,9 @@ export async function GET(request: NextRequest) {
     const data = await res.json()
 
     if (data.code !== 0) {
+      console.error('TikTok API error:', data.code, data.msg)
       return NextResponse.json(
-        { error: 'Erreur TikTok API', details: data.msg },
+        { error: `TikTok API: ${data.msg}`, creatives: [] },
         { status: 400 }
       )
     }
@@ -90,7 +104,7 @@ export async function GET(request: NextRequest) {
   } catch (error) {
     console.error('TikTok Creative Center error:', error)
     return NextResponse.json(
-      { error: 'Erreur de connexion à TikTok Creative Center' },
+      { error: 'Erreur de connexion a TikTok Creative Center', creatives: [] },
       { status: 502 }
     )
   }
