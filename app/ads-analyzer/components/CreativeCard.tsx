@@ -100,9 +100,7 @@ export default function CreativeCard({
             }}
           />
         ) : (
-          <div style={{ color: 'var(--lp-muted)', fontSize: 13 }}>
-            Pas d&apos;apercu disponible
-          </div>
+          <BrandPlaceholder name={creative.brand_name} headline={creative.headline} platform={creative.platform} />
         )}
         {creative.video_url && (
           <div
@@ -258,6 +256,84 @@ export default function CreativeCard({
           </a>
         )}
       </div>
+    </div>
+  )
+}
+
+const BRAND_COLORS: Record<string, [string, string]> = {
+  hellofresh: ['#91C11E', '#1D8649'],
+  nike: ['#111111', '#FA5400'],
+  sephora: ['#000000', '#D4002A'],
+  dyson: ['#6236FF', '#1A0A3E'],
+  duolingo: ['#58CC02', '#1CB0F6'],
+  revolut: ['#0075EB', '#191C1F'],
+  gymshark: ['#1A1A2E', '#6C3BFF'],
+  airbnb: ['#FF385C', '#BD1E59'],
+  amazon: ['#FF9900', '#232F3E'],
+  notion: ['#000000', '#EEEEEE'],
+}
+
+function getBrandGradient(name: string): string {
+  const key = name.toLowerCase().replace(/\s/g, '')
+  const colors = BRAND_COLORS[key]
+  if (colors) return `linear-gradient(135deg, ${colors[0]}, ${colors[1]})`
+  // Generate a consistent color from the brand name
+  let hash = 0
+  for (let i = 0; i < name.length; i++) hash = name.charCodeAt(i) + ((hash << 5) - hash)
+  const h = Math.abs(hash) % 360
+  return `linear-gradient(135deg, hsl(${h}, 70%, 50%), hsl(${(h + 40) % 360}, 60%, 35%))`
+}
+
+function BrandPlaceholder({ name, headline, platform }: { name: string; headline?: string; platform: string }) {
+  return (
+    <div
+      style={{
+        width: '100%',
+        height: '100%',
+        background: getBrandGradient(name),
+        display: 'flex',
+        flexDirection: 'column',
+        alignItems: 'center',
+        justifyContent: 'center',
+        padding: '20px 16px',
+        color: '#fff',
+        textAlign: 'center',
+      }}
+    >
+      <div
+        style={{
+          width: 48,
+          height: 48,
+          borderRadius: '50%',
+          background: 'rgba(255,255,255,0.2)',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          fontSize: 22,
+          fontWeight: 800,
+          marginBottom: 8,
+          backdropFilter: 'blur(4px)',
+        }}
+      >
+        {name.charAt(0).toUpperCase()}
+      </div>
+      <div style={{ fontSize: 14, fontWeight: 700, marginBottom: 4 }}>{name}</div>
+      {headline && (
+        <div
+          style={{
+            fontSize: 11,
+            opacity: 0.8,
+            lineHeight: 1.3,
+            maxWidth: '90%',
+            display: '-webkit-box',
+            WebkitLineClamp: 2,
+            WebkitBoxOrient: 'vertical',
+            overflow: 'hidden',
+          }}
+        >
+          {headline}
+        </div>
+      )}
     </div>
   )
 }
