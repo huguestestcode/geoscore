@@ -234,30 +234,39 @@ export default function CreativeCard({
           {analyzing ? <Loader2 size={14} className="animate-spin" /> : <Sparkles size={14} />}
           Analyser
         </button>
-        {(creative.media_url || creative.landing_page_url) && (
-          <a
-            href={creative.landing_page_url || creative.media_url}
-            target="_blank"
-            rel="noopener noreferrer"
-            style={{
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              padding: '8px 12px',
-              background: 'var(--lp-bg)',
-              border: '1px solid var(--lp-border)',
-              borderRadius: 8,
-              color: 'var(--lp-text)',
-              textDecoration: 'none',
-              fontSize: 13,
-            }}
-          >
-            <ExternalLink size={14} />
-          </a>
-        )}
+        <a
+          href={creative.landing_page_url || getAdLibraryUrl(creative)}
+          target="_blank"
+          rel="noopener noreferrer"
+          style={{
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            gap: 4,
+            padding: '8px 12px',
+            background: 'var(--lp-bg)',
+            border: '1px solid var(--lp-border)',
+            borderRadius: 8,
+            color: 'var(--lp-text)',
+            textDecoration: 'none',
+            fontSize: 13,
+            fontWeight: 500,
+          }}
+        >
+          <ExternalLink size={14} />
+          Voir la pub
+        </a>
       </div>
     </div>
   )
+}
+
+function getAdLibraryUrl(creative: Creative): string {
+  const brandName = encodeURIComponent(creative.brand_name)
+  if (creative.platform === 'tiktok') {
+    return `https://ads.tiktok.com/business/creativecenter/inspiration/topads/pc/en?keyword=${brandName}&countryCode=FR&period=30`
+  }
+  return `https://www.facebook.com/ads/library/?active_status=active&ad_type=all&country=FR&q=${brandName}&media_type=all`
 }
 
 const BRAND_COLORS: Record<string, [string, string]> = {
