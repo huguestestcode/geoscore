@@ -192,15 +192,22 @@ export default function AdsAnalyzerPage() {
     setLoading(true)
     const sort = sortBy || trendSort
     try {
-      const params = new URLSearchParams({
-        period: '30',
-        country: 'FR',
-        sort_by: sort,
-        limit: '20',
-      })
-      const res = await fetch(`/api/ads/tiktok/top-ads?${params}`)
-      const data = await res.json()
-      setTrendCreatives(data.creatives || [])
+      const results: Creative[] = []
+
+      // TikTok trends
+      const ttParams = new URLSearchParams({ period: '30', country: 'FR', sort_by: sort, limit: '10' })
+      const ttRes = await fetch(`/api/ads/tiktok/top-ads?${ttParams}`)
+      const ttData = await ttRes.json()
+      results.push(...(ttData.creatives || []))
+
+      // Meta trends
+      const metaRes = await fetch(`/api/ads/meta/library?q=&country=FR&limit=10`)
+      const metaData = await metaRes.json()
+      results.push(...(metaData.creatives || []))
+
+      // Shuffle to mix platforms
+      results.sort(() => Math.random() - 0.5)
+      setTrendCreatives(results)
     } catch { /* ignore */ }
     setLoading(false)
   }, [trendSort])
@@ -501,7 +508,7 @@ export default function AdsAnalyzerPage() {
           <div>
             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 16 }}>
               <h3 style={{ margin: 0, fontSize: 16, fontWeight: 700 }}>
-                Top creatives TikTok — Tendances globales
+                Top creatives Meta & TikTok — Tendances
               </h3>
               <div style={{ display: 'flex', gap: 8 }}>
                 {[
