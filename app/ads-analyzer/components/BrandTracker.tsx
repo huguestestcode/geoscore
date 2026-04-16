@@ -1,14 +1,9 @@
 'use client'
 
-import { useState, useRef, useEffect, useCallback } from 'react'
+import { useState } from 'react'
 import { Plus, Trash2, Search, Building2, Loader2 } from 'lucide-react'
 import type { TrackedBrand } from '../types'
 import { COUNTRIES } from '../types'
-
-interface MetaPage {
-  id: string
-  name: string
-}
 
 export default function BrandTracker({
   brands,
@@ -32,66 +27,6 @@ export default function BrandTracker({
     country: 'FR',
     notes: '',
   })
-
-  // ─── Autocomplete state ────────────────────────────────────────────
-  const [suggestions, setSuggestions] = useState<MetaPage[]>([])
-  const [showSuggestions, setShowSuggestions] = useState(false)
-  const [searchingPages, setSearchingPages] = useState(false)
-  const [noResults, setNoResults] = useState(false)
-  const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null)
-  const suggestionsRef = useRef<HTMLDivElement>(null)
-
-  // Close suggestions on outside click
-  useEffect(() => {
-    const handleClick = (e: MouseEvent) => {
-      if (suggestionsRef.current && !suggestionsRef.current.contains(e.target as Node)) {
-        setShowSuggestions(false)
-      }
-    }
-    document.addEventListener('mousedown', handleClick)
-    return () => document.removeEventListener('mousedown', handleClick)
-  }, [])
-
-  // Search Meta pages with debounce
-  const searchMetaPages = useCallback((query: string) => {
-    if (debounceRef.current) clearTimeout(debounceRef.current)
-
-    if (query.length < 2) {
-      setSuggestions([])
-      setShowSuggestions(false)
-      return
-    }
-
-    debounceRef.current = setTimeout(async () => {
-      setSearchingPages(true)
-      try {
-        const res = await fetch(`/api/ads/meta/pages?q=${encodeURIComponent(query)}`)
-        if (res.ok) {
-          const data = await res.json()
-          const pages = data.pages || []
-          setSuggestions(pages)
-          setShowSuggestions(true) // show dropdown even if empty (to show "no results")
-          setNoResults(pages.length === 0)
-        }
-      } catch {
-        setNoResults(true)
-        setShowSuggestions(true)
-      } finally {
-        setSearchingPages(false)
-      }
-    }, 400)
-  }, [])
-
-  const handleNameChange = (value: string) => {
-    setForm({ ...form, name: value })
-    searchMetaPages(value)
-  }
-
-  const selectSuggestion = (page: MetaPage) => {
-    setForm({ ...form, name: page.name, meta_page_id: page.id })
-    setShowSuggestions(false)
-    setSuggestions([])
-  }
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault()
@@ -162,101 +97,16 @@ export default function BrandTracker({
           }}
         >
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
-            {/* Brand name with autocomplete */}
-            <div style={{ position: 'relative' }} ref={suggestionsRef}>
+            <div>
               <label style={labelStyle}>Nom de la marque *</label>
-              <div style={{ position: 'relative' }}>
-                <input
-                  style={inputStyle}
-                  placeholder="Tapez un nom de marque..."
-                  value={form.name}
-                  onChange={(e) => handleNameChange(e.target.value)}
-                  onFocus={() => { if (suggestions.length > 0) setShowSuggestions(true) }}
-                  required
-                  autoComplete="off"
-                />
-                {searchingPages && (
-                  <Loader2
-                    size={14}
-                    className="animate-spin"
-                    style={{
-                      position: 'absolute',
-                      right: 10,
-                      top: '50%',
-                      transform: 'translateY(-50%)',
-                      color: 'var(--lp-muted)',
-                    }}
-                  />
-                )}
-              </div>
-              {/* Suggestions dropdown */}
-              {showSuggestions && !searchingPages && (
-                <div
-                  style={{
-                    position: 'absolute',
-                    top: '100%',
-                    left: 0,
-                    right: 0,
-                    zIndex: 100,
-                    background: '#fff',
-                    border: '1px solid var(--lp-border)',
-                    borderRadius: 8,
-                    boxShadow: '0 4px 16px rgba(0,0,0,0.1)',
-                    maxHeight: 220,
-                    overflow: 'auto',
-                    marginTop: 4,
-                  }}
-                >
-                  {suggestions.length > 0 ? (
-                    <>
-                      <div style={{ padding: '6px 10px', fontSize: 10, color: 'var(--lp-muted)', textTransform: 'uppercase', letterSpacing: '0.5px', borderBottom: '1px solid var(--lp-border)' }}>
-                        Pages Meta trouvees ({suggestions.length})
-                      </div>
-                      {suggestions.map((page) => (
-                        <button
-                          key={page.id}
-                          type="button"
-                          onClick={() => selectSuggestion(page)}
-                          style={{
-                            display: 'flex',
-                            alignItems: 'center',
-                            justifyContent: 'space-between',
-                            width: '100%',
-                            padding: '8px 10px',
-                            border: 'none',
-                            borderBottom: '1px solid #F3F4F6',
-                            background: 'none',
-                            cursor: 'pointer',
-                            textAlign: 'left',
-                            fontFamily: 'inherit',
-                            transition: 'background 0.15s',
-                          }}
-                          onMouseEnter={(e) => (e.currentTarget.style.background = 'var(--lp-purple-light)')}
-                          onMouseLeave={(e) => (e.currentTarget.style.background = 'none')}
-                        >
-                          <span style={{ fontSize: 13, fontWeight: 600, color: 'var(--lp-text)' }}>
-                            {page.name}
-                          </span>
-                          <span style={{ fontSize: 11, color: '#1877F2', background: '#E8F0FE', padding: '1px 6px', borderRadius: 4 }}>
-                            ID: {page.id}
-                          </span>
-                        </button>
-                      ))}
-                    </>
-                  ) : noResults ? (
-                    <div style={{ padding: '10px 12px', fontSize: 12, color: 'var(--lp-muted)', textAlign: 'center' }}>
-                      Aucune page Meta trouvee. Vous pouvez saisir le Page ID manuellement.
-                    </div>
-                  ) : null}
-                </div>
-              )}
-              {form.meta_page_id && (
-                <div style={{ fontSize: 11, color: '#1877F2', marginTop: 4 }}>
-                  Meta Page ID: {form.meta_page_id}
-                </div>
-              )}
+              <input
+                style={inputStyle}
+                placeholder="Ex: HelloFresh, Nike, Sephora..."
+                value={form.name}
+                onChange={(e) => setForm({ ...form, name: e.target.value })}
+                required
+              />
             </div>
-
             <div>
               <label style={labelStyle}>Industrie</label>
               <input
@@ -264,24 +114,6 @@ export default function BrandTracker({
                 placeholder="Ex: E-commerce, SaaS..."
                 value={form.industry}
                 onChange={(e) => setForm({ ...form, industry: e.target.value })}
-              />
-            </div>
-            <div>
-              <label style={labelStyle}>Meta Page ID</label>
-              <input
-                style={{ ...inputStyle, background: form.meta_page_id ? '#F0FFF4' : '#fff' }}
-                placeholder="Auto-rempli ou saisie manuelle"
-                value={form.meta_page_id}
-                onChange={(e) => setForm({ ...form, meta_page_id: e.target.value })}
-              />
-            </div>
-            <div>
-              <label style={labelStyle}>TikTok Advertiser ID</label>
-              <input
-                style={inputStyle}
-                placeholder="ID annonceur TikTok"
-                value={form.tiktok_advertiser_id}
-                onChange={(e) => setForm({ ...form, tiktok_advertiser_id: e.target.value })}
               />
             </div>
             <div>
@@ -383,16 +215,6 @@ export default function BrandTracker({
                   {brand.country && (
                     <span style={{ fontSize: 11, color: 'var(--lp-muted)', background: 'var(--lp-bg)', padding: '1px 6px', borderRadius: 4 }}>
                       {COUNTRIES[brand.country] || brand.country}
-                    </span>
-                  )}
-                  {brand.meta_page_id && (
-                    <span style={{ fontSize: 11, color: '#1877F2', background: '#E8F0FE', padding: '1px 6px', borderRadius: 4 }}>
-                      Meta: {brand.meta_page_id}
-                    </span>
-                  )}
-                  {brand.tiktok_advertiser_id && (
-                    <span style={{ fontSize: 11, color: '#000', background: '#F0F0F0', padding: '1px 6px', borderRadius: 4 }}>
-                      TikTok
                     </span>
                   )}
                 </div>
