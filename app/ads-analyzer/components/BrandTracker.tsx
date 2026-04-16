@@ -37,6 +37,7 @@ export default function BrandTracker({
   const [suggestions, setSuggestions] = useState<MetaPage[]>([])
   const [showSuggestions, setShowSuggestions] = useState(false)
   const [searchingPages, setSearchingPages] = useState(false)
+  const [noResults, setNoResults] = useState(false)
   const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null)
   const suggestionsRef = useRef<HTMLDivElement>(null)
 
@@ -67,11 +68,14 @@ export default function BrandTracker({
         const res = await fetch(`/api/ads/meta/pages?q=${encodeURIComponent(query)}`)
         if (res.ok) {
           const data = await res.json()
-          setSuggestions(data.pages || [])
-          setShowSuggestions((data.pages || []).length > 0)
+          const pages = data.pages || []
+          setSuggestions(pages)
+          setShowSuggestions(true) // show dropdown even if empty (to show "no results")
+          setNoResults(pages.length === 0)
         }
       } catch {
-        // silently fail
+        setNoResults(true)
+        setShowSuggestions(true)
       } finally {
         setSearchingPages(false)
       }
@@ -186,7 +190,7 @@ export default function BrandTracker({
                 )}
               </div>
               {/* Suggestions dropdown */}
-              {showSuggestions && suggestions.length > 0 && (
+              {showSuggestions && !searchingPages && (
                 <div
                   style={{
                     position: 'absolute',
@@ -203,39 +207,47 @@ export default function BrandTracker({
                     marginTop: 4,
                   }}
                 >
-                  <div style={{ padding: '6px 10px', fontSize: 10, color: 'var(--lp-muted)', textTransform: 'uppercase', letterSpacing: '0.5px', borderBottom: '1px solid var(--lp-border)' }}>
-                    Pages Meta trouvees ({suggestions.length})
-                  </div>
-                  {suggestions.map((page) => (
-                    <button
-                      key={page.id}
-                      type="button"
-                      onClick={() => selectSuggestion(page)}
-                      style={{
-                        display: 'flex',
-                        alignItems: 'center',
-                        justifyContent: 'space-between',
-                        width: '100%',
-                        padding: '8px 10px',
-                        border: 'none',
-                        borderBottom: '1px solid #F3F4F6',
-                        background: 'none',
-                        cursor: 'pointer',
-                        textAlign: 'left',
-                        fontFamily: 'inherit',
-                        transition: 'background 0.15s',
-                      }}
-                      onMouseEnter={(e) => (e.currentTarget.style.background = 'var(--lp-purple-light)')}
-                      onMouseLeave={(e) => (e.currentTarget.style.background = 'none')}
-                    >
-                      <span style={{ fontSize: 13, fontWeight: 600, color: 'var(--lp-text)' }}>
-                        {page.name}
-                      </span>
-                      <span style={{ fontSize: 11, color: '#1877F2', background: '#E8F0FE', padding: '1px 6px', borderRadius: 4 }}>
-                        ID: {page.id}
-                      </span>
-                    </button>
-                  ))}
+                  {suggestions.length > 0 ? (
+                    <>
+                      <div style={{ padding: '6px 10px', fontSize: 10, color: 'var(--lp-muted)', textTransform: 'uppercase', letterSpacing: '0.5px', borderBottom: '1px solid var(--lp-border)' }}>
+                        Pages Meta trouvees ({suggestions.length})
+                      </div>
+                      {suggestions.map((page) => (
+                        <button
+                          key={page.id}
+                          type="button"
+                          onClick={() => selectSuggestion(page)}
+                          style={{
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'space-between',
+                            width: '100%',
+                            padding: '8px 10px',
+                            border: 'none',
+                            borderBottom: '1px solid #F3F4F6',
+                            background: 'none',
+                            cursor: 'pointer',
+                            textAlign: 'left',
+                            fontFamily: 'inherit',
+                            transition: 'background 0.15s',
+                          }}
+                          onMouseEnter={(e) => (e.currentTarget.style.background = 'var(--lp-purple-light)')}
+                          onMouseLeave={(e) => (e.currentTarget.style.background = 'none')}
+                        >
+                          <span style={{ fontSize: 13, fontWeight: 600, color: 'var(--lp-text)' }}>
+                            {page.name}
+                          </span>
+                          <span style={{ fontSize: 11, color: '#1877F2', background: '#E8F0FE', padding: '1px 6px', borderRadius: 4 }}>
+                            ID: {page.id}
+                          </span>
+                        </button>
+                      ))}
+                    </>
+                  ) : noResults ? (
+                    <div style={{ padding: '10px 12px', fontSize: 12, color: 'var(--lp-muted)', textAlign: 'center' }}>
+                      Aucune page Meta trouvee. Vous pouvez saisir le Page ID manuellement.
+                    </div>
+                  ) : null}
                 </div>
               )}
               {form.meta_page_id && (
